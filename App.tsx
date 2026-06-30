@@ -1,7 +1,7 @@
-import React, {useState} from 'react';
-import {StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import Svg, {G, Line, Path, Rect} from 'react-native-svg';
+import React, { useState } from 'react';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from './src/features/Different/Index';
 import Showtime from './src/features/Showtime/Index';
 
@@ -17,50 +17,50 @@ type TabItem = {
 };
 
 const tabs: TabItem[] = [
-  {key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag'},
-  {key: 'voucher', label: 'Voucher', icon: 'ticket'},
-  {key: 'member', label: 'Ưu đãi', icon: 'gift'},
-  {key: 'different', label: 'Khác', icon: 'grid'},
+  { key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag' },
+  { key: 'voucher', label: 'Voucher', icon: 'ticket' },
+  { key: 'member', label: 'Ưu đãi', icon: 'gift' },
+  { key: 'different', label: 'Khác', icon: 'grid' },
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
+  const [activeTab, setActiveTab] = useState<TabKey>('different');
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
-        {activeTab === 'movieSchedule' ? (
-          <Showtime />
-        ) : activeTab === 'different' ? (
+        {activeTab === 'different' ? (
           <Different />
         ) : (
           <EmptyTab activeTab={activeTab} />
         )}
 
-        <View style={styles.tabBar}>
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.key;
-            const color = isActive ? BLUE : GRAY;
+        {!isDifferentDetail && (
+          <View style={styles.tabBar}>
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.key;
+              const color = isActive ? BLUE : GRAY;
 
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                activeOpacity={0.75}
-                style={styles.tabItem}
-                onPress={() => setActiveTab(tab.key)}>
-                <TabIcon name={tab.icon} color={color} />
-                <Text style={[styles.tabLabel, {color}]}>{tab.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  activeOpacity={0.75}
+                  style={styles.tabItem}
+                  onPress={() => setActiveTab(tab.key)}
+                >
+                  <TabIcon name={tab.icon} color={color} />
+                  <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function EmptyTab({activeTab}: {activeTab: TabKey}) {
+function EmptyTab({ activeTab }: { activeTab: TabKey }) {
   const title = tabs.find(tab => tab.key === activeTab)?.label.replace('\n', ' ');
 
   return (
@@ -70,7 +70,7 @@ function EmptyTab({activeTab}: {activeTab: TabKey}) {
   );
 }
 
-function TabIcon({name, color}: {name: TabItem['icon']; color: string}) {
+function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
   return (
     <Svg width={27} height={27} viewBox="0 0 35 35" fill="none">
       {name === 'flag' && (
