@@ -1,24 +1,14 @@
 import React, { useState } from 'react';
-import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from './src/features/Different/Index';
+import Showtime from './src/features/Showtime/Index';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
 
-type TabKey =
-  | 'movieSchedule'
-  | 'voucher'
-  | 'member'
-  | 'different';
+type TabKey = 'movieSchedule' | 'voucher' | 'member' | 'different';
 
 type TabItem = {
   key: TabKey;
@@ -27,26 +17,10 @@ type TabItem = {
 };
 
 const tabs: TabItem[] = [
-  {
-    key: 'movieSchedule',
-    label: 'Lịch chiếu\ntheo phim',
-    icon: 'flag',
-  },
-  {
-    key: 'voucher',
-    label: 'Voucher',
-    icon: 'ticket',
-  },
-  {
-    key: 'member',
-    label: 'Ưu đãi',
-    icon: 'gift',
-  },
-  {
-    key: 'different',
-    label: 'Khác',
-    icon: 'grid',
-  },
+  { key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag' },
+  { key: 'voucher', label: 'Voucher', icon: 'ticket' },
+  { key: 'member', label: 'Ưu đãi', icon: 'gift' },
+  { key: 'different', label: 'Khác', icon: 'grid' },
 ];
 
 function App() {
@@ -59,43 +33,40 @@ function App() {
         {activeTab === 'different' ? (
           <Different />
         ) : (
-          <ComingSoon title={getTabTitle(activeTab)} />
+          <EmptyTab activeTab={activeTab} />
         )}
 
-        <View style={styles.tabBar}>
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.key;
-            const color = isActive ? BLUE : GRAY;
+        {!isDifferentDetail && (
+          <View style={styles.tabBar}>
+            {tabs.map(tab => {
+              const isActive = activeTab === tab.key;
+              const color = isActive ? BLUE : GRAY;
 
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                activeOpacity={0.75}
-                style={styles.tabItem}
-                onPress={() => setActiveTab(tab.key)}
-              >
-                <TabIcon name={tab.icon} color={color} />
-                <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  activeOpacity={0.75}
+                  style={styles.tabItem}
+                  onPress={() => setActiveTab(tab.key)}
+                >
+                  <TabIcon name={tab.icon} color={color} />
+                  <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function getTabTitle(tabKey: TabKey) {
-  const tab = tabs.find(item => item.key === tabKey);
+function EmptyTab({ activeTab }: { activeTab: TabKey }) {
+  const title = tabs.find(tab => tab.key === activeTab)?.label.replace('\n', ' ');
 
-  return tab?.label.replace('\n', ' ') ?? '';
-}
-
-function ComingSoon({ title }: { title: string }) {
   return (
-    <ScrollView contentContainerStyle={styles.emptyContent}>
+    <View style={styles.emptyTab}>
       <Text style={styles.emptyTitle}>{title}</Text>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -111,24 +82,14 @@ function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
       )}
 
       {name === 'ticket' && (
-        <G
-          stroke={color}
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <G stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M6.5 10.5h22v5a3 3 0 0 0 0 6v5h-22v-5a3 3 0 0 0 0-6z" />
           <Line x1={15} y1={11} x2={15} y2={26} strokeDasharray="2 4" />
         </G>
       )}
 
       {name === 'gift' && (
-        <G
-          stroke={color}
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+        <G stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
           <Rect x={7} y={15} width={21} height={15} rx={1.5} />
           <Rect x={5.5} y={10} width={24} height={6} rx={1.5} />
           <Line x1={17.5} y1={10} x2={17.5} y2={30} />
@@ -158,15 +119,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  emptyContent: {
-    flexGrow: 1,
+  emptyTab: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
   },
   emptyTitle: {
-    color: '#173247',
-    fontSize: 24,
+    color: BLUE,
+    fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
   },
