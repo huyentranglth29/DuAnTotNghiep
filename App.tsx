@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from './src/features/Different/Index';
 import Showtime from './src/features/Showtime/Index';
-
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
 
@@ -24,17 +23,25 @@ const tabs: TabItem[] = [
 ];
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('different');
+const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
+  const [isDifferentDetail, setIsDifferentDetail] = useState(false);
+
+  const handleTabPress = (tabKey: TabKey) => {
+    setActiveTab(tabKey);
+    setIsDifferentDetail(false);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
-        {activeTab === 'different' ? (
-          <Different />
-        ) : (
-          <EmptyTab activeTab={activeTab} />
-        )}
+        {activeTab === 'movieSchedule' ? (
+  <Showtime />
+) : activeTab === 'different' ? (
+  <Different onDetailChange={setIsDifferentDetail} />
+) : (
+  <EmptyTab activeTab={activeTab} />
+)}
 
         {!isDifferentDetail && (
           <View style={styles.tabBar}>
@@ -47,7 +54,7 @@ function App() {
                   key={tab.key}
                   activeOpacity={0.75}
                   style={styles.tabItem}
-                  onPress={() => setActiveTab(tab.key)}
+                  onPress={() => handleTabPress(tab.key)}
                 >
                   <TabIcon name={tab.icon} color={color} />
                   <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
@@ -55,6 +62,7 @@ function App() {
               );
             })}
           </View>
+        )}
       </View>
     </SafeAreaView>
   );
