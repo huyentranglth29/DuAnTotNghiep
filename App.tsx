@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -7,13 +7,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import Svg, {G, Line, Path, Rect} from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { G, Line, Path, Rect } from 'react-native-svg';
+import Different from './src/features/Different/Index';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
 
-type TabKey = 'movieSchedule' | 'voucher' | 'member' | 'different';
+type TabKey =
+  | 'movieSchedule'
+  | 'voucher'
+  | 'member'
+  | 'different';
 
 type TabItem = {
   key: TabKey;
@@ -44,32 +49,18 @@ const tabs: TabItem[] = [
   },
 ];
 
-const posters = [
-  {title: '28 Years Later', color: '#182423'},
-  {title: 'Sheep in the Box', color: '#26709d'},
-  {title: 'Moana', color: '#6da5c4'},
-];
-
 function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
+  const [activeTab, setActiveTab] = useState<TabKey>('different');
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.posterList}>
-          {posters.map(poster => (
-            <View
-              key={poster.title}
-              style={[styles.posterCard, {backgroundColor: poster.color}]}>
-              <View style={styles.posterShade} />
-              <Text style={styles.posterTitle}>{poster.title}</Text>
-            </View>
-          ))}
-        </ScrollView>
+        {activeTab === 'different' ? (
+          <Different />
+        ) : (
+          <ComingSoon title={getTabTitle(activeTab)} />
+        )}
 
         <View style={styles.tabBar}>
           {tabs.map(tab => {
@@ -81,9 +72,10 @@ function App() {
                 key={tab.key}
                 activeOpacity={0.75}
                 style={styles.tabItem}
-                onPress={() => setActiveTab(tab.key)}>
+                onPress={() => setActiveTab(tab.key)}
+              >
                 <TabIcon name={tab.icon} color={color} />
-                <Text style={[styles.tabLabel, {color}]}>{tab.label}</Text>
+                <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -93,7 +85,21 @@ function App() {
   );
 }
 
-function TabIcon({name, color}: {name: TabItem['icon']; color: string}) {
+function getTabTitle(tabKey: TabKey) {
+  const tab = tabs.find(item => item.key === tabKey);
+
+  return tab?.label.replace('\n', ' ') ?? '';
+}
+
+function ComingSoon({ title }: { title: string }) {
+  return (
+    <ScrollView contentContainerStyle={styles.emptyContent}>
+      <Text style={styles.emptyTitle}>{title}</Text>
+    </ScrollView>
+  );
+}
+
+function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
   return (
     <Svg width={27} height={27} viewBox="0 0 35 35" fill="none">
       {name === 'flag' && (
@@ -105,14 +111,24 @@ function TabIcon({name, color}: {name: TabItem['icon']; color: string}) {
       )}
 
       {name === 'ticket' && (
-        <G stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+        <G
+          stroke={color}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <Path d="M6.5 10.5h22v5a3 3 0 0 0 0 6v5h-22v-5a3 3 0 0 0 0-6z" />
           <Line x1={15} y1={11} x2={15} y2={26} strokeDasharray="2 4" />
         </G>
       )}
 
       {name === 'gift' && (
-        <G stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+        <G
+          stroke={color}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <Rect x={7} y={15} width={21} height={15} rx={1.5} />
           <Rect x={5.5} y={10} width={24} height={6} rx={1.5} />
           <Line x1={17.5} y1={10} x2={17.5} y2={30} />
@@ -142,29 +158,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  posterList: {
-    gap: 14,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 14,
+  emptyContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
   },
-  posterCard: {
-    width: 245,
-    height: 178,
-    borderRadius: 8,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  posterShade: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.22)',
-  },
-  posterTitle: {
-    color: '#ffffff',
+  emptyTitle: {
+    color: '#173247',
     fontSize: 24,
     fontWeight: '800',
-    padding: 16,
-    textTransform: 'uppercase',
+    textAlign: 'center',
   },
   tabBar: {
     minHeight: 104,
