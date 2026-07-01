@@ -10,7 +10,7 @@ import MenuIcon, { MenuIconName } from '../component/MenuIcon';
 
 const TITLE_COLOR = '#173247';
 
-export type DifferentScreenName = 'menu' | 'voucher' | 'notification';
+export type DifferentScreenName = 'menu' | 'voucher' | 'notification' | 'member';
 
 type MenuItem = {
   title: string;
@@ -33,6 +33,7 @@ const menuItems: MenuItem[] = [
     icon: 'member',
     color: '#a7d62b',
     backgroundColor: '#fbfff1',
+    screen: 'member',
   },
   {
     title: 'Thông báo',

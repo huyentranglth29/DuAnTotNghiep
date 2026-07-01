@@ -3,6 +3,7 @@ import DifferentMenuScreen, {
   DifferentScreenName,
 } from './screens/DifferentMenuScreen';
 import FreeVoucherScreen from './screens/FreeVoucherScreen';
+import MemberScreen from './screens/MemberScreen';
 import NotificationScreen from './screens/NotificationScreen';
 
 type DifferentProps = {
@@ -27,6 +28,10 @@ function Different({ onDetailChange }: DifferentProps) {
 
   if (activeScreen === 'notification') {
     return <NotificationScreen onBack={goBack} />;
+  }
+
+  if (activeScreen === 'member') {
+    return <MemberScreen onBack={goBack} />;
   }
 
   return <DifferentMenuScreen onOpenScreen={openScreen} />;
