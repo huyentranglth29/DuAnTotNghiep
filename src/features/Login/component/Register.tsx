@@ -29,7 +29,7 @@ type RegisterProps = {
     fullName: string;
     email: string;
     password: string;
-  }) => void;
+  }) => void | Promise<void>;
 };
 
 function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {

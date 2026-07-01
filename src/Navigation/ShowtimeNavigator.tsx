@@ -1,9 +1,11 @@
 import React, {useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import DangChieu from '../features/Showtime/components/DangChieu';
+import DatVe from '../features/Showtime/components/DatVe';
 import MovieName, {
   MovieBookingInfo,
 } from '../features/Showtime/components/MovieName';
+import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
 import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
 import SapChieu from '../features/Showtime/components/SapChieu';
 import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
@@ -16,6 +18,32 @@ function ShowtimeNavigator() {
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(null);
   const [showMovieDetail, setShowMovieDetail] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
+  const [bookingSummary, setBookingSummary] = useState<{
+    seats: string[];
+    totalPrice: number;
+  } | null>(null);
+
+  if (selectedMovie && bookingSummary) {
+    return (
+      <DatVeDetail
+        movie={selectedMovie}
+        seats={bookingSummary.seats}
+        totalPrice={bookingSummary.totalPrice}
+        onClose={() => setBookingSummary(null)}
+      />
+    );
+  }
+
+  if (selectedMovie && showBooking) {
+    return (
+      <DatVe
+        movie={selectedMovie}
+        onBack={() => setShowBooking(false)}
+        onContinue={summary => setBookingSummary(summary)}
+      />
+    );
+  }
 
   if (selectedMovie && showMovieDetail) {
     return (
@@ -30,8 +58,13 @@ function ShowtimeNavigator() {
     return (
       <MovieName
         movie={selectedMovie}
-        onBack={() => setSelectedMovie(null)}
+        onBack={() => {
+          setSelectedMovie(null);
+          setShowBooking(false);
+          setBookingSummary(null);
+        }}
         onDetailPress={() => setShowMovieDetail(true)}
+        onShowtimePress={() => setShowBooking(true)}
       />
     );
   }
@@ -65,6 +98,8 @@ function ShowtimeNavigator() {
           onMoviePress={movie => {
             setSelectedMovie(movie);
             setShowMovieDetail(false);
+            setShowBooking(false);
+            setBookingSummary(null);
           }}
         />
       ) : activeScheduleTab === 'ĐANG CHIẾU' ? (
@@ -72,6 +107,8 @@ function ShowtimeNavigator() {
           onMoviePress={movie => {
             setSelectedMovie(movie);
             setShowMovieDetail(false);
+            setShowBooking(false);
+            setBookingSummary(null);
           }}
         />
       ) : (
@@ -79,6 +116,8 @@ function ShowtimeNavigator() {
           onMoviePress={movie => {
             setSelectedMovie(movie);
             setShowMovieDetail(false);
+            setShowBooking(false);
+            setBookingSummary(null);
           }}
         />
       )}
