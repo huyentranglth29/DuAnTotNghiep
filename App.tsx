@@ -23,7 +23,7 @@ const tabs: TabItem[] = [
 ];
 
 function App() {
-const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
+  const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
 
   const handleTabPress = (tabKey: TabKey) => {
@@ -31,17 +31,18 @@ const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
     setIsDifferentDetail(false);
   };
 
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
         {activeTab === 'movieSchedule' ? (
-  <Showtime />
-) : activeTab === 'different' ? (
-  <Different onDetailChange={setIsDifferentDetail} />
-) : (
-  <EmptyTab activeTab={activeTab} />
-)}
+          <Showtime />
+        ) : activeTab === 'different' ? (
+          <Different onDetailChange={setIsDifferentDetail} />
+        ) : (
+          <EmptyTab activeTab={activeTab} />
+        )}
 
         {!isDifferentDetail && (
           <View style={styles.tabBar}>
