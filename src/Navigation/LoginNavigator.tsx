@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {useEffect, useState} from 'react';
 import Login from '../features/Login/Index';
 import PorgotPass from '../features/Login/component/PorgotPass';
 import Register from '../features/Login/component/Register';
@@ -14,9 +15,55 @@ type LoginNavigatorProps = {
   onAuthenticated?: () => void;
 };
 
+const REGISTERED_USER_KEY = '@filmgo_registered_user';
+
 function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
   const [activeScreen, setActiveScreen] = useState<LoginScreen>('login');
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
+
+  useEffect(() => {
+    loadRegisteredUser();
+  }, []);
+
+  const loadRegisteredUser = async () => {
+    try {
+      const savedUser = await AsyncStorage.getItem(REGISTERED_USER_KEY);
+      if (savedUser) {
+        setRegisteredUser(JSON.parse(savedUser));
+      }
+    } catch {
+      setRegisteredUser(null);
+    }
+  };
+
+  const saveRegisteredUser = async (user: RegisteredUser) => {
+    setRegisteredUser(user);
+
+    try {
+      await AsyncStorage.setItem(REGISTERED_USER_KEY, JSON.stringify(user));
+    } catch (error) {
+      console.warn('Không lưu được tài khoản xuống máy:', error);
+    }
+  };
+
+  const findRegisteredUser = async () => {
+    if (registeredUser) {
+      return registeredUser;
+    }
+
+    try {
+      const savedUser = await AsyncStorage.getItem(REGISTERED_USER_KEY);
+      if (!savedUser) {
+        return null;
+      }
+
+      const parsedUser = JSON.parse(savedUser) as RegisteredUser;
+      setRegisteredUser(parsedUser);
+      return parsedUser;
+    } catch {
+      return null;
+    }
+  };
 
   if (activeScreen === 'porgotPass') {
     return <PorgotPass onBackToLogin={() => setActiveScreen('login')} />;
@@ -26,8 +73,8 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
     return (
       <Register
         onBackToLogin={() => setActiveScreen('login')}
-        onRegisterSuccess={user => {
-          setRegisteredUser(user);
+        onRegisterSuccess={async user => {
+          await saveRegisteredUser(user);
           setActiveScreen('login');
         }}
       />
@@ -38,11 +85,13 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
     <Login
       onForgotPasswordPress={() => setActiveScreen('porgotPass')}
       onRegisterPress={() => setActiveScreen('register')}
-      onLoginPress={({email, password}) => {
+      onLoginPress={async ({email, password}) => {
+        const user = await findRegisteredUser();
+
         if (
-          registeredUser &&
-          email.trim().toLowerCase() === registeredUser.email.trim().toLowerCase() &&
-          password === registeredUser.password
+          user &&
+          email.trim().toLowerCase() === user.email.trim().toLowerCase() &&
+          password === user.password
         ) {
           onAuthenticated?.();
           return true;
