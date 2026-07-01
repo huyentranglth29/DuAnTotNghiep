@@ -10,7 +10,13 @@ import MenuIcon, { MenuIconName } from '../component/MenuIcon';
 
 const TITLE_COLOR = '#173247';
 
-export type DifferentScreenName = 'menu' | 'voucher' | 'notification' | 'member';
+export type DifferentScreenName =
+  | 'menu'
+  | 'voucher'
+  | 'notification'
+  | 'member'
+  | 'career'
+  | 'setting';
 
 type MenuItem = {
   title: string;
@@ -29,7 +35,7 @@ const menuItems: MenuItem[] = [
     screen: 'voucher',
   },
   {
-    title: 'Thành viên BETA',
+    title: 'Thành viên',
     icon: 'member',
     color: '#a7d62b',
     backgroundColor: '#fbfff1',
@@ -47,12 +53,14 @@ const menuItems: MenuItem[] = [
     icon: 'career',
     color: '#ee7898',
     backgroundColor: '#fff3f7',
+    screen: 'career',
   },
   {
     title: 'Cài đặt',
     icon: 'setting',
     color: '#b956b7',
     backgroundColor: '#fbf2fc',
+    screen: 'setting',
   },
 ];
 
