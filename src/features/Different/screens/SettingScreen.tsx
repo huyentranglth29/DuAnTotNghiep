@@ -35,7 +35,7 @@ const onlineQuestions = [
   'Vé liệt kê trên website áp dụng cho đối tượng nào?',
   'Sau khi đặt mua vé thành công thì tôi nên làm gì?',
   'Tại sao thẻ của bạn bị từ chối, giao dịch thanh toán không thành công?',
-  'Tôi đã thanh toán thành công, tiền trong tài khoản đã bị trừ, nhưng không nhận được email xác nhận từ Beta Media thì tôi phải làm gì?',
+  'Tôi đã thanh toán thành công, tiền trong tài khoản đã bị trừ, nhưng không nhận được email xác nhận từ FilmGo thì tôi phải làm gì?',
   'HƯỚNG DẪN ĐẶT VÉ ONLINE',
   'Làm sao để thanh toán Online?',
 ];
@@ -45,7 +45,7 @@ const generalQuestions = [
   'HƯỚNG DẪN ĐẶT VÉ ONLINE',
   'Vấn đề chụp hình, ghi âm tại rạp?',
   'Chính sách giảm giá cho HSSV, trẻ em và người già?',
-  'Beta Combo, Sweet Combo và Family Combo? Việc mua combo ở Quầy vé có lợi gì?',
+  'FilmGo Combo, Sweet Combo và Family Combo? Việc mua combo ở Quầy vé có lợi gì?',
   '"Qui định khi xem phim" là gì?',
   'Các vị trí ghế có gì khác nhau?',
   'Tại sao không được mang thú cưng vào rạp cũng như hút thuốc trong rạp?',

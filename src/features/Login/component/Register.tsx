@@ -169,7 +169,7 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
             Tôi cam kết tuân theo{' '}
             <Text style={styles.linkText}>chính sách bảo mật</Text> và{' '}
             <Text style={styles.linkText}>điều khoản sử dụng</Text> của
-            Betacinemas.
+            FilmGo.
           </Text>
         </View>
 
@@ -181,7 +181,7 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
         </TouchableOpacity>
 
         <View style={styles.loginRow}>
-          <Text style={styles.loginMuted}>Đăng kí tài khoản Beta Cinemas</Text>
+          <Text style={styles.loginMuted}>Đăng kí tài khoản FilmGo</Text>
           <TouchableOpacity activeOpacity={0.75} onPress={onBackToLogin}>
             <Text style={styles.loginLink}>Đăng nhập</Text>
           </TouchableOpacity>

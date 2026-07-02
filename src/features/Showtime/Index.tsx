@@ -23,8 +23,7 @@ function Showtime() {
           </View>
         </View>
         <View style={styles.logoBlock}>
-          <Text style={styles.logoBeta}>beta</Text>
-          <Text style={styles.logoCinema}>cinemas</Text>
+          <Text style={styles.logoFilm}>FilmGo</Text>
         </View>
       </View>
 
@@ -105,16 +104,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 8,
   },
-  logoBeta: {
+  logoFilm: {
     color: BLUE,
     fontSize: 25,
     fontWeight: '800',
     lineHeight: 26,
-  },
-  logoCinema: {
-    color: '#3c3c3c',
-    fontSize: 18,
-    lineHeight: 18,
   },
 });
 

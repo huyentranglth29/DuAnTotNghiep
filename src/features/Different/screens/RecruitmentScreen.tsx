@@ -42,19 +42,19 @@ function RecruitmentDetailScreen({ onBack }: { onBack: () => void }) {
         <Text style={styles.detailDate}>Ngày đăng: 05/04/2023</Text>
 
         <View style={styles.article}>
-          <Text style={styles.articleHeading}>GIA NHẬP CÙNG GIA ĐÌNH BETA MEDIA</Text>
+          <Text style={styles.articleHeading}>GIA NHẬP CÙNG GIA ĐÌNH FILMGO</Text>
           <Text style={styles.articleText}>
-            Công ty cổ phần Beta Media trực thuộc Beta Group kinh doanh trong nhiều lĩnh
+            Công ty cổ phần FilmGo kinh doanh trong nhiều lĩnh
             vực giải trí. FilmGo là một trong top 5 cụm rạp chiếu phim có tốc độ
             tăng trưởng nhanh nhất tại Việt Nam.
           </Text>
           <Text style={styles.articleText}>
-            Beta Media luôn mong muốn mang đến nhiều cơ hội việc làm với môi trường làm
+            FilmGo luôn mong muốn mang đến nhiều cơ hội việc làm với môi trường làm
             việc năng động, trẻ trung, chuyên nghiệp và yêu thích ngành công nghiệp điện
-            ảnh. Beta luôn hướng đến phát triển dịch vụ giải trí hàng đầu Việt Nam.
+            ảnh. FilmGo luôn hướng đến phát triển dịch vụ giải trí hàng đầu Việt Nam.
           </Text>
           <Text style={styles.articleText}>
-            Để gia nhập gia đình Beta và cháy trọn tuổi trẻ, bạn có thể tham khảo một số
+            Để gia nhập gia đình FilmGo và cháy trọn tuổi trẻ, bạn có thể tham khảo một số
             cách dưới đây nhé:
           </Text>
         </View>

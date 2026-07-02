@@ -3,7 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 const showtimeGroups = [
   {
-    cinema: 'Beta Giải Phóng',
+    cinema: 'FilmGo Giải Phóng',
     roomType: '2D PHỤ ĐỀ',
     note: 'Suất chiếu muộn từ 22h00',
     times: [

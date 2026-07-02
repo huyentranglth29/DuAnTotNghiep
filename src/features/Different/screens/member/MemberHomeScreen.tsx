@@ -19,7 +19,7 @@ function MemberHomeScreen({ onBack, onOpen }: MemberHomeScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <MemberHeader title="THÀNH VIÊN BETA" onBack={onBack} />
+      <MemberHeader title="THÀNH VIÊN FILMGO" onBack={onBack} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>

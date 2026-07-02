@@ -44,10 +44,10 @@ const combos = [
     badge: 'MÙI PHỞ',
   },
   {
-    title: 'Beta Combo 69oz',
+    title: 'FilmGo Combo 69oz',
     description: 'TIẾT KIỆM 28K!!! Gồm: 1 Bắp (69oz) + 1 Nước có gas (22oz)',
     color: '#9bd24f',
-    badge: 'BETA',
+    badge: 'FILMGO',
   },
   {
     title: 'Combo Minions',
@@ -112,7 +112,7 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
           <View style={styles.perforation} />
 
           <View style={styles.ticketInfo}>
-            <InfoRow label="Rạp chiếu" value="Beta Giải Phóng" />
+            <InfoRow label="Rạp chiếu" value="FilmGo Giải Phóng" />
             <InfoRow label="Ngày chiếu" value="2026-07-01" />
             <InfoRow label="Giờ chiếu" value="17:45" />
             <InfoRow label="Phòng chiếu" value="P4" />
@@ -154,8 +154,8 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         </View>
 
         <Text style={styles.sectionTitle}>PHƯƠNG THỨC GIẢM GIÁ</Text>
-        <OptionRow label="BETA Voucher" />
-        <OptionRow label="Điểm BETA" />
+        <OptionRow label="FilmGo Voucher" />
+        <OptionRow label="Điểm FilmGo" />
 
         <View style={styles.totalBlock}>
           <MoneyRow label="Tổng tiền" value={formatVnd(totalPrice)} valueStyle={styles.redMoney} />
@@ -270,7 +270,7 @@ function ComboThumb({color, badge}: {color: string; badge: string}) {
   return (
     <View style={[styles.comboThumb, {backgroundColor: color}]}>
       <View style={styles.bucket}>
-        <Text style={styles.bucketText}>BETA</Text>
+        <Text style={styles.bucketText}>FILMGO</Text>
       </View>
       <View style={styles.cup} />
       <Text style={styles.comboBadge}>{badge}</Text>

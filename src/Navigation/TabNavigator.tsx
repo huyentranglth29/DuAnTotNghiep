@@ -1,10 +1,10 @@
-import React, {useState} from 'react';
-import {StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
-import Svg, {G, Line, Path, Rect} from 'react-native-svg';
+import React, { useState } from 'react';
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from '../features/Different/Index';
 import Showtime from '../features/Showtime/Index';
-import PreferentialNavigator from './PreferentialNavigator';
+import Voucher from '../features/Voucher/Index';
 import VoucherNavigator from './VoucherNavigator';
 
 const BLUE = '#005f98';
@@ -19,28 +19,36 @@ type TabItem = {
 };
 
 const tabs: TabItem[] = [
-  {key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag'},
-  {key: 'voucher', label: 'Voucher', icon: 'ticket'},
-  {key: 'member', label: 'Ưu đãi', icon: 'gift'},
-  {key: 'different', label: 'Khác', icon: 'grid'},
+  { key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag' },
+  { key: 'voucher', label: 'Voucher', icon: 'ticket' },
+  { key: 'member', label: 'Ưu đãi', icon: 'gift' },
+  { key: 'different', label: 'Khác', icon: 'grid' },
 ];
 
 function TabNavigator() {
   const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
+  const [isPreferentialDetail, setIsPreferentialDetail] = useState(false);
 
   const handleTabPress = (tabKey: TabKey) => {
     setActiveTab(tabKey);
     setIsDifferentDetail(false);
+    setIsPreferentialDetail(false);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <View style={styles.container}>
-        <View style={styles.content}>{renderTabContent(activeTab, setIsDifferentDetail)}</View>
+        <View style={styles.content}>
+          {renderTabContent(
+            activeTab,
+            setIsDifferentDetail,
+            setIsPreferentialDetail,
+          )}
+        </View>
 
-        {!isDifferentDetail && (
+        {!isDifferentDetail && !isPreferentialDetail && (
           <View style={styles.tabBar}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.key;
@@ -53,7 +61,7 @@ function TabNavigator() {
                   style={styles.tabItem}
                   onPress={() => handleTabPress(tab.key)}>
                   <TabIcon name={tab.icon} color={color} />
-                  <Text style={[styles.tabLabel, {color}]}>{tab.label}</Text>
+                  <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -67,6 +75,7 @@ function TabNavigator() {
 function renderTabContent(
   activeTab: TabKey,
   setIsDifferentDetail: (isDetail: boolean) => void,
+  setIsPreferentialDetail: (isDetail: boolean) => void,
 ) {
   if (activeTab === 'movieSchedule') {
     return <Showtime />;
@@ -77,13 +86,13 @@ function renderTabContent(
   }
 
   if (activeTab === 'member') {
-    return <PreferentialNavigator />;
+    return <Voucher onDetailChange={setIsPreferentialDetail} />;
   }
 
   return <Different onDetailChange={setIsDifferentDetail} />;
 }
 
-function TabIcon({name, color}: {name: TabItem['icon']; color: string}) {
+function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
   return (
     <Svg width={27} height={27} viewBox="0 0 35 35" fill="none">
       {name === 'flag' && (
