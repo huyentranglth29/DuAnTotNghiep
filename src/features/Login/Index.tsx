@@ -20,31 +20,41 @@ const LOGO_IMAGE = require('../../assets/logo/filmgo-logo.png');
 type LoginProps = {
   onForgotPasswordPress?: () => void;
   onRegisterPress?: () => void;
-  onLoginPress?: (credentials: {email: string; password: string}) => boolean;
+  onLoginPress?: (credentials: {
+    email: string;
+    password: string;
+  }) => boolean | Promise<boolean>;
 };
 
 function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password) {
       Alert.alert('Thông báo', 'Vui lòng nhập email và mật khẩu.');
       return;
     }
 
-    const isSuccess = onLoginPress?.({email, password});
+    try {
+      setIsLoggingIn(true);
 
-    if (isSuccess) {
-      Alert.alert('Thành công', 'Đăng nhập thành công.');
-      return;
+      const isSuccess = await onLoginPress?.({email, password});
+
+      if (isSuccess) {
+        Alert.alert('Thành công', 'Đăng nhập thành công.');
+        return;
+      }
+
+      Alert.alert(
+        'Thông báo',
+        'Tài khoản hoặc mật khẩu không đúng. Vui lòng đăng ký tài khoản trước.',
+      );
+    } finally {
+      setIsLoggingIn(false);
     }
-
-    Alert.alert(
-      'Thông báo',
-      'Tài khoản hoặc mật khẩu không đúng. Vui lòng đăng ký tài khoản trước.',
-    );
   };
 
   return (
@@ -95,10 +105,13 @@ function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProp
         </TouchableOpacity>
 
         <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.loginButton}
+          activeOpacity={isLoggingIn ? 1 : 0.85}
+          disabled={isLoggingIn}
+          style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
           onPress={handleLogin}>
-          <Text style={styles.primaryButtonText}>ĐĂNG NHẬP</Text>
+          <Text style={styles.primaryButtonText}>
+            {isLoggingIn ? 'ĐANG ĐĂNG NHẬP...' : 'ĐĂNG NHẬP'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.85} style={styles.googleButton}>
@@ -318,6 +331,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.55,
     shadowRadius: 5,
     elevation: 4,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
   primaryButtonText: {
     color: '#ffffff',
