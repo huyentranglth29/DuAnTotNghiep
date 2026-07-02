@@ -16,10 +16,10 @@ const isTestEnvironment =
 
 const promos = [
   {
-    key: 'beta-16k',
+    key: 'filmgo-16k',
     backgroundColor: '#bde874',
     title: 'BẮT MOOD DELULU',
-    subTitle: 'TỚI BETA VI VU',
+    subTitle: 'TỚI FILMGO VI VU',
     highlight: '16K',
     accentColor: '#ff7900',
     mascot: 'AI',

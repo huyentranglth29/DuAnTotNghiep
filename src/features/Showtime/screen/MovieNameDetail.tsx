@@ -28,7 +28,7 @@ const promotions = [
     color: '#51311f',
   },
   {
-    title: 'BẮT MOOD DELULU - TỚI BETA VI VU',
+    title: 'BẮT MOOD DELULU - TỚI FILMGO VI VU',
     color: '#bde874',
   },
   {
@@ -124,7 +124,7 @@ function MovieNameDetail({movie, onBack}: MovieNameDetailProps) {
           {promotions.map(promo => (
             <View key={promo.title} style={styles.promotionCard}>
               <View style={[styles.promotionThumb, {backgroundColor: promo.color}]}>
-                <Text style={styles.promotionThumbText}>beta</Text>
+                <Text style={styles.promotionThumbText}>FilmGo</Text>
               </View>
               <Text style={styles.promotionTitle}>{promo.title}</Text>
             </View>

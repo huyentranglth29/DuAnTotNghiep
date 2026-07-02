@@ -211,7 +211,7 @@ function DatVe({movie, onBack, onContinue}: DatVeProps) {
             <Text style={styles.confirmText}>
               Tôi xác nhận mua vé cho người xem từ{' '}
               <Text style={styles.confirmBold}>18 tuổi trở lên</Text> và hiểu
-              rằng BETA sẽ không hoàn lại tiền nếu không chứng thực được độ tuổi
+              rằng FilmGo sẽ không hoàn lại tiền nếu không chứng thực được độ tuổi
               của khán giả. Tham khảo{' '}
               <Text style={styles.confirmLink}>quy định</Text> của Cục Điện Ảnh.
             </Text>

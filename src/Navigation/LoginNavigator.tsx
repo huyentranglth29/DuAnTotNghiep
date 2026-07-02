@@ -16,6 +16,21 @@ type LoginNavigatorProps = {
 };
 
 const REGISTERED_USER_KEY = '@filmgo_registered_user';
+const DEFAULT_USERS: RegisteredUser[] = [
+  {
+    fullName: 'FilmGo Demo',
+    email: 'demo@filmgo.vn',
+    password: '123456',
+  },
+];
+
+const isSameCredentials = (
+  user: RegisteredUser,
+  email: string,
+  password: string,
+) =>
+  email.trim().toLowerCase() === user.email.trim().toLowerCase() &&
+  password === user.password;
 
 function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
   const [activeScreen, setActiveScreen] = useState<LoginScreen>('login');
@@ -87,12 +102,11 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       onRegisterPress={() => setActiveScreen('register')}
       onLoginPress={async ({email, password}) => {
         const user = await findRegisteredUser();
+        const defaultUser = DEFAULT_USERS.find(item =>
+          isSameCredentials(item, email, password),
+        );
 
-        if (
-          user &&
-          email.trim().toLowerCase() === user.email.trim().toLowerCase() &&
-          password === user.password
-        ) {
+        if ((user && isSameCredentials(user, email, password)) || defaultUser) {
           onAuthenticated?.();
           return true;
         }
