@@ -1,13 +1,15 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   ImageBackground,
   ImageSourcePropType,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
+import ChonGio from './ChonGio';
 
 const BLUE = '#005f98';
 
@@ -22,19 +24,21 @@ type MovieNameProps = {
   movie: MovieBookingInfo;
   onBack: () => void;
   onDetailPress: () => void;
+  onShowtimePress: () => void;
 };
 
 const dates = [
-  {day: '30', label: 'Hôm nay', active: true},
+  {day: '30', label: 'Hôm nay'},
   {day: '01', label: '07-Th 4'},
   {day: '02', label: '07-Th 5'},
   {day: '03', label: '07-Th 6'},
   {day: '04', label: '07-Th 7'},
 ];
 
-function MovieName({movie, onBack, onDetailPress}: MovieNameProps) {
+function MovieName({movie, onBack, onDetailPress, onShowtimePress}: MovieNameProps) {
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
+  const [selectedDate, setSelectedDate] = useState(dates[0].day);
 
   return (
     <View style={styles.container}>
@@ -53,36 +57,48 @@ function MovieName({movie, onBack, onDetailPress}: MovieNameProps) {
         <Text style={styles.headerTitle}>ĐẶT VÉ THEO PHIM</Text>
       </View>
 
-      <ImageBackground source={movie.poster} style={styles.hero} imageStyle={styles.heroImage}>
-        <View style={styles.heroOverlay} />
-        <View style={styles.heroContent}>
-          <Text numberOfLines={1} style={styles.movieTitle}>
-            {movie.title}
-          </Text>
-          <Text style={styles.movieMeta}>
-            {genre} | {duration}
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.75}
-            style={styles.detailButton}
-            onPress={onDetailPress}>
-            <Text style={styles.detailText}>Chi tiết phim</Text>
-          </TouchableOpacity>
-        </View>
-      </ImageBackground>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+        <ImageBackground source={movie.poster} style={styles.hero} imageStyle={styles.heroImage}>
+          <View style={styles.heroOverlay} />
+          <View style={styles.heroContent}>
+            <Text numberOfLines={1} style={styles.movieTitle}>
+              {movie.title}
+            </Text>
+            <Text style={styles.movieMeta}>
+              {genre} | {duration}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={styles.detailButton}
+              onPress={onDetailPress}>
+              <Text style={styles.detailText}>Chi tiết phim</Text>
+            </TouchableOpacity>
+          </View>
+        </ImageBackground>
 
-      <View style={styles.dateRow}>
-        {dates.map(date => (
-          <TouchableOpacity key={date.day} activeOpacity={0.75} style={styles.dateItem}>
-            <Text style={[styles.dateDay, date.active && styles.dateDayActive]}>
-              {date.day}
-            </Text>
-            <Text style={[styles.dateLabel, date.active && styles.dateLabelActive]}>
-              {date.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.dateRow}>
+          {dates.map(date => {
+            const isActive = selectedDate === date.day;
+
+            return (
+              <TouchableOpacity
+                key={date.day}
+                activeOpacity={0.75}
+                style={styles.dateItem}
+                onPress={() => setSelectedDate(date.day)}>
+                <Text style={[styles.dateDay, isActive && styles.dateDayActive]}>
+                  {date.day}
+                </Text>
+                <Text style={[styles.dateLabel, isActive && styles.dateLabelActive]}>
+                  {date.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <ChonGio onShowtimePress={onShowtimePress} />
+      </ScrollView>
     </View>
   );
 }
@@ -91,6 +107,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  scrollBody: {
+    paddingBottom: 18,
   },
   header: {
     height: 72,
@@ -151,7 +170,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   dateRow: {
-    height: 86,
+    height: 82,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-around',

@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   NativeScrollEvent,
@@ -11,15 +11,15 @@ import {
 
 const SLIDE_WIDTH = Dimensions.get('window').width - 28;
 const isTestEnvironment =
-  (globalThis as {process?: {env?: {NODE_ENV?: string}}}).process?.env
+  (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
     ?.NODE_ENV === 'test';
 
 const promos = [
   {
-    key: 'beta-16k',
+    key: 'filmgo-16k',
     backgroundColor: '#bde874',
     title: 'BẮT MOOD DELULU',
-    subTitle: 'TỚI BETA VI VU',
+    subTitle: 'TỚI FILMGO VI VU',
     highlight: '16K',
     accentColor: '#ff7900',
     mascot: 'AI',
@@ -27,7 +27,7 @@ const promos = [
   {
     key: 'popcorn',
     backgroundColor: '#8ddbf1',
-    title: 'BETA CINEMAS',
+    title: 'FilmGo',
     subTitle: '2 3 HẠT BẮP LUẬN',
     highlight: 'COMBO',
     accentColor: '#2c8bd6',
@@ -87,15 +87,15 @@ function PromoCarousel() {
         {promos.map(promo => (
           <View
             key={promo.key}
-            style={[styles.banner, {backgroundColor: promo.backgroundColor}]}>
+            style={[styles.banner, { backgroundColor: promo.backgroundColor }]}>
             <View style={styles.bannerTextWrap}>
               <Text style={styles.bannerTitle}>{promo.title}</Text>
-              <Text style={[styles.bannerSubTitle, {color: promo.accentColor}]}>
+              <Text style={[styles.bannerSubTitle, { color: promo.accentColor }]}>
                 {promo.subTitle}
               </Text>
               <Text style={styles.highlightText}>{promo.highlight}</Text>
             </View>
-            <View style={[styles.mascotCircle, {backgroundColor: promo.accentColor}]}>
+            <View style={[styles.mascotCircle, { backgroundColor: promo.accentColor }]}>
               <Text style={styles.mascotText}>{promo.mascot}</Text>
             </View>
           </View>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 4,
     textShadowColor: '#ff8a00',
-    textShadowOffset: {width: 2, height: 2},
+    textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 1,
   },
   mascotCircle: {

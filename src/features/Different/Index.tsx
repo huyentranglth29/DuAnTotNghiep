@@ -5,6 +5,8 @@ import DifferentMenuScreen, {
 import FreeVoucherScreen from './screens/FreeVoucherScreen';
 import MemberScreen from './screens/MemberScreen';
 import NotificationScreen from './screens/NotificationScreen';
+import RecruitmentScreen from './screens/RecruitmentScreen';
+import SettingScreen from './screens/SettingScreen';
 
 type DifferentProps = {
   onDetailChange?: (isDetail: boolean) => void;
@@ -32,6 +34,14 @@ function Different({ onDetailChange }: DifferentProps) {
 
   if (activeScreen === 'member') {
     return <MemberScreen onBack={goBack} />;
+  }
+
+  if (activeScreen === 'career') {
+    return <RecruitmentScreen onBack={goBack} />;
+  }
+
+  if (activeScreen === 'setting') {
+    return <SettingScreen onBack={goBack} />;
   }
 
   return <DifferentMenuScreen onOpenScreen={openScreen} />;
