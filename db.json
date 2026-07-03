@@ -1,0 +1,245 @@
+{
+  "movies": [
+    {
+      "id": 1,
+      "title": "NEON RECKONING",
+      "posterUrl": "https://picsum.photos/seed/neon-reckoning/400/600",
+      "backdropUrl": "https://picsum.photos/seed/neon-reckoning-bg/800/450",
+      "rating": 8.8,
+      "genre": "Action",
+      "duration": "2h 10m",
+      "synopsis": "Trong thành phố tương lai chìm trong đêm vĩnh cửu, một cựu điều tra viên buộc phải đối mặt với quá khứ tội lỗi khi một loạt vụ án kỳ lạ liên quan đến công nghệ neon.",
+      "cast": [
+        {"id": 1, "name": "Alex Mercer", "avatarUrl": "https://picsum.photos/seed/cast1/120/120"},
+        {"id": 2, "name": "Luna Vega", "avatarUrl": "https://picsum.photos/seed/cast2/120/120"},
+        {"id": 3, "name": "Marcus Chen", "avatarUrl": "https://picsum.photos/seed/cast3/120/120"}
+      ],
+      "status": "featured",
+      "ageRating": "PG-13",
+      "isHot": true,
+      "director": "Jordan Hale",
+      "releaseDate": "2026-06-15",
+      "price": 18.5
+    },
+    {
+      "id": 2,
+      "title": "RED HORIZONS",
+      "posterUrl": "https://picsum.photos/seed/red-horizons/400/600",
+      "backdropUrl": "https://picsum.photos/seed/red-horizons-bg/800/450",
+      "rating": 8.2,
+      "genre": "Drama",
+      "duration": "2h 05m",
+      "synopsis": "Hành trình của một gia đình vượt qua vùng biên hoang mang trong bối cảnh xung đột, tìm kiếm hy vọng nơi chân trời đỏ.",
+      "cast": [
+        {"id": 4, "name": "Elena Rossi", "avatarUrl": "https://picsum.photos/seed/cast4/120/120"},
+        {"id": 5, "name": "Tom Bradley", "avatarUrl": "https://picsum.photos/seed/cast5/120/120"}
+      ],
+      "status": "coming-soon",
+      "ageRating": "PG-13",
+      "isHot": true,
+      "director": "Maria Santos",
+      "releaseDate": "2026-08-01",
+      "price": 16.0
+    },
+    {
+      "id": 3,
+      "title": "CHRONOS: THE LAST HORIZON",
+      "posterUrl": "https://picsum.photos/seed/chronos/400/600",
+      "backdropUrl": "https://picsum.photos/seed/chronos-bg/800/450",
+      "rating": 4.9,
+      "genre": "Sci-Fi",
+      "duration": "2h 28m",
+      "synopsis": "Khi thời gian bắt đầu sụp đổ, phi hành đoàn cuối cùng của nhân loại phải đánh cược tất cả để mở ra chân trời mới — hay chấp nhận kết thúc.",
+      "cast": [
+        {"id": 6, "name": "Dr. Kai Tanaka", "avatarUrl": "https://picsum.photos/seed/cast6/120/120"},
+        {"id": 7, "name": "Aria Frost", "avatarUrl": "https://picsum.photos/seed/cast7/120/120"},
+        {"id": 8, "name": "Victor Hale", "avatarUrl": "https://picsum.photos/seed/cast8/120/120"},
+        {"id": 9, "name": "Mira Sol", "avatarUrl": "https://picsum.photos/seed/cast9/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "PG-13",
+      "isHot": true,
+      "director": "Elena Voss",
+      "releaseDate": "2026-05-20",
+      "price": 18.5
+    },
+    {
+      "id": 4,
+      "title": "Star Horizon",
+      "posterUrl": "https://picsum.photos/seed/star-horizon/400/600",
+      "backdropUrl": "https://picsum.photos/seed/star-horizon-bg/800/450",
+      "rating": 7.9,
+      "genre": "Sci-Fi",
+      "duration": "1h 58m",
+      "synopsis": "Một phi công trẻ khám phá tín hiệu từ hành tinh xa xôi, dẫn đến cuộc đối đầu giữa khoa học và niềm tin.",
+      "cast": [
+        {"id": 10, "name": "Ryan Park", "avatarUrl": "https://picsum.photos/seed/cast10/120/120"},
+        {"id": 11, "name": "Sophie Lane", "avatarUrl": "https://picsum.photos/seed/cast11/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "T13",
+      "isHot": false,
+      "director": "Chris Nolan Jr.",
+      "releaseDate": "2026-04-10",
+      "price": 15.0
+    },
+    {
+      "id": 5,
+      "title": "Midnight Protocol",
+      "posterUrl": "https://picsum.photos/seed/midnight-protocol/400/600",
+      "backdropUrl": "https://picsum.photos/seed/midnight-protocol-bg/800/450",
+      "rating": 8.1,
+      "genre": "Thriller",
+      "duration": "1h 52m",
+      "synopsis": "Hacker huyền thoại bị cuốn vào âm mưu chính phủ khi một giao thức mã hóa bí mật bị rò rỉ giữa đêm.",
+      "cast": [
+        {"id": 12, "name": "Zero", "avatarUrl": "https://picsum.photos/seed/cast12/120/120"},
+        {"id": 13, "name": "Agent Vale", "avatarUrl": "https://picsum.photos/seed/cast13/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "T16",
+      "isHot": true,
+      "director": "Lena Wu",
+      "releaseDate": "2026-03-28",
+      "price": 14.5
+    },
+    {
+      "id": 6,
+      "title": "Golden Requiem",
+      "posterUrl": "https://picsum.photos/seed/golden-requiem/400/600",
+      "backdropUrl": "https://picsum.photos/seed/golden-requiem-bg/800/450",
+      "rating": 7.5,
+      "genre": "Drama",
+      "duration": "2h 15m",
+      "synopsis": "Nghệ sĩ piano huyền thoại trở về quê hương để hòa giải với gia đình trước buổi biểu diễn cuối cùng.",
+      "cast": [
+        {"id": 14, "name": "Isabelle Noir", "avatarUrl": "https://picsum.photos/seed/cast14/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "PG",
+      "isHot": false,
+      "director": "Pierre Duval",
+      "releaseDate": "2026-02-14",
+      "price": 13.0
+    },
+    {
+      "id": 7,
+      "title": "Laugh Track",
+      "posterUrl": "https://picsum.photos/seed/laugh-track/400/600",
+      "backdropUrl": "https://picsum.photos/seed/laugh-track-bg/800/450",
+      "rating": 7.2,
+      "genre": "Comedy",
+      "duration": "1h 45m",
+      "synopsis": "Comedian thất nghiệp tham gia gameshow truyền hình thực tế và vô tình trở thành hiện tượng mạng.",
+      "cast": [
+        {"id": 15, "name": "Benny Ho", "avatarUrl": "https://picsum.photos/seed/cast15/120/120"},
+        {"id": 16, "name": "Kate Bloom", "avatarUrl": "https://picsum.photos/seed/cast16/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "P",
+      "isHot": false,
+      "director": "Amy Cho",
+      "releaseDate": "2026-01-20",
+      "price": 12.0
+    },
+    {
+      "id": 8,
+      "title": "Shadow District",
+      "posterUrl": "https://picsum.photos/seed/shadow-district/400/600",
+      "backdropUrl": "https://picsum.photos/seed/shadow-district-bg/800/450",
+      "rating": 8.4,
+      "genre": "Action",
+      "duration": "2h 02m",
+      "synopsis": "Đặc vụ ngầm phải bảo vệ chứng nhân quan trọng xuyên qua khu phố ngầm đầy bẫy.",
+      "cast": [
+        {"id": 17, "name": "Derek Stone", "avatarUrl": "https://picsum.photos/seed/cast17/120/120"},
+        {"id": 18, "name": "Nina Cross", "avatarUrl": "https://picsum.photos/seed/cast18/120/120"}
+      ],
+      "status": "now-showing",
+      "ageRating": "T16",
+      "isHot": true,
+      "director": "Marcus Reed",
+      "releaseDate": "2026-03-05",
+      "price": 15.5
+    },
+    {
+      "id": 9,
+      "title": "Velvet Night",
+      "posterUrl": "https://picsum.photos/seed/velvet-night/400/600",
+      "backdropUrl": "https://picsum.photos/seed/velvet-night-bg/800/450",
+      "rating": 7.8,
+      "genre": "Romance",
+      "duration": "1h 50m",
+      "synopsis": "Hai người lạ gặp nhau tại buổi chiếu đêm cuối cùng của rạp cổ trước khi bị phá bỏ.",
+      "cast": [
+        {"id": 19, "name": "Clara Moon", "avatarUrl": "https://picsum.photos/seed/cast19/120/120"},
+        {"id": 20, "name": "James Holt", "avatarUrl": "https://picsum.photos/seed/cast20/120/120"}
+      ],
+      "status": "coming-soon",
+      "ageRating": "T13",
+      "isHot": false,
+      "director": "Sofia Marin",
+      "releaseDate": "2026-09-12",
+      "price": 14.0
+    },
+    {
+      "id": 10,
+      "title": "Iron Comet",
+      "posterUrl": "https://picsum.photos/seed/iron-comet/400/600",
+      "backdropUrl": "https://picsum.photos/seed/iron-comet-bg/800/450",
+      "rating": 8.0,
+      "genre": "Action",
+      "duration": "2h 12m",
+      "synopsis": "Đội cơ động không gian đối đầu sao chổi khổng lồ mang theo vật chất lạ có thể hủy diệt Trái Đất.",
+      "cast": [
+        {"id": 21, "name": "Cmdr. Ellis", "avatarUrl": "https://picsum.photos/seed/cast21/120/120"},
+        {"id": 22, "name": "Dr. Imani", "avatarUrl": "https://picsum.photos/seed/cast22/120/120"}
+      ],
+      "status": "coming-soon",
+      "ageRating": "PG-13",
+      "isHot": true,
+      "director": "Alan Pierce",
+      "releaseDate": "2026-10-01",
+      "price": 17.0
+    },
+    {
+      "id": 11,
+      "title": "The Quiet Room",
+      "posterUrl": "https://picsum.photos/seed/quiet-room/400/600",
+      "backdropUrl": "https://picsum.photos/seed/quiet-room-bg/800/450",
+      "rating": 8.6,
+      "genre": "Thriller",
+      "duration": "1h 48m",
+      "synopsis": "Kỹ sư âm thanh bị mắc kẹt trong phòng cách ly sau thí nghiệm thất bại — và nghe thấy thứ không nên tồn tại.",
+      "cast": [
+        {"id": 23, "name": "Olivia Kent", "avatarUrl": "https://picsum.photos/seed/cast23/120/120"}
+      ],
+      "status": "coming-soon",
+      "ageRating": "T18",
+      "isHot": false,
+      "director": "Henrik Blom",
+      "releaseDate": "2026-11-20",
+      "price": 15.0
+    },
+    {
+      "id": 12,
+      "title": "City of Echoes",
+      "posterUrl": "https://picsum.photos/seed/city-echoes/400/600",
+      "backdropUrl": "https://picsum.photos/seed/city-echoes-bg/800/450",
+      "rating": 7.4,
+      "genre": "Comedy",
+      "duration": "1h 55m",
+      "synopsis": "Nhóm bạn thuê căn hộ giá rẻ không ngờ mỗi đêm lại nghe thấy tiếng vọng của chính mình từ tương lai.",
+      "cast": [
+        {"id": 24, "name": "Jay Kim", "avatarUrl": "https://picsum.photos/seed/cast24/120/120"},
+        {"id": 25, "name": "Rosa Diaz", "avatarUrl": "https://picsum.photos/seed/cast25/120/120"}
+      ],
+      "status": "coming-soon",
+      "ageRating": "T13",
+      "isHot": false,
+      "director": "Tim O'Brien",
+      "releaseDate": "2026-07-18",
+      "price": 13.5
+    }
+  ]
+}
