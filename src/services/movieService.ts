@@ -77,6 +77,16 @@ function taoQueryParams(loc?: LocPhim): Record<string, string | number> {
   return params;
 }
 
+/** Bỏ dấu tiếng Việt để tìm không phân biệt dấu (vd: "am anh" → Ám Ảnh) */
+function boDau(chuoi: string): string {
+  return chuoi
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .toLowerCase()
+    .trim();
+}
+
 /**
  * Lấy danh sách phim từ JSON Server.
  * GET /movies
@@ -100,4 +110,27 @@ export async function layPhimTheoId(id: string | number): Promise<Phim> {
 
   const duLieu = (await apiClient.get(`/movies/${id}`)) as PhimApi;
   return chuyenDoiPhimApi(duLieu);
+}
+
+/**
+ * Tìm phim theo tên — lọc client-side, không dấu, khớp một phần tên.
+ * Lấy danh sách theo tab (status) rồi lọc title.
+ */
+export async function timKiemPhim(
+  tuKhoa: string,
+  loc?: Pick<LocPhim, 'trangThai'>,
+): Promise<Phim[]> {
+  const q = tuKhoa.trim();
+  if (!q) {
+    return [];
+  }
+
+  const qChuan = boDau(q);
+  const duLieu = (await apiClient.get('/movies', {
+    params: taoQueryParams(loc),
+  })) as PhimApi[];
+
+  return duLieu
+    .filter(item => boDau(item.title).includes(qChuan))
+    .map(chuyenDoiPhimApi);
 }

@@ -14,6 +14,7 @@ import ChonGio from './ChonGio';
 const BLUE = '#005f98';
 
 export type MovieBookingInfo = {
+  id?: string | number;
   title: string;
   duration?: string;
   genre?: string;

@@ -2,27 +2,53 @@ import React, {useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import DangChieu from '../features/Showtime/components/DangChieu';
 import DatVe from '../features/Showtime/components/DatVe';
+import KetQuaTimKiem from '../features/Showtime/components/KetQuaTimKiem';
 import MovieName, {
   MovieBookingInfo,
 } from '../features/Showtime/components/MovieName';
-import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
-import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
+import {layTrangThaiTuTab} from '../features/Showtime/components/phimUtils';
 import SapChieu from '../features/Showtime/components/SapChieu';
 import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
+import ThanhTimKiem from '../features/Showtime/components/ThanhTimKiem';
+import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
+import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
 
 const BLUE = '#005f98';
 
 const scheduleTabs = ['SẮP CHIẾU', 'ĐANG CHIẾU', 'SUẤT CHIẾU SỚM'];
 
-function ShowtimeNavigator() {
+type ShowtimeNavigatorProps = {
+  dangTim: boolean;
+  tuKhoa: string;
+  tuKhoaDebounced: string;
+  onChangeTuKhoa: (text: string) => void;
+  onDongTimKiem: () => void;
+};
+
+function ShowtimeNavigator({
+  dangTim,
+  tuKhoa,
+  tuKhoaDebounced,
+  onChangeTuKhoa,
+  onDongTimKiem,
+}: ShowtimeNavigatorProps) {
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
-  const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
+    null,
+  );
   const [showMovieDetail, setShowMovieDetail] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingSummary, setBookingSummary] = useState<{
     seats: string[];
     totalPrice: number;
   } | null>(null);
+
+  const chonPhim = (movie: MovieBookingInfo) => {
+    setSelectedMovie(movie);
+    setShowMovieDetail(false);
+    setShowBooking(false);
+    setBookingSummary(null);
+  };
 
   if (selectedMovie && bookingSummary) {
     return (
@@ -93,33 +119,26 @@ function ShowtimeNavigator() {
         })}
       </View>
 
-      {activeScheduleTab === 'SẮP CHIẾU' ? (
-        <SapChieu
-          onMoviePress={movie => {
-            setSelectedMovie(movie);
-            setShowMovieDetail(false);
-            setShowBooking(false);
-            setBookingSummary(null);
-          }}
+      {dangTim && (
+        <ThanhTimKiem
+          value={tuKhoa}
+          onChangeText={onChangeTuKhoa}
+          onClose={onDongTimKiem}
         />
+      )}
+
+      {dangTim ? (
+        <KetQuaTimKiem
+          tuKhoa={tuKhoaDebounced}
+          trangThai={layTrangThaiTuTab(activeScheduleTab)}
+          onMoviePress={chonPhim}
+        />
+      ) : activeScheduleTab === 'SẮP CHIẾU' ? (
+        <SapChieu onMoviePress={chonPhim} />
       ) : activeScheduleTab === 'ĐANG CHIẾU' ? (
-        <DangChieu
-          onMoviePress={movie => {
-            setSelectedMovie(movie);
-            setShowMovieDetail(false);
-            setShowBooking(false);
-            setBookingSummary(null);
-          }}
-        />
+        <DangChieu onMoviePress={chonPhim} />
       ) : (
-        <SuatChieuSom
-          onMoviePress={movie => {
-            setSelectedMovie(movie);
-            setShowMovieDetail(false);
-            setShowBooking(false);
-            setBookingSummary(null);
-          }}
-        />
+        <SuatChieuSom onMoviePress={chonPhim} />
       )}
     </View>
   );

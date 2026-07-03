@@ -4,5 +4,6 @@ export {
   useMoviesDangChieu,
   useMoviesSapChieu,
   usePhimNoiBat,
+  useTimKiemPhim,
   KHOA_PHIM,
 } from './useMovies';
