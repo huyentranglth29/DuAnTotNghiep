@@ -4,21 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from '../features/Different/Index';
 import Showtime from '../features/Showtime/Index';
+import TrangChu from '../features/TrangChu/Index';
 import Voucher from '../features/Voucher/Index';
 import VoucherNavigator from './VoucherNavigator';
+import { MAU_CHU_DE } from '../theme/cinemaNoir';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
+const GOLD = MAU_CHU_DE.vangDong;
 
-type TabKey = 'movieSchedule' | 'voucher' | 'member' | 'different';
+type TabKey = 'home' | 'movieSchedule' | 'voucher' | 'member' | 'different';
 
 type TabItem = {
   key: TabKey;
   label: string;
-  icon: 'flag' | 'ticket' | 'gift' | 'grid';
+  icon: 'home' | 'flag' | 'ticket' | 'gift' | 'grid';
 };
 
 const tabs: TabItem[] = [
+  { key: 'home', label: 'Trang chủ', icon: 'home' },
   { key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag' },
   { key: 'voucher', label: 'Voucher', icon: 'ticket' },
   { key: 'member', label: 'Ưu đãi', icon: 'gift' },
@@ -26,7 +30,7 @@ const tabs: TabItem[] = [
 ];
 
 function TabNavigator() {
-  const [activeTab, setActiveTab] = useState<TabKey>('movieSchedule');
+  const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
   const [isPreferentialDetail, setIsPreferentialDetail] = useState(false);
 
@@ -36,10 +40,17 @@ function TabNavigator() {
     setIsPreferentialDetail(false);
   };
 
+  const isHomeTab = activeTab === 'home';
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <View style={styles.container}>
+    <SafeAreaView
+      style={[styles.safeArea, isHomeTab && styles.safeAreaToi]}
+      edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle={isHomeTab ? 'light-content' : 'dark-content'}
+        backgroundColor={isHomeTab ? MAU_CHU_DE.nenChinh : '#ffffff'}
+      />
+      <View style={[styles.container, isHomeTab && styles.containerToi]}>
         <View style={styles.content}>
           {renderTabContent(
             activeTab,
@@ -52,7 +63,11 @@ function TabNavigator() {
           <View style={styles.tabBar}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.key;
-              const color = isActive ? BLUE : GRAY;
+              const color = isActive
+                ? tab.key === 'home'
+                  ? GOLD
+                  : BLUE
+                : GRAY;
 
               return (
                 <TouchableOpacity
@@ -77,6 +92,10 @@ function renderTabContent(
   setIsDifferentDetail: (isDetail: boolean) => void,
   setIsPreferentialDetail: (isDetail: boolean) => void,
 ) {
+  if (activeTab === 'home') {
+    return <TrangChu />;
+  }
+
   if (activeTab === 'movieSchedule') {
     return <Showtime />;
   }
@@ -95,6 +114,16 @@ function renderTabContent(
 function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
   return (
     <Svg width={27} height={27} viewBox="0 0 35 35" fill="none">
+      {name === 'home' && (
+        <Path
+          d="M6 14.5L17.5 5l11.5 9.5V29a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V14.5z"
+          stroke={color}
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          fill="none"
+        />
+      )}
+
       {name === 'flag' && (
         <G>
           <Path d="M7 7h4v22H7z" fill={color} />
@@ -145,9 +174,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  safeAreaToi: {
+    backgroundColor: MAU_CHU_DE.nenChinh,
+  },
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  containerToi: {
+    backgroundColor: MAU_CHU_DE.nenChinh,
   },
   content: {
     flex: 1,
