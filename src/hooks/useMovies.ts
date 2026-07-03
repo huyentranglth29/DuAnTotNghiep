@@ -3,6 +3,7 @@ import {
   layDanhSachPhim,
   layPhimTheoId,
   LocPhim,
+  timKiemPhim,
 } from '../services/movieService';
 import {Phim} from '../types/phim';
 
@@ -10,6 +11,8 @@ import {Phim} from '../types/phim';
 export const KHOA_PHIM = {
   danhSach: (loc?: LocPhim) => ['phim', 'danh-sach', loc ?? {}] as const,
   chiTiet: (id: string | number) => ['phim', 'chi-tiet', id] as const,
+  timKiem: (tuKhoa: string, trangThai?: Phim['trangThai']) =>
+    ['phim', 'tim-kiem', tuKhoa, trangThai ?? 'all'] as const,
 };
 
 const THOI_GIAN_CACHE_MS = 1000 * 60 * 5;
@@ -50,4 +53,19 @@ export function useMoviesSapChieu() {
 /** Phim nổi bật / featured — hero banner Home */
 export function usePhimNoiBat() {
   return useMovies({trangThai: 'noi-bat'});
+}
+
+/** Tìm phim theo từ khóa — gọi API khi tuKhoa >= 2 ký tự */
+export function useTimKiemPhim(
+  tuKhoa: string,
+  trangThai?: Phim['trangThai'],
+) {
+  const q = tuKhoa.trim();
+
+  return useQuery<Phim[], Error>({
+    queryKey: KHOA_PHIM.timKiem(q, trangThai),
+    queryFn: () => timKiemPhim(q, trangThai ? {trangThai} : undefined),
+    enabled: q.length >= 2,
+    staleTime: THOI_GIAN_CACHE_MS,
+  });
 }

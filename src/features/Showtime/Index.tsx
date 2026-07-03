@@ -1,10 +1,31 @@
-import React from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
 
 const BLUE = '#005f98';
 
 function Showtime() {
+  const [dangTim, setDangTim] = useState(false);
+  const [tuKhoa, setTuKhoa] = useState('');
+  const [tuKhoaDebounced, setTuKhoaDebounced] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTuKhoaDebounced(tuKhoa), 300);
+    return () => clearTimeout(timer);
+  }, [tuKhoa]);
+
+  const dongTimKiem = () => {
+    setDangTim(false);
+    setTuKhoa('');
+    setTuKhoaDebounced('');
+  };
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       <View style={styles.profileHeader}>
@@ -24,10 +45,22 @@ function Showtime() {
         </View>
         <View style={styles.logoBlock}>
           <Text style={styles.logoFilm}>FilmGo</Text>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={styles.searchButton}
+            onPress={() => setDangTim(current => !current)}>
+            <Text style={styles.searchIcon}>{dangTim ? '✕' : '⌕'}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      <ShowtimeNavigator />
+      <ShowtimeNavigator
+        dangTim={dangTim}
+        tuKhoa={tuKhoa}
+        tuKhoaDebounced={tuKhoaDebounced}
+        onChangeTuKhoa={setTuKhoa}
+        onDongTimKiem={dongTimKiem}
+      />
     </ScrollView>
   );
 }
@@ -109,6 +142,23 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontWeight: '800',
     lineHeight: 26,
+  },
+  searchButton: {
+    marginTop: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#dce3ea',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  searchIcon: {
+    color: BLUE,
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 20,
   },
 });
 
