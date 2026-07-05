@@ -45,12 +45,13 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [gender, setGender] = useState('');
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
       Alert.alert('Thông báo', 'Vui lòng nhập đầy đủ thông tin bắt buộc.');
       return;
@@ -66,17 +67,24 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
       return;
     }
 
-    Alert.alert('Thành công', 'Đăng ký tài khoản thành công.', [
-      {
-        text: 'OK',
-        onPress: () =>
-          onRegisterSuccess?.({
-            fullName: fullName.trim(),
-            email: email.trim(),
-            password,
-          }),
-      },
-    ]);
+    try {
+      setIsRegistering(true);
+
+      await onRegisterSuccess?.({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      Alert.alert('Thành công', 'Đăng ký tài khoản thành công.');
+    } catch {
+      Alert.alert(
+        'Thông báo',
+        'Không thể lưu tài khoản. Vui lòng thử lại.',
+      );
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
   return (
@@ -174,10 +182,16 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
         </View>
 
         <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.registerButton}
+          activeOpacity={isRegistering ? 1 : 0.85}
+          disabled={isRegistering}
+          style={[
+            styles.registerButton,
+            isRegistering && styles.registerButtonDisabled,
+          ]}
           onPress={handleRegister}>
-          <Text style={styles.registerButtonText}>Đăng ký</Text>
+          <Text style={styles.registerButtonText}>
+            {isRegistering ? 'ĐANG ĐĂNG KÝ...' : 'Đăng ký'}
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.loginRow}>
@@ -780,6 +794,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: ACTION_BLUE,
     marginBottom: 16,
+  },
+  registerButtonDisabled: {
+    opacity: 0.65,
   },
   registerButtonText: {
     color: '#ffffff',

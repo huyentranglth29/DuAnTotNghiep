@@ -65,9 +65,6 @@ const combos = [
 
 const paymentMethods = [
   {label: 'MÃ QR', icon: 'qr', active: true},
-  {label: 'THẺ NỘI ĐỊA', icon: 'card'},
-  {label: 'THẺ QUỐC TẾ', icon: 'cards'},
-  {label: 'VÍ SHOPEEPAY', icon: 'spay'},
   {label: 'VÍ MOMO', icon: 'momo'},
   {label: 'VÍ ZALOPAY', icon: 'zalo'},
 ];
