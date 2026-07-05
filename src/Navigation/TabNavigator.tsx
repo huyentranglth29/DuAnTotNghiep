@@ -3,9 +3,9 @@ import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from '../features/Different/Index';
+import Promotion from '../features/Promotion/Index';
 import Showtime from '../features/Showtime/Index';
 import TrangChu from '../features/TrangChu/Index';
-import Voucher from '../features/Voucher/Index';
 import VoucherNavigator from './VoucherNavigator';
 import { MAU_CHU_DE } from '../theme/cinemaNoir';
 
@@ -31,13 +31,15 @@ const tabs: TabItem[] = [
 
 function TabNavigator() {
   const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const [isVoucherDetail, setIsVoucherDetail] = useState(false);
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
-  const [isPreferentialDetail, setIsPreferentialDetail] = useState(false);
+  const [isPromotionDetail, setIsPromotionDetail] = useState(false);
 
   const handleTabPress = (tabKey: TabKey) => {
     setActiveTab(tabKey);
+    setIsVoucherDetail(false);
     setIsDifferentDetail(false);
-    setIsPreferentialDetail(false);
+    setIsPromotionDetail(false);
   };
 
   const isHomeTab = activeTab === 'home';
@@ -54,12 +56,13 @@ function TabNavigator() {
         <View style={styles.content}>
           {renderTabContent(
             activeTab,
+            setIsVoucherDetail,
             setIsDifferentDetail,
-            setIsPreferentialDetail,
+            setIsPromotionDetail,
           )}
         </View>
 
-        {!isDifferentDetail && !isPreferentialDetail && (
+        {!isVoucherDetail && !isDifferentDetail && !isPromotionDetail && (
           <View style={styles.tabBar}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.key;
@@ -89,8 +92,9 @@ function TabNavigator() {
 
 function renderTabContent(
   activeTab: TabKey,
+  setIsVoucherDetail: (isDetail: boolean) => void,
   setIsDifferentDetail: (isDetail: boolean) => void,
-  setIsPreferentialDetail: (isDetail: boolean) => void,
+  setIsPromotionDetail: (isDetail: boolean) => void,
 ) {
   if (activeTab === 'home') {
     return <TrangChu />;
@@ -101,11 +105,11 @@ function renderTabContent(
   }
 
   if (activeTab === 'voucher') {
-    return <VoucherNavigator />;
+    return <VoucherNavigator onDetailChange={setIsVoucherDetail} />;
   }
 
   if (activeTab === 'member') {
-    return <Voucher onDetailChange={setIsPreferentialDetail} />;
+    return <Promotion onDetailChange={setIsPromotionDetail} />;
   }
 
   return <Different onDetailChange={setIsDifferentDetail} />;
