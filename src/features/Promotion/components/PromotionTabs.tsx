@@ -1,15 +1,15 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {VoucherNewsTab} from '../types';
+import {PromotionTab} from '../types';
 
 const BORDER = '#eeeeee';
 
-type VoucherNewsTabsProps = {
-  activeTab: VoucherNewsTab;
-  onChangeTab: (tab: VoucherNewsTab) => void;
+type PromotionTabsProps = {
+  activeTab: PromotionTab;
+  onChangeTab: (tab: PromotionTab) => void;
 };
 
-function VoucherNewsTabs({activeTab, onChangeTab}: VoucherNewsTabsProps) {
+function PromotionTabs({activeTab, onChangeTab}: PromotionTabsProps) {
   return (
     <View style={styles.tabRow}>
       <TabButton
@@ -77,4 +77,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoucherNewsTabs;
+export default PromotionTabs;

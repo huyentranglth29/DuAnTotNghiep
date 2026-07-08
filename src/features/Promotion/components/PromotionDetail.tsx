@@ -8,21 +8,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {BackIcon, ShareIcon} from './VoucherIcons';
-import VoucherPaperTabs from './VoucherPaperTabs';
-import {VoucherNewsItem} from '../types';
+import {BackIcon, ShareIcon} from './PromotionIcons';
+import PromotionPaperTabs from './PromotionPaperTabs';
+import {PromotionItem} from '../types';
 
 const BLUE = '#005f98';
 const TEXT = '#242424';
 const MUTED = '#9b9b9b';
 
-type VoucherNewsDetailProps = {
-  item: VoucherNewsItem;
+type PromotionDetailProps = {
+  item: PromotionItem;
   onBack: () => void;
   onShare: () => void;
 };
 
-function VoucherNewsDetail({item, onBack, onShare}: VoucherNewsDetailProps) {
+function PromotionDetail({item, onBack, onShare}: PromotionDetailProps) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={BLUE} />
@@ -43,7 +43,7 @@ function VoucherNewsDetail({item, onBack, onShare}: VoucherNewsDetailProps) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}>
         <View style={styles.heroWrap}>
-          <VoucherPaperTabs
+          <PromotionPaperTabs
             pinkStyle={styles.detailPinkTab}
             orangeStyle={styles.detailOrangeTab}
             greenStyle={styles.detailGreenTab}
@@ -56,7 +56,7 @@ function VoucherNewsDetail({item, onBack, onShare}: VoucherNewsDetailProps) {
         <View style={styles.separator} />
 
         <View style={styles.articleImageWrap}>
-          <VoucherPaperTabs
+          <PromotionPaperTabs
             pinkStyle={styles.articlePinkTab}
             orangeStyle={styles.articleOrangeTab}
             greenStyle={styles.articleGreenTab}
@@ -230,4 +230,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoucherNewsDetail;
+export default PromotionDetail;

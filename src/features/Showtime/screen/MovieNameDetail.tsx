@@ -8,14 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Svg, {Circle, Path} from 'react-native-svg';
-import {MovieBookingInfo} from '../components/MovieName';
-
+import Svg, { Circle, Path } from 'react-native-svg';
+import { MovieBookingInfo } from '../components/MovieName';
+import CommentsList from '../components/CommentsList';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
   movie: MovieBookingInfo;
   onBack: () => void;
+  onWriteReview?: (movie: MovieBookingInfo) => void;
 };
 
 const promotions = [
@@ -37,7 +38,7 @@ const promotions = [
   },
 ];
 
-function MovieNameDetail({movie, onBack}: MovieNameDetailProps) {
+function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps) {
   const duration = movie.duration ?? '109 phút';
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
 
@@ -123,13 +124,19 @@ function MovieNameDetail({movie, onBack}: MovieNameDetailProps) {
         <View style={styles.promotionList}>
           {promotions.map(promo => (
             <View key={promo.title} style={styles.promotionCard}>
-              <View style={[styles.promotionThumb, {backgroundColor: promo.color}]}>
+              <View style={[styles.promotionThumb, { backgroundColor: promo.color }]}>
                 <Text style={styles.promotionThumbText}>FilmGo</Text>
               </View>
               <Text style={styles.promotionTitle}>{promo.title}</Text>
             </View>
           ))}
         </View>
+
+        <TouchableOpacity style={styles.writeReviewBtn} activeOpacity={0.85} onPress={() => onWriteReview?.(movie)}>
+          <Text style={styles.writeReviewText}>Viết đánh giá</Text>
+        </TouchableOpacity>
+
+        <CommentsList />
       </ScrollView>
 
       <TouchableOpacity activeOpacity={0.8} style={styles.shareButton}>
@@ -288,7 +295,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 12,
     shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 1},
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 5,
   },
@@ -311,6 +318,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     lineHeight: 22,
+  },
+  writeReviewBtn: {
+    backgroundColor: '#ff2d7a',
+    marginHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  writeReviewText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 16,
   },
   shareButton: {
     position: 'absolute',

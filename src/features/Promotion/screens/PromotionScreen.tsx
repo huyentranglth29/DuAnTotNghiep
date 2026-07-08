@@ -1,33 +1,33 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {ScrollView, Share, StatusBar, StyleSheet, Text, View} from 'react-native';
-import VoucherNewsCard from '../components/VoucherNewsCard';
-import VoucherNewsDetail from '../components/VoucherNewsDetail';
-import VoucherNewsTabs from '../components/VoucherNewsTabs';
-import {voucherNewsItems} from '../data/voucherNews';
-import {VoucherNewsItem, VoucherNewsTab} from '../types';
+import PromotionCard from '../components/PromotionCard';
+import PromotionDetail from '../components/PromotionDetail';
+import PromotionTabs from '../components/PromotionTabs';
+import {promotionItems} from '../data/promotions';
+import {PromotionItem, PromotionTab} from '../types';
 
 const BLUE = '#005f98';
 
-type VoucherNewsScreenProps = {
+type PromotionScreenProps = {
   onDetailChange?: (isDetail: boolean) => void;
 };
 
-function VoucherNewsScreen({onDetailChange}: VoucherNewsScreenProps) {
-  const [activeTab, setActiveTab] = useState<VoucherNewsTab>('promotions');
-  const [selectedItem, setSelectedItem] = useState<VoucherNewsItem | null>(null);
+function PromotionScreen({onDetailChange}: PromotionScreenProps) {
+  const [activeTab, setActiveTab] = useState<PromotionTab>('promotions');
+  const [selectedItem, setSelectedItem] = useState<PromotionItem | null>(null);
 
   useEffect(() => {
     onDetailChange?.(!!selectedItem);
   }, [onDetailChange, selectedItem]);
 
   const visibleItems = useMemo(
-    () => voucherNewsItems.filter(item => item.tab === activeTab),
+    () => promotionItems.filter(item => item.tab === activeTab),
     [activeTab],
   );
 
   if (selectedItem) {
     return (
-      <VoucherNewsDetail
+      <PromotionDetail
         item={selectedItem}
         onBack={() => setSelectedItem(null)}
         onShare={() =>
@@ -47,13 +47,13 @@ function VoucherNewsScreen({onDetailChange}: VoucherNewsScreenProps) {
         <Text style={styles.headerTitle}>TIN MỚI VÀ ƯU ĐÃI</Text>
       </View>
 
-      <VoucherNewsTabs activeTab={activeTab} onChangeTab={setActiveTab} />
+      <PromotionTabs activeTab={activeTab} onChangeTab={setActiveTab} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}>
         {visibleItems.map(item => (
-          <VoucherNewsCard
+          <PromotionCard
             key={item.id}
             item={item}
             onPress={() => setSelectedItem(item)}
@@ -88,4 +88,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoucherNewsScreen;
+export default PromotionScreen;

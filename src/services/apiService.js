@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {API_CONFIG} from '../config/api.config';
+import { API_CONFIG } from '../config/api.config';
 
 /**
  * Axios instance dùng chung cho toàn app.
@@ -55,7 +55,7 @@ apiClient.interceptors.response.use(
  * { "movies": [{ "id": 1, "title": "...", "status": "now-showing", ... }] }
  */
 export const getMovies = async (params = {}) => {
-  return apiClient.get('/movies', {params});
+  return apiClient.get('/movies', { params });
 };
 
 /**
@@ -83,7 +83,7 @@ export const getMovieById = async id => {
  * Body gửi lên: { "email": "...", "password": "..." }
  * Response mẫu (json-server-auth): { "accessToken": "...", "user": { ... } }
  */
-export const login = async ({email, password}) => {
+export const login = async ({ email, password }) => {
   if (!email?.trim() || !password) {
     throw new Error('Vui lòng nhập email và mật khẩu');
   }
@@ -92,6 +92,23 @@ export const login = async ({email, password}) => {
     email: email.trim(),
     password,
   });
+};
+
+/**
+ * Lấy danh sách đánh giá cho một phim
+ * GET /reviews?movieId=123
+ */
+export const getReviews = async (movieId) => {
+  return apiClient.get('/reviews', { params: { movieId } });
+};
+
+/**
+ * Gửi 1 đánh giá mới
+ * POST /reviews
+ * body: { movieId, rating, text, tags }
+ */
+export const postReview = async (payload) => {
+  return apiClient.post('/reviews', payload);
 };
 
 export default apiClient;

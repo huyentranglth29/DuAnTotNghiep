@@ -1,4 +1,4 @@
-import {VoucherNewsItem} from '../types';
+import {PromotionItem} from '../types';
 
 const promoImage1 = require('../../../assets/showtime/moana.jpg');
 const promoImage2 = require('../../../assets/showtime/minions.jpg');
@@ -7,7 +7,7 @@ const promoImage4 = require('../../../assets/showtime/bong-quy.jpg');
 const promoImage5 = require('../../../assets/showtime/den-la-sat.jpg');
 const promoImage6 = require('../../../assets/showtime/dong-dao-ma-quai.jpg');
 
-export const voucherNewsItems: VoucherNewsItem[] = [
+export const promotionItems: PromotionItem[] = [
   {
     id: 'summer-deal',
     tab: 'promotions',

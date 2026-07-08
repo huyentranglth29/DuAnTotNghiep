@@ -1,19 +1,19 @@
 import React from 'react';
 import {StyleProp, StyleSheet, View, ViewStyle} from 'react-native';
 
-type VoucherPaperTabsProps = {
+type PromotionPaperTabsProps = {
   pinkStyle: StyleProp<ViewStyle>;
   orangeStyle: StyleProp<ViewStyle>;
   greenStyle: StyleProp<ViewStyle>;
   size?: 'compact' | 'regular';
 };
 
-function VoucherPaperTabs({
+function PromotionPaperTabs({
   pinkStyle,
   orangeStyle,
   greenStyle,
   size = 'regular',
-}: VoucherPaperTabsProps) {
+}: PromotionPaperTabsProps) {
   const sizeStyle = size === 'compact' ? styles.compactTab : styles.regularTab;
 
   return (
@@ -40,4 +40,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoucherPaperTabs;
+export default PromotionPaperTabs;

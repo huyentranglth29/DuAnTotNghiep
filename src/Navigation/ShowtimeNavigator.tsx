@@ -1,17 +1,18 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DangChieu from '../features/Showtime/components/DangChieu';
 import DatVe from '../features/Showtime/components/DatVe';
 import KetQuaTimKiem from '../features/Showtime/components/KetQuaTimKiem';
 import MovieName, {
   MovieBookingInfo,
 } from '../features/Showtime/components/MovieName';
-import {layTrangThaiTuTab} from '../features/Showtime/components/phimUtils';
+import { layTrangThaiTuTab } from '../features/Showtime/components/phimUtils';
 import SapChieu from '../features/Showtime/components/SapChieu';
 import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
 import ThanhTimKiem from '../features/Showtime/components/ThanhTimKiem';
 import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
 import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
+import WriteReview from '../features/Showtime/screen/WriteReview';
 
 const BLUE = '#005f98';
 
@@ -37,6 +38,7 @@ function ShowtimeNavigator({
     null,
   );
   const [showMovieDetail, setShowMovieDetail] = useState(false);
+  const [showWriteReview, setShowWriteReview] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingSummary, setBookingSummary] = useState<{
     seats: string[];
@@ -46,9 +48,20 @@ function ShowtimeNavigator({
   const chonPhim = (movie: MovieBookingInfo) => {
     setSelectedMovie(movie);
     setShowMovieDetail(false);
+    setShowWriteReview(false);
     setShowBooking(false);
     setBookingSummary(null);
   };
+
+  if (selectedMovie && showWriteReview) {
+    return (
+      <WriteReview
+        movieId={selectedMovie.id ?? ''}
+        title={selectedMovie.title ?? 'Bộ phim'}
+        onBack={() => setShowWriteReview(false)}
+      />
+    );
+  }
 
   if (selectedMovie && bookingSummary) {
     return (
@@ -76,6 +89,7 @@ function ShowtimeNavigator({
       <MovieNameDetail
         movie={selectedMovie}
         onBack={() => setShowMovieDetail(false)}
+        onWriteReview={() => setShowWriteReview(true)}
       />
     );
   }
@@ -88,6 +102,7 @@ function ShowtimeNavigator({
           setSelectedMovie(null);
           setShowBooking(false);
           setBookingSummary(null);
+          setShowWriteReview(false);
         }}
         onDetailPress={() => setShowMovieDetail(true)}
         onShowtimePress={() => setShowBooking(true)}

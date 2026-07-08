@@ -1,22 +1,22 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import VoucherPaperTabs from './VoucherPaperTabs';
-import { VoucherNewsItem } from '../types';
+import PromotionPaperTabs from './PromotionPaperTabs';
+import { PromotionItem } from '../types';
 
 const BLUE = '#005f98';
 const TEXT = '#242424';
 const BORDER = '#eeeeee';
 
-type VoucherNewsCardProps = {
-  item: VoucherNewsItem;
+type PromotionCardProps = {
+  item: PromotionItem;
   onPress: () => void;
 };
 
-function VoucherNewsCard({ item, onPress }: VoucherNewsCardProps) {
+function PromotionCard({ item, onPress }: PromotionCardProps) {
   return (
     <TouchableOpacity activeOpacity={0.86} style={styles.card} onPress={onPress}>
       <View style={styles.thumbWrap}>
-        <VoucherPaperTabs
+        <PromotionPaperTabs
           size="compact"
           pinkStyle={styles.paperTabPink}
           orangeStyle={styles.paperTabOrange}
@@ -112,4 +112,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VoucherNewsCard;
+export default PromotionCard;
