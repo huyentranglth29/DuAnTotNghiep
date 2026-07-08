@@ -1,8 +1,11 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const connectDB = require('./config/db');
+const movieRoutes = require('./routes/movieRoutes');
 
 dotenv.config();
+connectDB();
 
 const app = express();
 
@@ -12,9 +15,11 @@ app.use(express.json());
 // In-memory reviews store (simple demo). In production replace with DB.
 const reviews = [];
 
-app.get('/', (req, res) => {
-  res.send('Backend Movie Booking Running');
+app.get("/", (req, res) => {
+  res.send("Backend Movie Booking Running");
 });
+
+app.use('/movies', movieRoutes);
 
 // GET /reviews?movieId=123
 app.get('/reviews', (req, res) => {
@@ -49,7 +54,14 @@ app.post('/reviews', (req, res) => {
   res.status(201).json(newReview);
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
+
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

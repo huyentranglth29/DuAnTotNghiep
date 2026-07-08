@@ -2,6 +2,25 @@ This is a new [**React Native**](https://reactnative.dev) project, bootstrapped 
 
 # Getting Started
 
+## Backend MongoDB cho dữ liệu phim
+
+Màn Home lấy phim từ endpoint `/movies`. Để dùng MongoDB thật thay cho `db.json`, chạy backend Express ở cổng `3000`:
+
+```sh
+cd backend
+cp .env.example .env
+# sửa MONGO_URI trong backend/.env
+npm install
+npm run seed:movies
+npm run dev
+```
+
+Sau đó chạy app mobile như bình thường. Với Android Emulator, app dùng:
+
+```env
+API_BASE_URL=http://10.0.2.2:3000
+```
+
 > **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
 
 ## Step 1: Start Metro
