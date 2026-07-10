@@ -81,6 +81,7 @@ export function MemberCardDetailScreen({ onBack }: { onBack: () => void }) {
 
 export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
   const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState('Lê Thị Ngọc Anh');
   const [gender, setGender] = useState('');
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -88,8 +89,11 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
     const now = new Date();
     return new Date(now.getFullYear() - 18, now.getMonth(), 1);
   });
+  const [idCard, setIdCard] = useState('');
+  const [phone, setPhone] = useState('0357276740');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
+  const [address, setAddress] = useState('');
   const [picker, setPicker] = useState<'gender' | 'province' | 'district' | null>(
     null,
   );
@@ -105,7 +109,13 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
         <ScrollView contentContainerStyle={styles.formContent}>
           <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
           <EditBox label="Email" value="ngank301006@gmail.com" disabled required />
-          <EditBox label="Họ và tên" value="Lê Thị Ngọc Anh" required />
+          <EditBox
+            label="Họ và tên"
+            value={fullName}
+            placeholder="Nhập họ và tên"
+            required
+            onChangeText={setFullName}
+          />
           <SelectBox
             label="Giới tính"
             value={gender}
@@ -120,8 +130,19 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
             onPress={() => setShowCalendar(true)}
           />
           <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
-          <EditBox label="CMND/CCCD" placeholder="Nhập cmnd/cccd" />
-          <EditBox label="Số điện thoại" value="0357276740" required />
+          <EditBox
+            label="CMND/CCCD"
+            value={idCard}
+            placeholder="Nhập cmnd/cccd"
+            onChangeText={setIdCard}
+          />
+          <EditBox
+            label="Số điện thoại"
+            value={phone}
+            placeholder="Nhập số điện thoại"
+            required
+            onChangeText={setPhone}
+          />
           <SelectBox
             label="Tỉnh/Thành phố"
             value={province}
@@ -134,7 +155,12 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
             placeholder="Chọn quận/huyện"
             onPress={() => setPicker('district')}
           />
-          <EditBox label="Địa chỉ" placeholder="Nhập địa chỉ" />
+          <EditBox
+            label="Địa chỉ"
+            value={address}
+            placeholder="Nhập địa chỉ"
+            onChangeText={setAddress}
+          />
           <TouchableOpacity style={styles.saveButton} onPress={() => setEditing(false)}>
             <Text style={styles.saveText}>Lưu thay đổi</Text>
           </TouchableOpacity>
@@ -201,18 +227,18 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
       <ScrollView contentContainerStyle={styles.accountContent}>
         <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
         <Info label="Email" value="ngank301006@gmail.com" />
-        <Info label="Họ và tên" value="Lê Thị Ngọc Anh" />
+        <Info label="Họ và tên" value={fullName} />
         <Info label="Giới tính" value={gender} />
         <Info
           label="Ngày sinh"
           value={birthDate ? formatBirthDate(birthDate) : ''}
         />
         <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
-        <Info label="CMND/CCCD" />
-        <Info label="Số điện thoại" value="0357276740" />
+        <Info label="CMND/CCCD" value={idCard} />
+        <Info label="Số điện thoại" value={phone} />
         <Info label="Tỉnh/Thành phố" value={province} />
         <Info label="Quận/Huyện" value={district} />
-        <Info label="Địa chỉ" />
+        <Info label="Địa chỉ" value={address} />
       </ScrollView>
     </View>
   );
