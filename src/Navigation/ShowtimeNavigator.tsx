@@ -9,7 +9,6 @@ import MovieName, {
 import { layTrangThaiTuTab } from '../features/Showtime/components/phimUtils';
 import SapChieu from '../features/Showtime/components/SapChieu';
 import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
-import ThanhTimKiem from '../features/Showtime/components/ThanhTimKiem';
 import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
 import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
 import WriteReview from '../features/Showtime/screen/WriteReview';
@@ -20,18 +19,12 @@ const scheduleTabs = ['SẮP CHIẾU', 'ĐANG CHIẾU', 'SUẤT CHIẾU SỚM'];
 
 type ShowtimeNavigatorProps = {
   dangTim: boolean;
-  tuKhoa: string;
   tuKhoaDebounced: string;
-  onChangeTuKhoa: (text: string) => void;
-  onDongTimKiem: () => void;
 };
 
 function ShowtimeNavigator({
   dangTim,
-  tuKhoa,
   tuKhoaDebounced,
-  onChangeTuKhoa,
-  onDongTimKiem,
 }: ShowtimeNavigatorProps) {
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
@@ -133,14 +126,6 @@ function ShowtimeNavigator({
           );
         })}
       </View>
-
-      {dangTim && (
-        <ThanhTimKiem
-          value={tuKhoa}
-          onChangeText={onChangeTuKhoa}
-          onClose={onDongTimKiem}
-        />
-      )}
 
       {dangTim ? (
         <KetQuaTimKiem
