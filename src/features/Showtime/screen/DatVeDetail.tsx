@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   ImageBackground,
   ImageSourcePropType,
@@ -74,12 +74,35 @@ const paymentMethods = [
   {label: 'VÍ ZALOPAY', icon: 'zalo'},
 ];
 
+const PAYMENT_TIMEOUT_SECONDS = 10 * 60;
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${`${minutes}`.padStart(2, '0')}:${`${seconds}`.padStart(2, '0')}`;
+}
+
 function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS);
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
   const discount = 0;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRemainingSeconds(current => {
+        if (current <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const comboTotal = combos.reduce((sum, combo) => {
     const quantity = quantities[combo.title] ?? 0;
@@ -191,7 +214,13 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         </View>
 
         <Text style={styles.remainingTitle}>THỜI GIAN CÒN LẠI</Text>
-        <Text style={styles.remainingTime}>09:28</Text>
+        <Text
+          style={[
+            styles.remainingTime,
+            remainingSeconds <= 60 && styles.remainingTimeUrgent,
+          ]}>
+          {formatCountdown(remainingSeconds)}
+        </Text>
         <Text style={styles.termText}>
           Nhấn "THANH TOÁN" đồng nghĩa với việc bạn đồng ý với{' '}
           <Text style={styles.termLink}>Điều khoản sử dụng</Text> và đang mua vé
@@ -651,6 +680,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
     marginVertical: 16,
+  },
+  remainingTimeUrgent: {
+    color: RED,
   },
   termText: {
     color: '#1f202b',
