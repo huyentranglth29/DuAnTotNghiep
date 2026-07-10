@@ -3,6 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -45,21 +46,41 @@ function Showtime() {
         </View>
         <View style={styles.logoBlock}>
           <Text style={styles.logoFilm}>FilmGo</Text>
-          <TouchableOpacity
-            activeOpacity={0.75}
-            style={styles.searchButton}
-            onPress={() => setDangTim(current => !current)}>
-            <Text style={styles.searchIcon}>{dangTim ? '✕' : '⌕'}</Text>
-          </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.searchRow}>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          style={styles.searchButton}
+          onPress={() => {
+            if (dangTim) {
+              dongTimKiem();
+            } else {
+              setDangTim(true);
+            }
+          }}>
+          <Text style={styles.searchIcon}>{dangTim ? '✕' : '⌕'}</Text>
+        </TouchableOpacity>
+
+        {dangTim && (
+          <View style={styles.inputBox}>
+            <TextInput
+              autoFocus
+              value={tuKhoa}
+              onChangeText={setTuKhoa}
+              placeholder="Tìm tên phim..."
+              placeholderTextColor="#a8a8a8"
+              style={styles.input}
+              returnKeyType="search"
+            />
+          </View>
+        )}
       </View>
 
       <ShowtimeNavigator
         dangTim={dangTim}
-        tuKhoa={tuKhoa}
         tuKhoaDebounced={tuKhoaDebounced}
-        onChangeTuKhoa={setTuKhoa}
-        onDongTimKiem={dongTimKiem}
       />
     </ScrollView>
   );
@@ -143,8 +164,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 26,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 4,
+    gap: 10,
+  },
   searchButton: {
-    marginTop: 4,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -159,6 +187,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     lineHeight: 20,
+  },
+  inputBox: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#dce3ea',
+    paddingHorizontal: 12,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  input: {
+    color: '#1b1b1b',
+    fontSize: 15,
+    paddingVertical: 0,
   },
 });
 
