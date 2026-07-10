@@ -31,6 +31,8 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+// /movies: tương thích app mobile + admin (trước dùng json-server)
+app.use("/movies", movieRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/seats", seatRoutes);

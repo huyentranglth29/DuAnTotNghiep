@@ -87,16 +87,30 @@ function boDau(chuoi: string): string {
     .trim();
 }
 
+/** Backend Mongo trả { success, data }; json-server trả mảng/object trực tiếp */
+function layPayload<T>(res: T | {data: T}): T {
+  if (
+    res !== null &&
+    typeof res === 'object' &&
+    !Array.isArray(res) &&
+    'data' in res
+  ) {
+    return (res as {data: T}).data;
+  }
+  return res as T;
+}
+
 /**
- * Lấy danh sách phim từ JSON Server.
+ * Lấy danh sách phim từ API.
  * GET /movies
  */
 export async function layDanhSachPhim(loc?: LocPhim): Promise<Phim[]> {
-  const duLieu = (await apiClient.get('/movies', {
+  const res = await apiClient.get('/movies', {
     params: taoQueryParams(loc),
-  })) as PhimApi[];
+  });
+  const duLieu = layPayload<PhimApi[]>(res as PhimApi[] | {data: PhimApi[]});
 
-  return duLieu.map(chuyenDoiPhimApi);
+  return (duLieu ?? []).map(chuyenDoiPhimApi);
 }
 
 /**
@@ -108,7 +122,8 @@ export async function layPhimTheoId(id: string | number): Promise<Phim> {
     throw new Error('id phim là bắt buộc');
   }
 
-  const duLieu = (await apiClient.get(`/movies/${id}`)) as PhimApi;
+  const res = await apiClient.get(`/movies/${id}`);
+  const duLieu = layPayload<PhimApi>(res as PhimApi | {data: PhimApi});
   return chuyenDoiPhimApi(duLieu);
 }
 
@@ -126,11 +141,12 @@ export async function timKiemPhim(
   }
 
   const qChuan = boDau(q);
-  const duLieu = (await apiClient.get('/movies', {
+  const res = await apiClient.get('/movies', {
     params: taoQueryParams(loc),
-  })) as PhimApi[];
+  });
+  const duLieu = layPayload<PhimApi[]>(res as PhimApi[] | {data: PhimApi[]});
 
-  return duLieu
+  return (duLieu ?? [])
     .filter(item => boDau(item.title).includes(qChuan))
     .map(chuyenDoiPhimApi);
 }
