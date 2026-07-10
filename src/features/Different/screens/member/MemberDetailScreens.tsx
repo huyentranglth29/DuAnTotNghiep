@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import {
+  DatePickerModal,
   EditBox,
+  formatBirthDate,
   MemberHeader,
   MemberIcon,
   OptionSheet,
@@ -80,6 +82,12 @@ export function MemberCardDetailScreen({ onBack }: { onBack: () => void }) {
 export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
   const [editing, setEditing] = useState(false);
   const [gender, setGender] = useState('');
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear() - 18, now.getMonth(), 1);
+  });
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
   const [picker, setPicker] = useState<'gender' | 'province' | 'district' | null>(
@@ -106,10 +114,10 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
           />
           <SelectBox
             label="Ngày sinh"
-            value=""
+            value={birthDate ? formatBirthDate(birthDate) : ''}
             placeholder="Chọn ngày sinh"
             icon="calendar"
-            onPress={() => undefined}
+            onPress={() => setShowCalendar(true)}
           />
           <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
           <EditBox label="CMND/CCCD" placeholder="Nhập cmnd/cccd" />
@@ -166,6 +174,18 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
             setPicker(null);
           }}
         />
+        <DatePickerModal
+          visible={showCalendar}
+          currentMonth={calendarMonth}
+          selectedDate={birthDate}
+          onClose={() => setShowCalendar(false)}
+          onChangeMonth={setCalendarMonth}
+          onSelectDate={date => {
+            setBirthDate(date);
+            setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+            setShowCalendar(false);
+          }}
+        />
       </View>
     );
   }
@@ -183,7 +203,10 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
         <Info label="Email" value="ngank301006@gmail.com" />
         <Info label="Họ và tên" value="Lê Thị Ngọc Anh" />
         <Info label="Giới tính" value={gender} />
-        <Info label="Ngày sinh" />
+        <Info
+          label="Ngày sinh"
+          value={birthDate ? formatBirthDate(birthDate) : ''}
+        />
         <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
         <Info label="CMND/CCCD" />
         <Info label="Số điện thoại" value="0357276740" />

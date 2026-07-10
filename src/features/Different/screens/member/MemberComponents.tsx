@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,39 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { BLUE, BORDER, DANGER, MemberIconName, MenuRow } from './memberData';
+
+const WEEK_DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const MONTHS = Array.from({ length: 12 }, (_, index) => `Tháng ${index + 1}`);
+
+export function formatBirthDate(date: Date) {
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  return `${day}/${month}/${date.getFullYear()}`;
+}
+
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getDate() === b.getDate() &&
+    a.getMonth() === b.getMonth() &&
+    a.getFullYear() === b.getFullYear()
+  );
+}
+
+function getCalendarDays(month: Date) {
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstDay = new Date(year, monthIndex, 1);
+  const mondayStartIndex = (firstDay.getDay() + 6) % 7;
+  const startDate = new Date(year, monthIndex, 1 - mondayStartIndex);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    return new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate() + index,
+    );
+  });
+}
 
 export function MemberHeader({
   title,
@@ -298,6 +332,191 @@ export function SelectBox({
         <Text style={styles.selectIcon}>{icon === 'calendar' ? '▣' : '⌄'}</Text>
       </TouchableOpacity>
     </View>
+  );
+}
+
+export function DatePickerModal({
+  visible,
+  currentMonth,
+  selectedDate,
+  onClose,
+  onChangeMonth,
+  onSelectDate,
+}: {
+  visible: boolean;
+  currentMonth: Date;
+  selectedDate: Date | null;
+  onClose: () => void;
+  onChangeMonth: (date: Date) => void;
+  onSelectDate: (date: Date) => void;
+}) {
+  const [pickerMode, setPickerMode] = useState<'day' | 'month' | 'year'>('day');
+  const days = getCalendarDays(currentMonth);
+  const yearPageStart =
+    currentMonth.getFullYear() - (currentMonth.getFullYear() % 12);
+  const years = Array.from({ length: 12 }, (_, index) => yearPageStart + index);
+
+  const movePage = (offset: number) => {
+    if (pickerMode === 'day') {
+      onChangeMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1),
+      );
+      return;
+    }
+    if (pickerMode === 'month') {
+      onChangeMonth(
+        new Date(currentMonth.getFullYear() + offset, currentMonth.getMonth(), 1),
+      );
+      return;
+    }
+    onChangeMonth(
+      new Date(currentMonth.getFullYear() + offset * 12, currentMonth.getMonth(), 1),
+    );
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.calendarOverlay} onPress={onClose}>
+        <Pressable style={styles.calendarCard}>
+          <View style={styles.calendarHeader}>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={styles.monthButton}
+              onPress={() => movePage(-1)}>
+              <Text style={styles.monthButtonText}>‹</Text>
+            </TouchableOpacity>
+            {pickerMode === 'year' ? (
+              <Text style={styles.calendarTitle}>
+                {yearPageStart} - {yearPageStart + 11}
+              </Text>
+            ) : (
+              <View style={styles.calendarTitleRow}>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => setPickerMode('month')}>
+                  <Text style={styles.calendarTitle}>
+                    Tháng {currentMonth.getMonth() + 1}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.calendarTitleSlash}>/</Text>
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  onPress={() => setPickerMode('year')}>
+                  <Text style={styles.calendarTitle}>
+                    {currentMonth.getFullYear()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity
+              activeOpacity={0.75}
+              style={styles.monthButton}
+              onPress={() => movePage(1)}>
+              <Text style={styles.monthButtonText}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {pickerMode === 'day' && (
+            <>
+              <View style={styles.weekRow}>
+                {WEEK_DAYS.map(day => (
+                  <Text key={day} style={styles.weekDay}>
+                    {day}
+                  </Text>
+                ))}
+              </View>
+              <View style={styles.dayGrid}>
+                {days.map((date, index) => {
+                  const isSelected =
+                    !!selectedDate && isSameDay(date, selectedDate);
+                  const isCurrentMonth =
+                    date.getMonth() === currentMonth.getMonth();
+                  return (
+                    <TouchableOpacity
+                      key={`${date.toISOString()}-${index}`}
+                      activeOpacity={0.75}
+                      style={[
+                        styles.dayCell,
+                        isSelected && styles.dayCellSelected,
+                      ]}
+                      onPress={() => onSelectDate(date)}>
+                      <Text
+                        style={[
+                          styles.dayText,
+                          !isCurrentMonth && styles.dayTextMuted,
+                          isSelected && styles.dayTextSelected,
+                        ]}>
+                        {date.getDate()}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {pickerMode === 'month' && (
+            <View style={styles.optionGrid}>
+              {MONTHS.map((month, index) => {
+                const isSelected = index === currentMonth.getMonth();
+                return (
+                  <TouchableOpacity
+                    key={month}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.optionCell,
+                      isSelected && styles.optionCellSelected,
+                    ]}
+                    onPress={() => {
+                      onChangeMonth(
+                        new Date(currentMonth.getFullYear(), index, 1),
+                      );
+                      setPickerMode('day');
+                    }}>
+                    <Text
+                      style={[
+                        styles.calendarOptionText,
+                        isSelected && styles.calendarOptionTextSelected,
+                      ]}>
+                      {month}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {pickerMode === 'year' && (
+            <View style={styles.optionGrid}>
+              {years.map(year => {
+                const isSelected = year === currentMonth.getFullYear();
+                return (
+                  <TouchableOpacity
+                    key={year}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.optionCell,
+                      isSelected && styles.optionCellSelected,
+                    ]}
+                    onPress={() => {
+                      onChangeMonth(new Date(year, currentMonth.getMonth(), 1));
+                      setPickerMode('month');
+                    }}>
+                    <Text
+                      style={[
+                        styles.calendarOptionText,
+                        isSelected && styles.calendarOptionTextSelected,
+                      ]}>
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -606,5 +825,114 @@ const styles = StyleSheet.create({
     color: '#3e94ff',
     fontSize: 21,
     fontWeight: '900',
+  },
+  calendarOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  calendarCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  monthButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthButtonText: {
+    color: BLUE,
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 30,
+  },
+  calendarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  calendarTitle: {
+    color: '#222',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  calendarTitleSlash: {
+    color: '#222',
+    fontSize: 17,
+    fontWeight: '800',
+    marginHorizontal: 4,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  weekDay: {
+    width: '14.28%',
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dayGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  dayCell: {
+    width: '14.28%',
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayCellSelected: {
+    backgroundColor: BLUE,
+    borderRadius: 20,
+  },
+  dayText: {
+    color: '#222',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  dayTextMuted: {
+    color: '#bbb',
+  },
+  dayTextSelected: {
+    color: '#fff',
+  },
+  optionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingVertical: 8,
+  },
+  optionCell: {
+    width: '33.33%',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  optionCellSelected: {
+    backgroundColor: '#e8f3fb',
+  },
+  calendarOptionText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  calendarOptionTextSelected: {
+    color: BLUE,
+    fontWeight: '800',
   },
 });
