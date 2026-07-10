@@ -1,10 +1,22 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const connectDB = require('./config/db');
-const movieRoutes = require('./routes/movieRoutes');
+const express = require("express");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const connectDB = require("./config/db");
+
+const authRoutes = require("./routes/authRoutes");
+const movieRoutes = require("./routes/movieRoutes");
+const roomRoutes = require("./routes/roomRoutes");
+const seatRoutes = require("./routes/seatRoutes");
+const showtimeRoutes = require("./routes/showtimeRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
+const ticketRoutes = require("./routes/ticketRoutes");
+const voucherRoutes = require("./routes/voucherRoutes");
+const productRoutes = require("./routes/productRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 dotenv.config();
+
 connectDB();
 
 const app = express();
@@ -12,57 +24,40 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory reviews store (simple demo). In production replace with DB.
-const reviews = [];
-
+// Home
 app.get("/", (req, res) => {
   res.send("Backend Movie Booking Running");
 });
 
-app.use('/movies', movieRoutes);
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/movies", movieRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/seats", seatRoutes);
+app.use("/api/showtimes", showtimeRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/vouchers", voucherRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/notifications", notificationRoutes);
 
-// GET /reviews?movieId=123
-app.get('/reviews', (req, res) => {
-  const { movieId } = req.query;
-  if (movieId) {
-    const filtered = reviews.filter(r => String(r.movieId) === String(movieId));
-    return res.json(filtered);
-  }
-  res.json(reviews);
-});
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error(err);
 
-// POST /reviews
-app.post('/reviews', (req, res) => {
-  const { movieId, rating, text, tags } = req.body;
-  if (!movieId) return res.status(400).json({ message: 'movieId is required' });
-  if (!rating && rating !== 0) return res.status(400).json({ message: 'rating is required' });
-  if (!text) return res.status(400).json({ message: 'text is required' });
-
-  const newReview = {
-    id: String(Date.now()),
-    movieId,
-    rating,
-    text,
-    tags: tags || [],
-    date: new Date().toISOString(),
-    likes: 0,
-    replies: 0,
-  };
-
-  reviews.unshift(newReview);
-
-  res.status(201).json(newReview);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
 });
 
 const PORT = process.env.PORT || 3000;
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error',
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
   });
-});
+}
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+module.exports = app;
