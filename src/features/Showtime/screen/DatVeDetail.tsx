@@ -35,6 +35,7 @@ const combos = [
       'TIẾT KIỆM 95K!!! Gồm: 2 Bắp (69oz) + 4 Nước có gas (22oz) + 2 Snack Oishi (80g)',
     color: '#62c7df',
     badge: 'FAMILY',
+    price: 269000,
   },
   {
     title: 'Combo See Me - Mùi Phở',
@@ -42,24 +43,28 @@ const combos = [
       'SIÊU HOTTT!!! Combo phiên bản giới hạn: 1 Ly "Mùi Phở" hấp dẫn kèm nước có gas + 1 Bắp (69oz)',
     color: '#db4b42',
     badge: 'MÙI PHỞ',
+    price: 159000,
   },
   {
     title: 'FilmGo Combo 69oz',
     description: 'TIẾT KIỆM 28K!!! Gồm: 1 Bắp (69oz) + 1 Nước có gas (22oz)',
     color: '#9bd24f',
     badge: 'FILMGO',
+    price: 89000,
   },
   {
     title: 'Combo Minions',
     description: 'ƯU ĐÃI GIỚI HẠN 01 ly Minions tặng kèm 01 phần nước Pepsi miễn phí.',
     color: '#ffc33d',
     badge: '139k',
+    price: 139000,
   },
   {
     title: 'Sweet Combo 69oz',
     description: 'TIẾT KIỆM 46K!!! Gồm: 1 Bắp (69oz) + 2 Nước có gas (22oz)',
     color: '#f5a6bd',
     badge: 'SWEET',
+    price: 119000,
   },
 ];
 
@@ -75,7 +80,13 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
   const discount = 0;
-  const payable = totalPrice - discount;
+
+  const comboTotal = combos.reduce((sum, combo) => {
+    const quantity = quantities[combo.title] ?? 0;
+    return sum + quantity * combo.price;
+  }, 0);
+  const grandTotal = totalPrice + comboTotal;
+  const payable = grandTotal - discount;
 
   const updateCombo = (title: string, change: number) => {
     setQuantities(current => ({
@@ -130,6 +141,7 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
                 <Text numberOfLines={3} style={styles.comboDescription}>
                   {combo.description}
                 </Text>
+                <Text style={styles.comboPrice}>{formatVnd(combo.price)}</Text>
               </View>
               <View style={styles.stepper}>
                 <Text style={styles.quantity}>{quantities[combo.title] ?? 0}</Text>
@@ -155,7 +167,9 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         <OptionRow label="Điểm FilmGo" />
 
         <View style={styles.totalBlock}>
-          <MoneyRow label="Tổng tiền" value={formatVnd(totalPrice)} valueStyle={styles.redMoney} />
+          <MoneyRow label="Tiền vé" value={formatVnd(totalPrice)} />
+          <MoneyRow label="Tiền combo" value={formatVnd(comboTotal)} />
+          <MoneyRow label="Tổng tiền" value={formatVnd(grandTotal)} valueStyle={styles.redMoney} />
           <MoneyRow label="Số tiền được giảm" value={formatVnd(discount)} valueStyle={styles.blueMoney} />
           <MoneyRow label="Số tiền cần thanh toán" value={formatVnd(payable)} valueStyle={styles.redMoney} />
         </View>
@@ -483,6 +497,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     marginTop: 5,
+  },
+  comboPrice: {
+    color: RED,
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 4,
   },
   stepper: {
     width: 82,
