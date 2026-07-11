@@ -1,9 +1,169 @@
-import {PageTitle} from '../../components/AdminMock';
+import {useEffect, useMemo, useState} from 'react';
+import {Link, useNavigate, useParams} from 'react-router-dom';
+import movieApi from '../../api/movieApi';
+import roomApi from '../../api/roomApi';
+import showtimeApi from '../../api/showtimeApi';
+import SelectDropdown from '../../components/SelectDropdown';
+import {
+  buildStartTimeIso,
+  formatDate,
+  formatDuration,
+  formatTime,
+  formatVnd,
+  toDateInputValue,
+  toTimeInputValue,
+} from '../../utils/showtimeHelpers';
+
+const EMPTY_FORM = {
+  movie: '',
+  room: '',
+  date: '',
+  time: '',
+  price: '120000',
+  status: 'scheduled',
+  note: '',
+};
 
 function CreateShowtime() {
+  const navigate = useNavigate();
+  const {id} = useParams();
+  const isEdit = Boolean(id);
+
+  const [movies, setMovies] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const [movieData, roomData] = await Promise.all([
+          movieApi.getAll(),
+          roomApi.getAll(),
+        ]);
+
+        const nextMovies = Array.isArray(movieData) ? movieData : [];
+        const nextRooms = Array.isArray(roomData) ? roomData : [];
+        setMovies(nextMovies);
+        setRooms(nextRooms);
+
+        if (isEdit) {
+          const showtime = await showtimeApi.getById(id);
+          setForm({
+            movie: showtime.movie?._id || showtime.movie || '',
+            room: showtime.room?._id || showtime.room || '',
+            date: toDateInputValue(showtime.startTime),
+            time: toTimeInputValue(showtime.startTime),
+            price: String(showtime.price ?? ''),
+            status: showtime.status || 'scheduled',
+            note: '',
+          });
+        } else {
+          const today = toDateInputValue(new Date());
+          setForm(current => ({
+            ...current,
+            movie: nextMovies[0]?.id || nextMovies[0]?._id || '',
+            room: nextRooms[0]?._id || '',
+            date: today,
+            time: '19:00',
+          }));
+        }
+      } catch (err) {
+        setError(err.message || 'Không tải được dữ liệu form');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id, isEdit]);
+
+  const selectedMovie = useMemo(
+    () =>
+      movies.find(item => String(item.id || item._id) === String(form.movie)),
+    [movies, form.movie],
+  );
+
+  const selectedRoom = useMemo(
+    () => rooms.find(item => String(item._id) === String(form.room)),
+    [rooms, form.room],
+  );
+
+  const updateField = (key, value) => {
+    setForm(current => ({...current, [key]: value}));
+  };
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    setError('');
+
+    if (!form.movie || !form.room || !form.date || !form.time || !form.price) {
+      setError('Vui lòng nhập đủ phim, phòng, ngày giờ và giá vé');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        movie: form.movie,
+        room: form.room,
+        startTime: buildStartTimeIso(form.date, form.time),
+        price: Number(String(form.price).replace(/[^\d]/g, '')),
+        status: form.status,
+      };
+
+      if (isEdit) {
+        await showtimeApi.update(id, payload);
+      } else {
+        await showtimeApi.create(payload);
+      }
+
+      navigate('/showtimes');
+    } catch (err) {
+      setError(err.message || 'Lưu suất chiếu thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section>
+        <p className="mutedText">Đang tải form suất chiếu...</p>
+      </section>
+    );
+  }
+
   return (
-    <section>
-      <PageTitle title="Liên kết phim và suất chiếu" />
+    <section className="showtimeEditPage">
+      <div className="pageTitle">
+        <div>
+          <h2>{isEdit ? 'Sửa suất chiếu' : 'Tạo suất chiếu mới'}</h2>
+          <p>Liên kết phim với phòng chiếu, thời gian và giá vé.</p>
+        </div>
+        <Link className="ghost backListBtn" to="/showtimes">
+          Quay lại danh sách
+        </Link>
+      </div>
+
+      {error && <p className="inlineError">{error}</p>}
+
+      {!movies.length && (
+        <p className="inlineError">
+          Chưa có phim trong MongoDB. Hãy seed phim (`npm run seed:movies`) trước.
+        </p>
+      )}
+      {!rooms.length && (
+        <p className="inlineError">
+          Chưa có phòng chiếu. Hãy vào mục Phòng chiếu để tạo phòng trước.
+        </p>
+      )}
+
       <div className="showtimeCreate">
         <div className="panel showtimeFormCard">
           <div className="sectionHeader compact">
@@ -12,38 +172,86 @@ function CreateShowtime() {
               <p>Chọn phim, phòng chiếu, thời gian và giá vé để mở bán.</p>
             </div>
           </div>
-          <form className="showtimeForm">
-            <label>
-              Phim
-              <select><option>Avatar</option><option>Avengers</option><option>Superman</option></select>
-            </label>
-            <label>
-              Phòng chiếu
-              <select><option>Phòng 01</option><option>Phòng 02</option><option>Phòng 03</option></select>
-            </label>
+          <form className="showtimeForm" onSubmit={handleSubmit}>
+            <SelectDropdown
+              label="Phim"
+              value={form.movie}
+              placeholder="Chọn phim"
+              onChange={value => updateField('movie', value)}
+              options={[
+                {value: '', label: 'Chọn phim'},
+                ...movies.map(movie => ({
+                  value: movie.id || movie._id,
+                  label: movie.title,
+                })),
+              ]}
+            />
+            <SelectDropdown
+              label="Phòng chiếu"
+              value={form.room}
+              placeholder="Chọn phòng"
+              onChange={value => updateField('room', value)}
+              options={[
+                {value: '', label: 'Chọn phòng'},
+                ...rooms.map(room => ({
+                  value: room._id,
+                  label: `${room.name} (${room.type})`,
+                })),
+              ]}
+            />
             <label>
               Ngày chiếu
-              <input defaultValue="2024-05-16" type="date" />
+              <input
+                type="date"
+                value={form.date}
+                onChange={event => updateField('date', event.target.value)}
+              />
             </label>
             <label>
               Giờ chiếu
-              <input defaultValue="19:00" type="time" />
+              <input
+                type="time"
+                value={form.time}
+                onChange={event => updateField('time', event.target.value)}
+              />
             </label>
             <label>
-              Giá vé
-              <input defaultValue="120.000 đ" />
+              Giá vé (VND)
+              <input
+                value={form.price}
+                onChange={event => updateField('price', event.target.value)}
+                placeholder="120000"
+              />
             </label>
-            <label>
-              Định dạng
-              <select defaultValue="2d"><option value="2d">2D</option><option value="3d">3D</option><option value="imax">IMAX</option></select>
-            </label>
+            <SelectDropdown
+              label="Trạng thái"
+              value={form.status}
+              placeholder="Chọn trạng thái"
+              onChange={value => updateField('status', value)}
+              options={[
+                {value: 'scheduled', label: 'Lên lịch'},
+                {value: 'completed', label: 'Đã chiếu'},
+                {value: 'cancelled', label: 'Đã hủy'},
+              ]}
+            />
             <label className="fullField">
               Ghi chú
-              <textarea defaultValue="Suất chiếu tối, áp dụng giá vé tiêu chuẩn." />
+              <textarea
+                value={form.note}
+                onChange={event => updateField('note', event.target.value)}
+                placeholder="Ghi chú nội bộ (không bắt buộc)"
+              />
             </label>
             <div className="formActions fullField">
-              <button className="ghost" type="button">Hủy</button>
-              <button type="button">Lưu</button>
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => navigate('/showtimes')}>
+                Hủy
+              </button>
+              <button disabled={saving} type="submit">
+                {saving ? 'Đang lưu...' : isEdit ? 'Cập nhật' : 'Lưu suất chiếu'}
+              </button>
             </div>
           </form>
         </div>
@@ -51,22 +259,53 @@ function CreateShowtime() {
         <aside className="panel showtimeSummary">
           <h3>Tóm tắt</h3>
           <div className="moviePreview">
-            <div className="miniPoster">Avatar</div>
+            {selectedMovie?.posterUrl ? (
+              <img
+                className="miniPosterImage"
+                src={selectedMovie.posterUrl}
+                alt={selectedMovie.title}
+              />
+            ) : (
+              <div className="miniPoster">
+                {selectedMovie?.title?.slice(0, 1) || '?'}
+              </div>
+            )}
             <div>
-              <strong>Avatar</strong>
-              <span>Hành động, Viễn tưởng</span>
-              <small>162 phút • 2D</small>
+              <strong>{selectedMovie?.title || 'Chưa chọn phim'}</strong>
+              <span>{selectedMovie?.genre || 'Thể loại'}</span>
+              <small>
+                {formatDuration(selectedMovie?.duration)} •{' '}
+                {selectedRoom?.type || '2D'}
+              </small>
             </div>
           </div>
           <div className="summaryGrid">
-            <p><span>Phòng</span><strong>Phòng 01</strong></p>
-            <p><span>Ngày</span><strong>16/05/2024</strong></p>
-            <p><span>Giờ</span><strong>19:00</strong></p>
-            <p><span>Giá vé</span><strong>120.000 đ</strong></p>
+            <p>
+              <span>Phòng</span>
+              <strong>{selectedRoom?.name || '--'}</strong>
+            </p>
+            <p>
+              <span>Ngày</span>
+              <strong>
+                {form.date ? formatDate(`${form.date}T00:00:00`) : '--'}
+              </strong>
+            </p>
+            <p>
+              <span>Giờ</span>
+              <strong>
+                {form.time
+                  ? formatTime(`${form.date || '2026-01-01'}T${form.time}:00`)
+                  : '--'}
+              </strong>
+            </p>
+            <p>
+              <span>Giá vé</span>
+              <strong>{formatVnd(form.price)}</strong>
+            </p>
           </div>
           <div className="occupancy">
             <div>
-              <strong>120</strong>
+              <strong>{selectedRoom?.totalSeats || 0}</strong>
               <span>Ghế khả dụng</span>
             </div>
             <div>

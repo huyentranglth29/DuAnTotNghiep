@@ -43,6 +43,7 @@ function AppRoutes() {
         <Route path="showtimes" element={<ShowtimeList />} />
         <Route path="showtimes/add" element={<ShowtimeAdd />} />
         <Route path="showtimes/create" element={<CreateShowtime />} />
+        <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
         <Route path="tickets" element={<TicketList />} />

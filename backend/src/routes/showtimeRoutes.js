@@ -1,12 +1,18 @@
 const express = require("express");
-const controller = require("../controllers/showtimeController");
-
 const router = express.Router();
 
-router.get("/", controller.getAll);
-router.post("/", controller.create);
-router.get("/:id", controller.getById);
-router.put("/:id", controller.update);
-router.delete("/:id", controller.remove);
+const {
+  getShowtimes,
+  getShowtimeById,
+  createShowtime,
+  updateShowtime,
+  deleteShowtime,
+} = require("../controllers/showtimeController");
+
+router.get("/", getShowtimes);
+router.get("/:id", getShowtimeById);
+router.post("/", createShowtime);
+router.put("/:id", updateShowtime);
+router.delete("/:id", deleteShowtime);
 
 module.exports = router;
