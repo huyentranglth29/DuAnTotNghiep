@@ -13,12 +13,17 @@ export type LocPhim = {
   trangThai?: Phim['trangThai'];
   theLoai?: string;
   gioiHan?: number;
+  /** Chỉ phim đang có suất trên Admin (khớp danh sách suất chiếu) */
+  coSuatChieu?: boolean;
 };
 
-const BANG_ANH_TRANG_THAI: Record<TrangThaiPhimApi, Phim['trangThai']> = {
+const BANG_ANH_TRANG_THAI: Record<string, Phim['trangThai'] | undefined> = {
   'now-showing': 'dang-chieu',
+  now_showing: 'dang-chieu',
   'coming-soon': 'sap-chieu',
+  coming_soon: 'sap-chieu',
   featured: 'noi-bat',
+  ended: undefined,
 };
 
 const BANG_TRANG_THAI_API: Record<
@@ -72,6 +77,10 @@ function taoQueryParams(loc?: LocPhim): Record<string, string | number> {
 
   if (loc?.gioiHan) {
     params._limit = loc.gioiHan;
+  }
+
+  if (loc?.coSuatChieu) {
+    params.hasShowtimes = 'bookable';
   }
 
   return params;

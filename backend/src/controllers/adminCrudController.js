@@ -104,7 +104,7 @@ const createAdminCrudController = (Model, options = {}) => {
   const getAll = async (req, res) => {
     try {
       const page = Math.max(Number(req.query.page) || 1, 1);
-      const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 500);
       const skip = (page - 1) * limit;
       const filter = buildFilter(Model, req.query, keywordFields);
       const sort = normalizeSort(req.query.sort);

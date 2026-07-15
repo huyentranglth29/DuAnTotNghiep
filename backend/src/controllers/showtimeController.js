@@ -36,7 +36,7 @@ function buildEndTime(startTime, duration) {
 
 const getShowtimes = async (req, res, next) => {
   try {
-    const { movie, room, date, status } = req.query;
+    const { movie, room, date, status, bookable } = req.query;
     const filter = {};
 
     if (movie) {
@@ -51,10 +51,17 @@ const getShowtimes = async (req, res, next) => {
       filter.status = status;
     }
 
+    // Ngày theo VN (UTC+7) để khớp App / Admin, tránh lệch timezone server
     if (date) {
-      const dayStart = new Date(`${date}T00:00:00`);
-      const dayEnd = new Date(`${date}T23:59:59.999`);
+      const dayStart = new Date(`${date}T00:00:00+07:00`);
+      const dayEnd = new Date(`${date}T23:59:59.999+07:00`);
       filter.startTime = { $gte: dayStart, $lte: dayEnd };
+    }
+
+    // App User: chỉ suất còn đặt (scheduled + chưa kết thúc)
+    if (bookable === "1" || bookable === "true") {
+      filter.status = filter.status || "scheduled";
+      filter.endTime = { $gt: new Date() };
     }
 
     const showtimes = await Showtime.find(filter)

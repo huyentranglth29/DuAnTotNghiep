@@ -14,7 +14,7 @@ const initialForm = {
   posterUrl: '',
   backdropUrl: '',
   price: '',
-  status: 'coming_soon',
+  status: 'coming-soon',
   ageRating: '',
 };
 
@@ -69,10 +69,10 @@ function MovieAdd() {
           <label>
             Trạng thái
             <select value={form.status} onChange={event => updateForm('status', event.target.value)}>
-              <option value="coming_soon">Sắp chiếu</option>
-              <option value="now_showing">Đang chiếu</option>
-              <option value="featured">Nổi bật</option>
-              <option value="ended">Đã kết thúc</option>
+              <option value="coming-soon">Sắp chiếu</option>
+              <option value="now-showing">Đang chiếu</option>
+              <option value="featured">Nổi bật (Đang chiếu)</option>
+              <option value="ended">Đã chiếu</option>
             </select>
           </label>
           <label>Độ tuổi<input value={form.ageRating} onChange={event => updateForm('ageRating', event.target.value)} /></label>

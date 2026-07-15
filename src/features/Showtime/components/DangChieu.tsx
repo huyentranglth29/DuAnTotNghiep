@@ -1,93 +1,91 @@
 import React from 'react';
-import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useMoviesDangChieu} from '../../../hooks/useMovies';
 import {MovieBookingInfo} from './MovieName';
 import PromoCarousel from './PromoCarousel';
-
-const nowShowingMovies = [
-  {
-    title: 'Ám Ảnh',
-    duration: '109 phút',
-    age: 'T18',
-    ageColor: '#f47fa2',
-    hot: true,
-    poster: require('../../../assets/showtime/bong-quy.jpg'),
-  },
-  {
-    title: 'Bầy Xác Sống',
-    duration: '122 phút',
-    age: 'T16',
-    ageColor: '#f1d83f',
-    hot: true,
-    poster: require('../../../assets/showtime/den-la-sat.jpg'),
-  },
-  {
-    title: 'Lầu Chủ Hòa',
-    duration: '94 phút',
-    age: 'T18',
-    ageColor: '#f47fa2',
-    hot: true,
-    poster: require('../../../assets/showtime/dong-dao-ma-quai.jpg'),
-  },
-  {
-    title: 'Backrooms',
-    duration: '93 phút',
-    age: 'T16',
-    ageColor: '#f1d83f',
-    hot: true,
-    poster: require('../../../assets/showtime/minions.jpg'),
-  },
-  {
-    title: 'Doraemon',
-    duration: '105 phút',
-    age: 'P',
-    ageColor: '#87c846',
-    hot: false,
-    poster: require('../../../assets/showtime/moana.jpg'),
-  },
-  {
-    title: 'Thám Tử Lừng Danh',
-    duration: '111 phút',
-    age: 'T18',
-    ageColor: '#f47fa2',
-    hot: false,
-    poster: require('../../../assets/showtime/sheep-in-the-box.jpg'),
-  },
-];
+import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
 
 type DangChieuProps = {
   onMoviePress: (movie: MovieBookingInfo) => void;
 };
 
 function DangChieu({onMoviePress}: DangChieuProps) {
+  const {data, isLoading, isError, refetch, isFetching} = useMoviesDangChieu();
+  const movies = data ?? [];
+
   return (
     <View style={styles.container}>
       <PromoCarousel />
 
-      <View style={styles.movieGrid}>
-        {nowShowingMovies.map(movie => (
-          <TouchableOpacity
-            key={movie.title}
-            activeOpacity={0.85}
-            style={styles.movieCard}
-            onPress={() => onMoviePress(movie)}>
-            <View style={styles.posterWrap}>
-              <Image source={movie.poster} style={styles.moviePoster} />
-              <View style={[styles.ageBadge, {backgroundColor: movie.ageColor}]}>
-                <Text style={styles.ageText}>{movie.age}</Text>
-              </View>
-              {movie.hot && (
-                <View style={styles.hotRibbon}>
-                  <Text style={styles.hotText}>HOT</Text>
-                </View>
-              )}
-            </View>
-            <Text numberOfLines={1} style={styles.movieTitle}>
-              {movie.title}
-            </Text>
-            <Text style={styles.movieDuration}>{movie.duration}</Text>
+      {isLoading ? (
+        <ActivityIndicator style={styles.loader} color="#005f98" />
+      ) : isError ? (
+        <View style={styles.stateBox}>
+          <Text style={styles.stateTitle}>Không tải được phim từ server</Text>
+          <Text style={styles.stateHint}>
+            Hãy chạy backend và seed movies từ Admin.
+          </Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
+            <Text style={styles.retryText}>Thử lại</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
+      ) : movies.length === 0 ? (
+        <View style={styles.stateBox}>
+          <Text style={styles.stateTitle}>Chưa có phim đang chiếu</Text>
+          <Text style={styles.stateHint}>
+            Thêm phim trạng thái Đang chiếu trên Admin.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.movieGrid}>
+          {movies.map(phim => {
+            const movie = phimSangBooking(phim);
+            const age = phim.nhanTuoi || 'T13';
+            return (
+              <TouchableOpacity
+                key={String(phim.id)}
+                activeOpacity={0.85}
+                style={styles.movieCard}
+                onPress={() => onMoviePress(movie)}>
+                <View style={styles.posterWrap}>
+                  <Image
+                    source={{uri: phim.posterUrl}}
+                    style={styles.moviePoster}
+                  />
+                  <View
+                    style={[
+                      styles.ageBadge,
+                      {backgroundColor: layMauNhanTuoi(age)},
+                    ]}>
+                    <Text style={styles.ageText}>{age}</Text>
+                  </View>
+                  {phim.laPhimHot && (
+                    <View style={styles.hotRibbon}>
+                      <Text style={styles.hotText}>HOT</Text>
+                    </View>
+                  )}
+                </View>
+                <Text numberOfLines={1} style={styles.movieTitle}>
+                  {phim.tieuDe}
+                </Text>
+                <Text style={styles.movieDuration}>
+                  {phim.thoiLuong || '—'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+      {isFetching && !isLoading && (
+        <Text style={styles.refreshHint}>Đang cập nhật...</Text>
+      )}
     </View>
   );
 }
@@ -96,6 +94,43 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
     paddingBottom: 18,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  stateBox: {
+    marginTop: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  stateTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center',
+  },
+  stateHint: {
+    marginTop: 6,
+    fontSize: 13,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 14,
+    backgroundColor: '#005f98',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  refreshHint: {
+    textAlign: 'center',
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 4,
   },
   movieGrid: {
     flexDirection: 'row',
