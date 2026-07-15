@@ -1,6 +1,3 @@
-import React, {useEffect, useState} from 'react';
-import {
-  ImageBackground,
   ImageSourcePropType,
   Modal,
   ScrollView,
@@ -8,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
 import Svg, {Path, Rect} from 'react-native-svg';
 import {createQuickBooking} from '../../../services/apiService';
@@ -91,26 +89,33 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
   const duration = movie.duration ?? '109 phút';
 
 
-  useEffect(() => {
-    const saveTicket = async () => {
-      try {
-        await createQuickBooking({
-          movieTitle: movie.title,
-          movieDuration: movie.duration,
-          movieGenre: movie.genre,
-          seats: seats,
-          totalPrice: totalPrice,
-          cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
-          bookingDate: new Date().toLocaleDateString('vi-VN'),
-          bookingTime: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}),
-        });
-        console.log('✅ Đã lưu vé lên MongoDB Atlas thành công!');
-      } catch (e) {
-        console.log('❌ Lỗi lưu vé:', e);
-      }
-    };
-    saveTicket();
-  }, []);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePayment = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await createQuickBooking({
+        movieTitle: movie.title,
+        movieDuration: movie.duration,
+        movieGenre: movie.genre,
+        seats: seats,
+        totalPrice: totalPrice, // Lưu giá gốc hoặc thêm giá combo tuỳ ý (ở đây dùng totalPrice gốc như cũ)
+        cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
+        bookingDate: new Date().toLocaleDateString('vi-VN'),
+        bookingTime: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}),
+      });
+      Alert.alert(
+        'Thanh toán thành công',
+        'Cảm ơn bạn đã đặt vé. Bạn có thể kiểm tra vé trong mục "Khác > Vé của tôi".',
+        [{ text: 'Đóng', onPress: onClose }]
+      );
+    } catch (e) {
+      console.log('❌ Lỗi lưu vé:', e);
+      Alert.alert('Lỗi', 'Thanh toán thất bại, vui lòng thử lại.');
+      setIsProcessing(false);
+    }
+  };
 
   const discount = 0;
 
@@ -254,8 +259,11 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.payButton}
-          onPress={() => setShowCancelConfirm(true)}>
-          <Text style={styles.payButtonText}>THANH TOÁN</Text>
+          onPress={handlePayment}
+          disabled={isProcessing}>
+          <Text style={styles.payButtonText}>
+            {isProcessing ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
