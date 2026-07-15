@@ -15,7 +15,7 @@ export const KHOA_PHIM = {
     ['phim', 'tim-kiem', tuKhoa, trangThai ?? 'all'] as const,
 };
 
-const THOI_GIAN_CACHE_MS = 1000 * 60 * 5;
+const THOI_GIAN_CACHE_MS = 1000 * 30; // 30s — Admin thêm phim/suất thì User sớm thấy
 
 /**
  * Hook lấy danh sách phim — hỗ trợ lọc theo trạng thái / thể loại.
@@ -25,6 +25,8 @@ export function useMovies(loc?: LocPhim) {
     queryKey: KHOA_PHIM.danhSach(loc),
     queryFn: () => layDanhSachPhim(loc),
     staleTime: THOI_GIAN_CACHE_MS,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -40,12 +42,17 @@ export function useMovie(id: string | number | undefined) {
   });
 }
 
-/** Phim đang chiếu — màn Home & Danh sách */
+/**
+ * Đang chiếu = phim Admin gắn trạng thái Đang chiếu / Nổi bật
+ * (cùng collection Mongo; vào đặt vé sẽ thấy suất Admin đã tạo)
+ */
 export function useMoviesDangChieu() {
   return useMovies({trangThai: 'dang-chieu'});
 }
 
-/** Phim sắp chiếu — màn Home */
+/**
+ * Sắp chiếu = phim Admin gắn trạng thái Sắp chiếu
+ */
 export function useMoviesSapChieu() {
   return useMovies({trangThai: 'sap-chieu'});
 }

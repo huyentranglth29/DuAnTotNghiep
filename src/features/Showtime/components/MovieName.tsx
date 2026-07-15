@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ImageBackground,
   ImageSourcePropType,
@@ -9,7 +9,11 @@ import {
   View,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
-import ChonGio from './ChonGio';
+import ChonGio, {SelectedShowtimeInfo} from './ChonGio';
+import {
+  layDanhSachSuatChieu,
+  toDateKey,
+} from '../../../services/showtimeService';
 
 const BLUE = '#005f98';
 
@@ -25,21 +29,70 @@ type MovieNameProps = {
   movie: MovieBookingInfo;
   onBack: () => void;
   onDetailPress: () => void;
-  onShowtimePress: () => void;
+  onShowtimePress: (showtime: SelectedShowtimeInfo) => void;
 };
 
-const dates = [
-  {day: '30', label: 'Hôm nay'},
-  {day: '01', label: '07-Th 4'},
-  {day: '02', label: '07-Th 5'},
-  {day: '03', label: '07-Th 6'},
-  {day: '04', label: '07-Th 7'},
-];
+const WEEKDAY = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
 
-function MovieName({movie, onBack, onDetailPress, onShowtimePress}: MovieNameProps) {
+function MovieName({
+  movie,
+  onBack,
+  onDetailPress,
+  onShowtimePress,
+}: MovieNameProps) {
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
-  const [selectedDate, setSelectedDate] = useState(dates[0].day);
+  const [dateKeys, setDateKeys] = useState<string[]>([]);
+  const [selectedDateKey, setSelectedDateKey] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDates = async () => {
+      if (!movie.id) {
+        setDateKeys([]);
+        setSelectedDateKey('');
+        return;
+      }
+
+      try {
+        const data = await layDanhSachSuatChieu({
+          movieId: String(movie.id),
+          bookable: true,
+        });
+        if (cancelled) return;
+
+        const keys = Array.from(
+          new Set(data.map(item => toDateKey(item.startTime))),
+        ).sort();
+
+        setDateKeys(keys);
+        setSelectedDateKey(keys[0] || '');
+      } catch {
+        if (!cancelled) {
+          setDateKeys([]);
+          setSelectedDateKey('');
+        }
+      }
+    };
+
+    loadDates();
+    return () => {
+      cancelled = true;
+    };
+  }, [movie.id]);
+
+  const dateItems = useMemo(() => {
+    return dateKeys.map(key => {
+      const d = new Date(`${key}T12:00:00`);
+      const todayKey = toDateKey(new Date());
+      return {
+        key,
+        day: `${d.getDate()}`.padStart(2, '0'),
+        label: key === todayKey ? 'Hôm nay' : `${WEEKDAY[d.getDay()]}`,
+      };
+    });
+  }, [dateKeys]);
 
   return (
     <View style={styles.container}>
@@ -78,27 +131,34 @@ function MovieName({movie, onBack, onDetailPress, onShowtimePress}: MovieNamePro
         </ImageBackground>
 
         <View style={styles.dateRow}>
-          {dates.map(date => {
-            const isActive = selectedDate === date.day;
-
-            return (
-              <TouchableOpacity
-                key={date.day}
-                activeOpacity={0.75}
-                style={styles.dateItem}
-                onPress={() => setSelectedDate(date.day)}>
-                <Text style={[styles.dateDay, isActive && styles.dateDayActive]}>
-                  {date.day}
-                </Text>
-                <Text style={[styles.dateLabel, isActive && styles.dateLabelActive]}>
-                  {date.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {dateItems.length === 0 ? (
+            <Text style={styles.noDate}>Chưa có ngày chiếu từ Admin</Text>
+          ) : (
+            dateItems.map(date => {
+              const isActive = selectedDateKey === date.key;
+              return (
+                <TouchableOpacity
+                  key={date.key}
+                  activeOpacity={0.75}
+                  style={styles.dateItem}
+                  onPress={() => setSelectedDateKey(date.key)}>
+                  <Text style={[styles.dateDay, isActive && styles.dateDayActive]}>
+                    {date.day}
+                  </Text>
+                  <Text style={[styles.dateLabel, isActive && styles.dateLabelActive]}>
+                    {date.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
-        <ChonGio onShowtimePress={onShowtimePress} />
+        <ChonGio
+          movieId={movie.id}
+          selectedDateKey={selectedDateKey || undefined}
+          onShowtimePress={onShowtimePress}
+        />
       </ScrollView>
     </View>
   );
@@ -171,11 +231,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   dateRow: {
-    height: 82,
+    minHeight: 82,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#ffffff',
+    paddingHorizontal: 8,
+  },
+  noDate: {
+    color: '#94a3b8',
+    fontSize: 13,
   },
   dateItem: {
     alignItems: 'center',

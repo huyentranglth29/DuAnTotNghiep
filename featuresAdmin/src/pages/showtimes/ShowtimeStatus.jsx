@@ -18,7 +18,7 @@ function ShowtimeStatus() {
     setLoading(true);
     setError('');
     try {
-      const data = await showtimeApi.getAll();
+      const data = await showtimeApi.getAll({ limit: 500, page: 1 });
       setShowtimes(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
       setError(err.message || 'Không tải được trạng thái suất chiếu');

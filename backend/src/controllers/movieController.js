@@ -1,4 +1,5 @@
 const Movie = require("../models/Movie");
+const Showtime = require("../models/Showtime");
 
 // ==========================
 // Chuyển dữ liệu cho App
@@ -6,7 +7,7 @@ const Movie = require("../models/Movie");
 
 const STATUS_FROM_CLIENT = {
   "coming-soon": ["coming_soon", "coming-soon"],
-  "now-showing": ["now_showing", "now-showing"],
+  "now-showing": ["now_showing", "now-showing", "featured"],
   featured: ["featured"],
   ended: ["ended"],
 };
@@ -74,7 +75,7 @@ function toClientMovie(movie) {
 
 const getMovies = async (req, res, next) => {
   try {
-    const { status, genre, _limit } = req.query;
+    const { status, genre, _limit, hasShowtimes } = req.query;
 
     const filter = {};
 
@@ -91,6 +92,47 @@ const getMovies = async (req, res, next) => {
       };
     }
 
+    // Khớp Admin suất chiếu: chỉ phim đang có suất đặt được
+    if (hasShowtimes === "1" || hasShowtimes === "true" || hasShowtimes === "bookable") {
+      const now = new Date();
+      const upcoming = await Showtime.find({
+        status: "scheduled",
+        endTime: { $gt: now },
+      })
+        .select("movie startTime")
+        .sort({ startTime: 1 })
+        .lean();
+
+      const nextByMovie = new Map();
+      for (const row of upcoming) {
+        const key = String(row.movie);
+        if (!nextByMovie.has(key)) {
+          nextByMovie.set(key, row.startTime);
+        }
+      }
+
+      const movieIds = Array.from(nextByMovie.keys());
+      filter._id = { $in: movieIds };
+
+      let movies = await Movie.find(filter).lean();
+
+      // Sắp xếp theo suất sớm nhất — cùng “nhịp” với danh sách Admin
+      movies.sort((a, b) => {
+        const ta = nextByMovie.get(String(a._id))?.getTime?.() || 0;
+        const tb = nextByMovie.get(String(b._id))?.getTime?.() || 0;
+        return ta - tb;
+      });
+
+      if (_limit) {
+        movies = movies.slice(0, Number(_limit));
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: movies.map(toClientMovie),
+      });
+    }
+
     let query = Movie.find(filter).sort({
       createdAt: -1,
     });
@@ -105,7 +147,6 @@ const getMovies = async (req, res, next) => {
       success: true,
       data: movies.map(toClientMovie),
     });
-
   } catch (error) {
     next(error);
   }

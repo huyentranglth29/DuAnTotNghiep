@@ -24,12 +24,12 @@ function MovieList() {
           name: 'status',
           label: 'Trạng thái',
           type: 'select',
-          defaultValue: 'coming_soon',
+          defaultValue: 'now-showing',
           options: [
-            {value: 'coming_soon', label: 'Sắp chiếu'},
-            {value: 'now_showing', label: 'Đang chiếu'},
-            {value: 'featured', label: 'Nổi bật'},
-            {value: 'ended', label: 'Đã kết thúc'},
+            {value: 'coming-soon', label: 'Sắp chiếu'},
+            {value: 'now-showing', label: 'Đang chiếu'},
+            {value: 'featured', label: 'Nổi bật (Đang chiếu)'},
+            {value: 'ended', label: 'Đã chiếu'},
           ],
         },
         {name: 'ageRating', label: 'Độ tuổi'},
@@ -43,7 +43,21 @@ function MovieList() {
         },
         {key: 'duration', title: 'Thời lượng'},
         {key: 'releaseDate', title: 'Ngày khởi chiếu', render: item => formatDate(item.releaseDate)},
-        {key: 'status', title: 'Trạng thái'},
+        {
+          key: 'status',
+          title: 'Trạng thái',
+          render: item => {
+            const map = {
+              'coming-soon': 'Sắp chiếu',
+              coming_soon: 'Sắp chiếu',
+              'now-showing': 'Đang chiếu',
+              now_showing: 'Đang chiếu',
+              featured: 'Nổi bật',
+              ended: 'Đã chiếu',
+            };
+            return map[item.status] || item.status;
+          },
+        },
       ]}
     />
   );
