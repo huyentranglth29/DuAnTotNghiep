@@ -1,10 +1,5 @@
-import axiosClient from './axiosClient';
+import createAdminResourceApi from './adminResourceApi';
 
-const roomApi = {
-  getAll: params => axiosClient.get('/rooms', {params}),
-  create: data => axiosClient.post('/rooms', data),
-  update: (id, data) => axiosClient.put(`/rooms/${id}`, data),
-  remove: id => axiosClient.delete(`/rooms/${id}`),
-};
+const roomApi = createAdminResourceApi('rooms');
 
 export default roomApi;

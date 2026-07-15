@@ -8,11 +8,13 @@ const {
   updateShowtime,
   deleteShowtime,
 } = require("../controllers/showtimeController");
+const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
 router.get("/", getShowtimes);
 router.get("/:id", getShowtimeById);
-router.post("/", createShowtime);
-router.put("/:id", updateShowtime);
-router.delete("/:id", deleteShowtime);
+router.post("/", authMiddleware, adminMiddleware, createShowtime);
+router.put("/:id", authMiddleware, adminMiddleware, updateShowtime);
+router.delete("/:id", authMiddleware, adminMiddleware, deleteShowtime);
 
 module.exports = router;

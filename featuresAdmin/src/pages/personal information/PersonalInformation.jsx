@@ -1,77 +1,106 @@
+import {useEffect, useState} from 'react';
+import authApi from '../../api/authApi';
+import userApi from '../../api/userApi';
+import {formatDateTime} from '../../utils/adminFormatters';
+
 function InfoItem({label, value, tone}) {
   return (
     <div className="profileInfoItem">
       <span>{label.slice(0, 2).toUpperCase()}</span>
       <div>
         <small>{label}</small>
-        <strong className={tone || ''}>{value}</strong>
+        <strong className={tone || ''}>{value || ''}</strong>
       </div>
     </div>
   );
 }
 
 function PersonalInformation() {
+  const [user, setUser] = useState(null);
+  const [form, setForm] = useState({fullName: '', email: '', phone: '', status: 'active'});
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    authApi.me()
+      .then(response => {
+        const nextUser = response.user || response;
+        setUser(nextUser);
+        setForm({
+          fullName: nextUser.fullName || '',
+          email: nextUser.email || '',
+          phone: nextUser.phone || '',
+          status: nextUser.status || 'active',
+        });
+      })
+      .catch(err => setError(err.message || 'Không tải được thông tin tài khoản.'));
+  }, []);
+
+  const updateForm = (name, value) => {
+    setForm(current => ({...current, [name]: value}));
+  };
+
+  const handleSubmit = async event => {
+    event.preventDefault();
+    if (!user?._id) return;
+    setSaving(true);
+    setError('');
+
+    try {
+      const response = await userApi.update(user._id, {
+        ...form,
+        role: user.role,
+      });
+      const updated = response.data || response;
+      setUser(updated);
+      localStorage.setItem('filmgo_admin_user', JSON.stringify(updated));
+    } catch (err) {
+      setError(err.message || 'Cập nhật thất bại.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <section className="profilePage">
       <h2>Thông tin tài khoản</h2>
+      {error && <p className="loginError">{error}</p>}
 
       <div className="profileGrid">
         <aside className="panel profileCard">
           <div className="profileAvatarWrap">
-            <div className="profileAvatar">A</div>
-            <button type="button" aria-label="Đổi ảnh đại diện">Ảnh</button>
+            <div className="profileAvatar">{(user?.fullName || user?.email || 'A').slice(0, 1).toUpperCase()}</div>
           </div>
-          <h3>Admin FilmGo</h3>
-          <span className="rolePill">Quản trị viên</span>
+          <h3>{user?.fullName || user?.email}</h3>
+          <span className="rolePill">{user?.role}</span>
 
           <div className="profileDivider" />
 
-          <InfoItem label="Email" value="admin@filmgo.vn" />
-          <InfoItem label="Số điện thoại" value="0987 654 321" />
-          <InfoItem label="Vai trò" value="Quản trị viên" />
-          <InfoItem label="Ngày tạo tài khoản" value="01/01/2025 10:30" />
-          <InfoItem label="Đăng nhập cuối" value="25/05/2025 14:45" />
-          <InfoItem label="Trạng thái" value="Đang hoạt động" tone="greenText" />
+          <InfoItem label="Email" value={user?.email} />
+          <InfoItem label="Số điện thoại" value={user?.phone} />
+          <InfoItem label="Vai trò" value={user?.role} />
+          <InfoItem label="Ngày tạo tài khoản" value={formatDateTime(user?.createdAt)} />
+          <InfoItem label="Trạng thái" value={user?.status} tone={user?.status === 'active' ? 'greenText' : ''} />
         </aside>
 
         <div className="profileMain">
           <div className="panel accountPanel">
             <h3>Thông tin cá nhân</h3>
-            <form className="accountForm">
-              <label>
-                Họ và tên
-                <input defaultValue="Admin FilmGo" />
-              </label>
-              <label>
-                Email
-                <input defaultValue="admin@filmgo.vn" />
-              </label>
-              <label>
-                Số điện thoại
-                <input defaultValue="0987 654 321" />
-              </label>
-              <label>
-                Vai trò
-                <input defaultValue="Quản trị viên" disabled />
-              </label>
-              <label>
-                Ngày tạo tài khoản
-                <input defaultValue="01/01/2025 10:30" disabled />
-              </label>
+            <form className="accountForm" onSubmit={handleSubmit}>
+              <label>Họ và tên<input value={form.fullName} onChange={event => updateForm('fullName', event.target.value)} /></label>
+              <label>Email<input value={form.email} onChange={event => updateForm('email', event.target.value)} /></label>
+              <label>Số điện thoại<input value={form.phone} onChange={event => updateForm('phone', event.target.value)} /></label>
+              <label>Vai trò<input value={user?.role || ''} disabled /></label>
+              <label>Ngày tạo tài khoản<input value={formatDateTime(user?.createdAt)} disabled /></label>
               <label>
                 Trạng thái
-                <select defaultValue="active">
+                <select value={form.status} onChange={event => updateForm('status', event.target.value)}>
                   <option value="active">Đang hoạt động</option>
-                  <option value="locked">Tạm khóa</option>
+                  <option value="blocked">Tạm khóa</option>
                 </select>
               </label>
-              <label className="fullField">
-                Giới thiệu bản thân
-                <textarea defaultValue="Quản trị hệ thống rạp chiếu phim FilmGo." />
-                <small>34/200</small>
-              </label>
               <div className="fullField">
-                <button type="button">Cập nhật thông tin</button>
+                <button type="submit" disabled={saving}>{saving ? 'Đang cập nhật...' : 'Cập nhật thông tin'}</button>
               </div>
             </form>
           </div>
@@ -79,8 +108,7 @@ function PersonalInformation() {
           <div className="panel securityPanel">
             <div>
               <h3>Bảo mật tài khoản</h3>
-              <p>Để bảo mật tài khoản, vui lòng đổi mật khẩu định kỳ.</p>
-              <button className="ghost" type="button">Đổi mật khẩu</button>
+              <p>Tài khoản đang được xác thực bằng JWT từ backend.</p>
             </div>
             <div className="shieldArt">Bảo mật</div>
           </div>

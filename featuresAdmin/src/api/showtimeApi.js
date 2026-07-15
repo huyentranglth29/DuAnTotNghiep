@@ -1,11 +1,5 @@
-import axiosClient from './axiosClient';
+import createAdminResourceApi from './adminResourceApi';
 
-const showtimeApi = {
-  getAll: params => axiosClient.get('/showtimes', {params}),
-  getById: id => axiosClient.get(`/showtimes/${id}`),
-  create: data => axiosClient.post('/showtimes', data),
-  update: (id, data) => axiosClient.put(`/showtimes/${id}`, data),
-  remove: id => axiosClient.delete(`/showtimes/${id}`),
-};
+const showtimeApi = createAdminResourceApi('showtimes');
 
 export default showtimeApi;

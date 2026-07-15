@@ -29,6 +29,7 @@ const seatSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "chỗ ngồi",
   }
 );
 

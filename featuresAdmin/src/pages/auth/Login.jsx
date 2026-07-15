@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
+import authApi from '../../api/authApi';
 
-const ADMIN_EMAIL = 'admin@gmail.com';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_EMAIL = 'admin@filmgo.com';
+const ADMIN_PASSWORD = 'Admin@123456';
 
 function Login() {
   const navigate = useNavigate();
@@ -10,19 +11,28 @@ function Login() {
   const [password, setPassword] = useState(ADMIN_PASSWORD);
   const [error, setError] = useState('');
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault();
+    setError('');
 
-    if (
-      email.trim().toLowerCase() === ADMIN_EMAIL &&
-      password === ADMIN_PASSWORD
-    ) {
-      localStorage.setItem('filmgo_admin_logged_in', 'true');
+    try {
+      const response = await authApi.login({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (response.user?.role !== 'admin') {
+        setError('Tài khoản không có quyền quản trị.');
+        return;
+      }
+
+      localStorage.setItem('filmgo_admin_token', response.token);
+      localStorage.setItem('filmgo_admin_user', JSON.stringify(response.user));
       navigate('/');
       return;
+    } catch (err) {
+      setError(err.message || 'Email hoặc mật khẩu không đúng.');
     }
-
-    setError('Email hoặc mật khẩu không đúng.');
   };
 
   return (

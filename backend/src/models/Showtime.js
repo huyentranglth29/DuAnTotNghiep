@@ -33,6 +33,7 @@ const showtimeSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "giờ chiếu",
   }
 );
 

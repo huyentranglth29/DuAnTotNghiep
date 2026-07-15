@@ -47,13 +47,14 @@ function CreateShowtime() {
           roomApi.getAll(),
         ]);
 
-        const nextMovies = Array.isArray(movieData) ? movieData : [];
-        const nextRooms = Array.isArray(roomData) ? roomData : [];
+        const nextMovies = Array.isArray(movieData) ? movieData : movieData?.data || [];
+        const nextRooms = Array.isArray(roomData) ? roomData : roomData?.data || [];
         setMovies(nextMovies);
         setRooms(nextRooms);
 
         if (isEdit) {
-          const showtime = await showtimeApi.getById(id);
+          const showtimeResponse = await showtimeApi.getById(id);
+          const showtime = showtimeResponse?.data || showtimeResponse;
           setForm({
             movie: showtime.movie?._id || showtime.movie || '',
             room: showtime.room?._id || showtime.room || '',

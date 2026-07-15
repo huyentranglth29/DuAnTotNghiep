@@ -49,9 +49,9 @@ function ShowtimeList() {
         roomApi.getAll(),
       ]);
 
-      setShowtimes(Array.isArray(showtimeData) ? showtimeData : []);
-      setMovies(Array.isArray(movieData) ? movieData : []);
-      setRooms(Array.isArray(roomData) ? roomData : []);
+      setShowtimes(Array.isArray(showtimeData) ? showtimeData : showtimeData?.data || []);
+      setMovies(Array.isArray(movieData) ? movieData : movieData?.data || []);
+      setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
       setPage(1);
     } catch (err) {
       setError(err.message || 'Không tải được suất chiếu. Hãy chạy backend.');

@@ -1,10 +1,5 @@
-import axiosClient from './axiosClient';
+import createAdminResourceApi from './adminResourceApi';
 
-const bookingApi = {
-  getAll: params => axiosClient.get('/bookings', {params}),
-  getById: id => axiosClient.get(`/bookings/${id}`),
-  update: (id, data) => axiosClient.put(`/bookings/${id}`, data),
-  remove: id => axiosClient.delete(`/bookings/${id}`),
-};
+const bookingApi = createAdminResourceApi('bookings');
 
 export default bookingApi;
