@@ -16,7 +16,8 @@ export type DifferentScreenName =
   | 'notification'
   | 'member'
   | 'career'
-  | 'setting';
+  | 'setting'
+  | 'myTickets';
 
 type MenuItem = {
   title: string;
@@ -27,6 +28,13 @@ type MenuItem = {
 };
 
 const menuItems: MenuItem[] = [
+  {
+    title: 'Vé của tôi',
+    icon: 'voucher',
+    color: '#e51937',
+    backgroundColor: '#fff3f7',
+    screen: 'myTickets',
+  },
   {
     title: 'Voucher miễn phí',
     icon: 'voucher',

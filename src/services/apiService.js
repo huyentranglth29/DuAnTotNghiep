@@ -88,9 +88,29 @@ export const login = async ({ email, password }) => {
     throw new Error('Vui lòng nhập email và mật khẩu');
   }
 
-  return apiClient.post('/login', {
+  return apiClient.post('/api/auth/login', {
     email: email.trim(),
     password,
+  });
+};
+
+/**
+ * Đăng ký tài khoản qua backend.
+ * POST /api/auth/register
+ *
+ * @param {{ fullName: string, email: string, password: string, phone?: string }} payload
+ * @returns {Promise<{ success: boolean, message: string, user: object }>}
+ */
+export const register = async ({ fullName, email, password, phone }) => {
+  if (!fullName?.trim() || !email?.trim() || !password) {
+    throw new Error('Vui lòng nhập đầy đủ thông tin bắt buộc');
+  }
+
+  return apiClient.post('/api/auth/register', {
+    fullName: fullName.trim(),
+    email: email.trim(),
+    password,
+    phone: phone?.trim(),
   });
 };
 
@@ -109,6 +129,47 @@ export const getReviews = async (movieId) => {
  */
 export const postReview = async (payload) => {
   return apiClient.post('/reviews', payload);
+};
+
+/**
+ * Lấy danh sách Voucher từ backend.
+ * GET /api/vouchers
+ */
+export const getVouchers = async () => {
+  return apiClient.get('/api/vouchers');
+};
+
+/**
+ * Lấy danh sách Combo bắp nước từ backend.
+ * GET /api/products
+ */
+export const getProducts = async () => {
+  return apiClient.get('/api/products');
+};
+
+/**
+ * Lấy danh sách Tin tức / Sự kiện từ backend.
+ * GET /api/notifications
+ */
+export const getNotifications = async () => {
+  return apiClient.get('/api/notifications');
+};
+
+/**
+ * Lưu đặt vé nhanh lên MongoDB Atlas
+ * POST /api/quick-bookings
+ * body: { movieTitle, movieDuration, movieGenre, seats, totalPrice, cinema, bookingDate, bookingTime }
+ */
+export const createQuickBooking = async (payload) => {
+  return apiClient.post('/api/quick-bookings', payload);
+};
+
+/**
+ * Lấy danh sách vé đã đặt từ MongoDB Atlas
+ * GET /api/quick-bookings
+ */
+export const getQuickBookings = async () => {
+  return apiClient.get('/api/quick-bookings');
 };
 
 export default apiClient;

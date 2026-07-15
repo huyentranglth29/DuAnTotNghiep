@@ -7,6 +7,7 @@ import MemberScreen from './screens/MemberScreen';
 import NotificationScreen from './screens/NotificationScreen';
 import RecruitmentScreen from './screens/RecruitmentScreen';
 import SettingScreen from './screens/SettingScreen';
+import MyTicketsScreen from './screens/MyTicketsScreen';
 
 type DifferentProps = {
   onDetailChange?: (isDetail: boolean) => void;
@@ -26,6 +27,10 @@ function Different({ onDetailChange }: DifferentProps) {
 
   if (activeScreen === 'voucher') {
     return <FreeVoucherScreen onBack={goBack} />;
+  }
+
+  if (activeScreen === 'myTickets') {
+    return <MyTicketsScreen onBack={goBack} />;
   }
 
   if (activeScreen === 'notification') {

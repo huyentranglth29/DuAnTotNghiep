@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useEffect, useState} from 'react';
+import {Alert} from 'react-native';
 import Login from '../features/Login/Index';
 import PorgotPass from '../features/Login/component/PorgotPass';
 import Register from '../features/Login/component/Register';
+import {login, register} from '../services/apiService';
 
 type LoginScreen = 'login' | 'porgotPass' | 'register';
 type RegisteredUser = {
@@ -89,8 +91,19 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       <Register
         onBackToLogin={() => setActiveScreen('login')}
         onRegisterSuccess={async user => {
-          await saveRegisteredUser(user);
-          setActiveScreen('login');
+          try {
+            await register({
+              fullName: user.fullName,
+              email: user.email,
+              password: user.password,
+              phone: user.phone || '',
+            });
+            await saveRegisteredUser(user);
+            setActiveScreen('login');
+          } catch (error: any) {
+            Alert.alert('Đăng ký thất bại', error.message || 'Không thể đăng ký tài khoản');
+            throw error;
+          }
         }}
       />
     );
@@ -101,17 +114,26 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       onForgotPasswordPress={() => setActiveScreen('porgotPass')}
       onRegisterPress={() => setActiveScreen('register')}
       onLoginPress={async ({email, password}) => {
-        const user = await findRegisteredUser();
         const defaultUser = DEFAULT_USERS.find(item =>
           isSameCredentials(item, email, password),
         );
 
-        if ((user && isSameCredentials(user, email, password)) || defaultUser) {
+        if (defaultUser) {
           onAuthenticated?.();
           return true;
         }
 
-        return false;
+        try {
+          const response = (await login({ email, password })) as any;
+          if (response && response.success) {
+            onAuthenticated?.();
+            return true;
+          }
+          return false;
+        } catch (error: any) {
+          Alert.alert('Đăng nhập thất bại', error.message || 'Email hoặc mật khẩu không đúng');
+          return false;
+        }
       }}
     />
   );

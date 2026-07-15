@@ -11,7 +11,7 @@ import { MAU_CHU_DE } from '../theme/cinemaNoir';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
-const GOLD = MAU_CHU_DE.vangDong;
+const RED_ACCENT = '#e51937';
 
 type TabKey = 'home' | 'movieSchedule' | 'voucher' | 'member' | 'different';
 
@@ -46,13 +46,13 @@ function TabNavigator() {
 
   return (
     <SafeAreaView
-      style={[styles.safeArea, isHomeTab && styles.safeAreaToi]}
+      style={styles.safeArea}
       edges={['top', 'left', 'right']}>
       <StatusBar
-        barStyle={isHomeTab ? 'light-content' : 'dark-content'}
-        backgroundColor={isHomeTab ? MAU_CHU_DE.nenChinh : '#ffffff'}
+        barStyle="dark-content"
+        backgroundColor="#ffffff"
       />
-      <View style={[styles.container, isHomeTab && styles.containerToi]}>
+      <View style={styles.container}>
         <View style={styles.content}>
           {renderTabContent(
             activeTab,
@@ -68,7 +68,7 @@ function TabNavigator() {
               const isActive = activeTab === tab.key;
               const color = isActive
                 ? tab.key === 'home'
-                  ? GOLD
+                  ? RED_ACCENT
                   : BLUE
                 : GRAY;
 

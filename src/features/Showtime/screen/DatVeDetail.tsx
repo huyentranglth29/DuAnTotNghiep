@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import Svg, {Path, Rect} from 'react-native-svg';
+import {createQuickBooking} from '../../../services/apiService';
 
 const BLUE = '#005f98';
 const TEXT = '#3d4054';
@@ -88,6 +89,29 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS);
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
+
+
+  useEffect(() => {
+    const saveTicket = async () => {
+      try {
+        await createQuickBooking({
+          movieTitle: movie.title,
+          movieDuration: movie.duration,
+          movieGenre: movie.genre,
+          seats: seats,
+          totalPrice: totalPrice,
+          cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
+          bookingDate: new Date().toLocaleDateString('vi-VN'),
+          bookingTime: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}),
+        });
+        console.log('✅ Đã lưu vé lên MongoDB Atlas thành công!');
+      } catch (e) {
+        console.log('❌ Lỗi lưu vé:', e);
+      }
+    };
+    saveTicket();
+  }, []);
+
   const discount = 0;
 
   useEffect(() => {
