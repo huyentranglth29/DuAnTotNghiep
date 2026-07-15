@@ -28,6 +28,7 @@ router.get("/reports/revenue-by-room", reports.revenueByRoom);
 router.get("/reports/tickets-by-day", reports.ticketsByDay);
 router.get("/reports/seat-occupancy", reports.seatOccupancy);
 router.get("/reports/top-movies", reports.topMovies);
+router.get("/reports/voucher-stats", reports.voucherStats);
 
 const resources = {
   movies: createAdminCrudController(Movie, {
