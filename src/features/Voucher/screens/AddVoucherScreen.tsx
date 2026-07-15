@@ -23,6 +23,10 @@ import {
   QrIcon,
 } from '../components/VoucherActionIcons';
 import VoucherHeader from '../components/VoucherHeader';
+import {
+  claimVoucher,
+  restoreAuthSession,
+} from '../../../services/voucherService';
 
 type AddVoucherScreenProps = {
   onBack: () => void;
@@ -39,23 +43,51 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
   const [focusedField, setFocusedField] = useState<'voucher' | 'pin' | null>(
     null,
   );
+  const [submitting, setSubmitting] = useState(false);
 
   const isVoucherActive = focusedField === 'voucher';
   const isPinActive = focusedField === 'pin';
 
-  const handleAddVoucher = () => {
+  const handleAddVoucher = async () => {
     const isVoucherEmpty = voucherCode.trim().length === 0;
-    const isPinEmpty = pinCode.trim().length === 0;
-
     setVoucherError(isVoucherEmpty ? 'Vui lòng nhập mã voucher' : '');
-    setPinError(isPinEmpty ? 'Vui lòng nhập mã PIN' : '');
+    setPinError('');
 
-    if (isVoucherEmpty || isPinEmpty) {
-      Alert.alert(
-        'Thông báo',
-        'Vui lòng nhập mã voucher và mã PIN trước khi thêm voucher.',
-      );
+    if (isVoucherEmpty) {
+      Alert.alert('Thông báo', 'Vui lòng nhập mã voucher trước khi thêm.');
       return;
+    }
+
+    // PIN tùy chọn — nếu có thì chỉ cần trùng 4 ký tự cuối mã (UX giữ form cũ)
+    if (pinCode.trim()) {
+      const expected = voucherCode.trim().slice(-4).toUpperCase();
+      if (pinCode.trim().toUpperCase() !== expected) {
+        setPinError('Mã PIN không khớp (gợi ý: 4 ký tự cuối mã voucher)');
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      const token = await restoreAuthSession();
+      if (!token) {
+        Alert.alert(
+          'Cần đăng nhập',
+          'Đăng nhập bằng tài khoản backend (vd: user@filmgo.com / User@123456) để lưu voucher vào kho.',
+        );
+        return;
+      }
+
+      const result = await claimVoucher(voucherCode);
+      Alert.alert('Thành công', `Đã thêm ${result?.code || voucherCode} vào kho`, [
+        {text: 'OK', onPress: onBack},
+      ]);
+    } catch (err) {
+      const message = (err as Error)?.message || 'Không thêm được voucher';
+      setVoucherError(message);
+      Alert.alert('Thất bại', message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -74,7 +106,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
           </View>
           <Text style={styles.title}>Thêm voucher mới</Text>
           <Text style={styles.subtitle}>
-            Nhập mã voucher và PIN để thêm vào tài khoản
+            Nhập mã voucher từ FilmGo (PIN tùy chọn — 4 ký tự cuối mã)
           </Text>
         </View>
 
@@ -108,6 +140,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
               />
               <TextInput
                 value={voucherCode}
+                autoCapitalize="characters"
                 placeholder={
                   isVoucherActive || voucherError
                     ? 'Nhập mã voucher của bạn'
@@ -138,7 +171,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
                   styles.fieldLabel,
                   pinError ? styles.fieldLabelError : styles.fieldLabelFocus,
                 ]}>
-                Mã PIN
+                Mã PIN (tuỳ chọn)
               </Text>
             )}
             <View
@@ -159,7 +192,9 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
               <TextInput
                 value={pinCode}
                 placeholder={
-                  isPinActive || pinError ? 'Nhập mã PIN của voucher' : 'Mã PIN'
+                  isPinActive || pinError
+                    ? '4 ký tự cuối mã (tuỳ chọn)'
+                    : 'Mã PIN (tuỳ chọn)'
                 }
                 placeholderTextColor="#9a9a9a"
                 secureTextEntry
@@ -179,10 +214,13 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
 
           <TouchableOpacity
             activeOpacity={0.82}
-            style={styles.submitButton}
+            disabled={submitting}
+            style={[styles.submitButton, submitting && {opacity: 0.7}]}
             onPress={handleAddVoucher}>
             <PlusIcon color="#ffffff" size={31} strokeWidth={3} />
-            <Text style={styles.submitText}>Thêm voucher</Text>
+            <Text style={styles.submitText}>
+              {submitting ? 'Đang thêm...' : 'Thêm voucher'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -232,8 +270,8 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 10,
     color: VOUCHER_MUTED,
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 26,
     textAlign: 'center',
   },
   formCard: {
@@ -248,6 +286,18 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 9},
     elevation: 2,
   },
+  fieldWrap: {},
+  fieldLabel: {
+    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fieldLabelFocus: {
+    color: FOCUS_COLOR,
+  },
+  fieldLabelError: {
+    color: ERROR_COLOR,
+  },
   inputRow: {
     height: 92,
     flexDirection: 'row',
@@ -258,6 +308,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 21,
     marginBottom: 26,
     backgroundColor: '#ffffff',
+  },
+  inputRowFocus: {
+    borderColor: FOCUS_COLOR,
   },
   inputRowError: {
     borderColor: '#d93025',

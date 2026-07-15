@@ -1,7 +1,22 @@
-import React from 'react';
-import {StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {VOUCHER_BLUE, VOUCHER_TEXT} from '../constants';
 import {GiftIcon, HistoryIcon, PlusIcon} from '../components/VoucherActionIcons';
+import {FilmGoVoucher, formatVoucherValue} from '../types';
+import {
+  getActiveVouchers,
+  getMyVouchers,
+  restoreAuthSession,
+} from '../../../services/voucherService';
 
 type MyVoucherScreenProps = {
   onAddVoucher: () => void;
@@ -12,6 +27,37 @@ function MyVoucherScreen({
   onAddVoucher,
   onOpenHistory,
 }: MyVoucherScreenProps) {
+  const [items, setItems] = useState<FilmGoVoucher[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [guestMode, setGuestMode] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = await restoreAuthSession();
+      if (token) {
+        setGuestMode(false);
+        const mine = await getMyVouchers();
+        setItems(Array.isArray(mine) ? mine : []);
+      } else {
+        setGuestMode(true);
+        const active = await getActiveVouchers();
+        setItems(Array.isArray(active) ? active : []);
+      }
+    } catch (err) {
+      setError((err as Error)?.message || 'Không tải được voucher');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor={VOUCHER_BLUE} />
@@ -31,13 +77,53 @@ function MyVoucherScreen({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.empty}>
-        <GiftIcon color="#dddddd" size={94} strokeWidth={5} />
-        <Text style={styles.emptyTitle}>Kho chưa có voucher nào</Text>
-        <Text style={styles.emptyDescription}>
-          Bạn hãy nhận voucher miễn phí hoặc thêm voucher mới nhé
+      {guestMode && (
+        <Text style={styles.banner}>
+          Chưa đăng nhập API — đang hiện voucher đang mở. Đăng nhập để lưu vào
+          kho.
         </Text>
-      </View>
+      )}
+
+      {loading && items.length === 0 ? (
+        <ActivityIndicator style={{marginTop: 40}} color={VOUCHER_BLUE} />
+      ) : items.length === 0 ? (
+        <View style={styles.empty}>
+          <GiftIcon color="#dddddd" size={94} strokeWidth={5} />
+          <Text style={styles.emptyTitle}>Kho chưa có voucher nào</Text>
+          <Text style={styles.emptyDescription}>
+            {error ||
+              'Bạn hãy nhận voucher miễn phí hoặc thêm voucher mới nhé'}
+          </Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={item => item._id || item.code}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={load} />
+          }
+          renderItem={({item}) => (
+            <View style={styles.card}>
+              <View style={styles.cardTop}>
+                <Text style={styles.code}>{item.code}</Text>
+                <Text style={styles.value}>{formatVoucherValue(item)}</Text>
+              </View>
+              <Text style={styles.desc} numberOfLines={2}>
+                {item.description || 'Ưu đãi FilmGo'}
+              </Text>
+              <Text style={styles.meta}>
+                {item.walletStatus
+                  ? `Trạng thái: ${item.walletStatus}`
+                  : `Còn ${item.remaining ?? '—'} lượt`}
+              </Text>
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
@@ -69,6 +155,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  banner: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff7ed',
+    color: '#9a3412',
+    fontSize: 13,
+  },
+  list: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  card: {
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  code: {
+    color: VOUCHER_BLUE,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  value: {
+    color: '#0f172a',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  desc: {
+    marginTop: 8,
+    color: VOUCHER_TEXT,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  meta: {
+    marginTop: 8,
+    color: '#64748b',
+    fontSize: 12,
+  },
   empty: {
     flex: 1,
     alignItems: 'center',
@@ -87,9 +219,20 @@ const styles = StyleSheet.create({
   emptyDescription: {
     marginTop: 8,
     color: '#b0b0b0',
-    fontSize: 21,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 26,
     textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: VOUCHER_BLUE,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });
 

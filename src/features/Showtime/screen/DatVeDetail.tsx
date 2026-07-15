@@ -1,15 +1,30 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Alert,
   ImageBackground,
   ImageSourcePropType,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import Svg, {Path, Rect} from 'react-native-svg';
+import {
+  checkoutBooking,
+  getActiveVouchers,
+  getMyVouchers,
+  restoreAuthSession,
+  validateVoucher,
+} from '../../../services/voucherService';
+import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
+import {SelectedShowtimeInfo} from '../components/ChonGio';
+import {
+  formatGio,
+  formatNgayNgan,
+} from '../../../services/showtimeService';
 
 const BLUE = '#005f98';
 const TEXT = '#3d4054';
@@ -18,6 +33,7 @@ const RED = '#f22a10';
 
 type DatVeDetailProps = {
   movie: {
+    id?: string | number;
     title: string;
     duration?: string;
     genre?: string;
@@ -25,6 +41,7 @@ type DatVeDetailProps = {
   };
   seats: string[];
   totalPrice: number;
+  showtime: SelectedShowtimeInfo;
   onClose: () => void;
 };
 
@@ -82,13 +99,27 @@ function formatCountdown(totalSeconds: number) {
   return `${`${minutes}`.padStart(2, '0')}:${`${seconds}`.padStart(2, '0')}`;
 }
 
-function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
+function DatVeDetail({
+  movie,
+  seats,
+  totalPrice,
+  showtime,
+  onClose,
+}: DatVeDetailProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS);
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<FilmGoVoucher[]>([]);
+  const [voucherCodeInput, setVoucherCodeInput] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<FilmGoVoucher | null>(
+    null,
+  );
+  const [discount, setDiscount] = useState(0);
+  const [paying, setPaying] = useState(false);
+  const [paySuccessOpen, setPaySuccessOpen] = useState(false);
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
-  const discount = 0;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -109,13 +140,132 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
     return sum + quantity * combo.price;
   }, 0);
   const grandTotal = totalPrice + comboTotal;
-  const payable = grandTotal - discount;
+  const payable = Math.max(0, grandTotal - discount);
+
+  useEffect(() => {
+    if (!appliedVoucher?.code) {
+      return;
+    }
+
+    let cancelled = false;
+    validateVoucher({
+      code: appliedVoucher.code,
+      orderValue: grandTotal,
+    })
+      .then(result => {
+        if (!cancelled) {
+          setDiscount(Number(result.discount) || 0);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAppliedVoucher(null);
+          setDiscount(0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [grandTotal, appliedVoucher?.code]);
 
   const updateCombo = (title: string, change: number) => {
     setQuantities(current => ({
       ...current,
       [title]: Math.max(0, (current[title] ?? 0) + change),
     }));
+  };
+
+  const openVoucherPicker = async () => {
+    setVoucherModalOpen(true);
+    try {
+      await restoreAuthSession();
+      const [active, mine] = await Promise.all([
+        getActiveVouchers().catch(() => []),
+        getMyVouchers().catch(() => []),
+      ]);
+
+      const activeList = Array.isArray(active) ? active : [];
+      const mineList = (Array.isArray(mine) ? mine : []).filter(
+        v => !v.walletStatus || v.walletStatus === 'available',
+      );
+
+      // Ưu tiên kho của user, rồi gợi ý voucher đang mở từ hệ thống
+      const byCode = new Map<string, FilmGoVoucher>();
+      [...mineList, ...activeList].forEach(item => {
+        if (item?.code && !byCode.has(item.code)) {
+          byCode.set(item.code, item);
+        }
+      });
+      setSuggestions(Array.from(byCode.values()));
+    } catch {
+      setSuggestions([]);
+    }
+  };
+
+  const filteredSuggestions = suggestions.filter(item => {
+    const q = voucherCodeInput.trim().toUpperCase();
+    if (!q) return true;
+    return (
+      item.code.includes(q) ||
+      String(item.description || '')
+        .toUpperCase()
+        .includes(q)
+    );
+  });
+
+  const applyVoucherCode = async (code: string) => {
+    try {
+      const result = await validateVoucher({
+        code,
+        orderValue: grandTotal,
+      });
+      setAppliedVoucher(result.voucher);
+      setDiscount(Number(result.discount) || 0);
+      setVoucherModalOpen(false);
+      setVoucherCodeInput('');
+      Alert.alert(
+        'Đã chọn voucher',
+        `Đã chọn voucher ${result.voucher?.code || code}`,
+      );
+    } catch (err) {
+      Alert.alert('Không áp dụng được', (err as Error)?.message || 'Lỗi');
+    }
+  };
+
+  const clearVoucher = () => {
+    setAppliedVoucher(null);
+    setDiscount(0);
+  };
+
+  const handlePay = async () => {
+    if (remainingSeconds <= 0) {
+      Alert.alert('Hết giờ', 'Phiên thanh toán đã hết hạn.');
+      return;
+    }
+
+    setPaying(true);
+    try {
+      const token = await restoreAuthSession();
+      if (token) {
+        await checkoutBooking({
+          totalPrice: grandTotal,
+          voucherCode: appliedVoucher?.code,
+          paymentMethod: 'momo',
+          seatLabels: seats,
+          cinemaName: showtime.cinemaName,
+          roomName: showtime.roomName,
+          movieTitle: movie.title,
+          movieId: movie.id,
+          showtimeId: showtime.id,
+        });
+      }
+      setPaySuccessOpen(true);
+    } catch (err) {
+      Alert.alert('Thanh toán lỗi', (err as Error)?.message || 'Thất bại');
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -143,11 +293,17 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
           <View style={styles.perforation} />
 
           <View style={styles.ticketInfo}>
-            <InfoRow label="Rạp chiếu" value="FilmGo Giải Phóng" />
-            <InfoRow label="Ngày chiếu" value="2026-07-01" />
-            <InfoRow label="Giờ chiếu" value="17:45" />
-            <InfoRow label="Phòng chiếu" value="P4" />
-            <InfoRow label="Loại vé" value="VIP" />
+            <InfoRow label="Rạp chiếu" value={showtime.cinemaName} />
+            <InfoRow
+              label="Ngày chiếu"
+              value={formatNgayNgan(showtime.startTime)}
+            />
+            <InfoRow
+              label="Giờ chiếu"
+              value={`${formatGio(showtime.startTime)} - ${formatGio(showtime.endTime)}`}
+            />
+            <InfoRow label="Phòng chiếu" value={showtime.roomName} />
+            <InfoRow label="Loại vé" value={showtime.roomType} />
             <InfoRow label="Ghế" value={seats.join(', ') || '--'} />
           </View>
         </View>
@@ -186,7 +342,19 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         </View>
 
         <Text style={styles.sectionTitle}>PHƯƠNG THỨC GIẢM GIÁ</Text>
-        <OptionRow label="FilmGo Voucher" />
+        <OptionRow
+          label={
+            appliedVoucher
+              ? `Voucher: ${appliedVoucher.code} (−${formatVnd(discount)})`
+              : 'FilmGo Voucher'
+          }
+          onPress={openVoucherPicker}
+        />
+        {!!appliedVoucher && (
+          <TouchableOpacity onPress={clearVoucher} style={styles.clearVoucher}>
+            <Text style={styles.clearVoucherText}>Bỏ voucher</Text>
+          </TouchableOpacity>
+        )}
         <OptionRow label="Điểm FilmGo" />
 
         <View style={styles.totalBlock}>
@@ -229,11 +397,98 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
 
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.payButton}
-          onPress={() => setShowCancelConfirm(true)}>
-          <Text style={styles.payButtonText}>THANH TOÁN</Text>
+          disabled={paying}
+          style={[styles.payButton, paying && {opacity: 0.7}]}
+          onPress={handlePay}>
+          <Text style={styles.payButtonText}>
+            {paying ? 'ĐANG THANH TOÁN...' : 'THANH TOÁN'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={voucherModalOpen}
+        animationType="slide"
+        onRequestClose={() => setVoucherModalOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.voucherSheet}>
+            <Text style={styles.confirmTitle}>Chọn / nhập voucher</Text>
+            <TextInput
+              value={voucherCodeInput}
+              onChangeText={setVoucherCodeInput}
+              autoCapitalize="characters"
+              placeholder="Nhập mã (vd: SUMMER50)"
+              placeholderTextColor="#94a3b8"
+              style={styles.voucherInput}
+            />
+            <TouchableOpacity
+              style={styles.applyCodeBtn}
+              onPress={() => applyVoucherCode(voucherCodeInput)}>
+              <Text style={styles.applyCodeText}>Áp dụng mã</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.walletTitle}>Gợi ý voucher — chạm để chọn</Text>
+            <ScrollView style={{maxHeight: 220}}>
+              {filteredSuggestions.length === 0 ? (
+                <Text style={styles.walletEmpty}>
+                  Không có voucher gợi ý. Kiểm tra backend đang chạy và đã seed
+                  voucher.
+                </Text>
+              ) : (
+                filteredSuggestions.map(item => (
+                  <TouchableOpacity
+                    key={item._id || item.code}
+                    style={styles.walletItem}
+                    onPress={() => applyVoucherCode(item.code)}>
+                    <Text style={styles.walletCode}>{item.code}</Text>
+                    <Text style={styles.walletValue}>
+                      {formatVoucherValue(item)}
+                      {item.description ? ` · ${item.description}` : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.closeSheetBtn}
+              onPress={() => setVoucherModalOpen(false)}>
+              <Text style={styles.noText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={paySuccessOpen}
+        animationType="fade"
+        onRequestClose={() => {
+          setPaySuccessOpen(false);
+          onClose();
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.successCard}>
+            <View style={styles.successIconWrap}>
+              <Text style={styles.successIcon}>✓</Text>
+            </View>
+            <Text style={styles.successTitle}>Thanh toán thành công</Text>
+            <Text style={styles.successHint}>
+              Vé của bạn đã lưu tại:{'\n'}
+              <Text style={styles.successHintBold}>Khác → Vé của tôi</Text>
+            </Text>
+            <TouchableOpacity
+              style={styles.successBtn}
+              onPress={() => {
+                setPaySuccessOpen(false);
+                onClose();
+              }}>
+              <Text style={styles.successBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         transparent
@@ -278,9 +533,19 @@ function InfoRow({label, value}: {label: string; value: string}) {
   );
 }
 
-function OptionRow({label}: {label: string}) {
+function OptionRow({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress?: () => void;
+}) {
   return (
-    <TouchableOpacity activeOpacity={0.75} style={styles.optionRow}>
+    <TouchableOpacity
+      activeOpacity={0.75}
+      style={styles.optionRow}
+      onPress={onPress}
+      disabled={!onPress}>
       <Text style={styles.optionText}>{label}</Text>
       <View style={styles.optionArrow}>
         <Text style={styles.optionArrowText}>›</Text>
@@ -586,6 +851,130 @@ const styles = StyleSheet.create({
     color: TEXT,
     fontSize: 29,
     lineHeight: 29,
+  },
+  clearVoucher: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  clearVoucherText: {
+    color: RED,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  voucherSheet: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    padding: 18,
+    paddingBottom: 28,
+  },
+  voucherInput: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#d5deea',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: TEXT,
+  },
+  applyCodeBtn: {
+    marginTop: 10,
+    backgroundColor: BLUE,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  applyCodeText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  walletTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: '700',
+    color: TEXT,
+  },
+  walletEmpty: {
+    color: MUTED,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  walletItem: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#eef2f7',
+  },
+  walletCode: {
+    color: BLUE,
+    fontWeight: '800',
+  },
+  walletValue: {
+    marginTop: 2,
+    color: TEXT,
+    fontSize: 13,
+  },
+  closeSheetBtn: {
+    marginTop: 14,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 22,
+    alignItems: 'center',
+    elevation: 10,
+  },
+  successIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#dcfce7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  successIcon: {
+    color: '#16a34a',
+    fontSize: 36,
+    fontWeight: '900',
+  },
+  successTitle: {
+    color: '#0f172a',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  successHint: {
+    marginTop: 10,
+    color: '#64748b',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  successHintBold: {
+    color: '#005f98',
+    fontWeight: '800',
+  },
+  successBtn: {
+    marginTop: 18,
+    alignSelf: 'stretch',
+    backgroundColor: '#16a34a',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  successBtnText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 16,
   },
   totalBlock: {
     paddingHorizontal: 12,

@@ -1,5 +1,13 @@
-import React, {useMemo} from 'react';
-import {StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   VOUCHER_BLUE,
   VOUCHER_MUTED,
@@ -14,7 +22,11 @@ import {
 } from '../components/VoucherActionIcons';
 import VoucherHeader from '../components/VoucherHeader';
 import VoucherHistoryTabs from '../components/VoucherHistoryTabs';
-import {VoucherHistoryFilter} from '../types';
+import {FilmGoVoucher, VoucherHistoryFilter, formatVoucherValue} from '../types';
+import {
+  getVoucherHistory,
+  restoreAuthSession,
+} from '../../../services/voucherService';
 
 type VoucherHistoryScreenProps = {
   activeFilter: VoucherHistoryFilter;
@@ -27,6 +39,34 @@ function VoucherHistoryScreen({
   onBack,
   onChangeFilter,
 }: VoucherHistoryScreenProps) {
+  const [items, setItems] = useState<FilmGoVoucher[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = await restoreAuthSession();
+      if (!token) {
+        setItems([]);
+        setError('Đăng nhập để xem lịch sử voucher đã dùng.');
+        return;
+      }
+      const data = await getVoucherHistory(activeFilter);
+      setItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError((err as Error)?.message || 'Không tải được lịch sử');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeFilter]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const emptyContent = useMemo(() => {
     if (activeFilter === 'used') {
       return {
@@ -47,9 +87,9 @@ function VoucherHistoryScreen({
     return {
       icon: 'history' as const,
       title: 'Không có lịch sử voucher',
-      description: 'Lịch sử các voucher sẽ hiển thị ở đây',
+      description: error || 'Lịch sử các voucher sẽ hiển thị ở đây',
     };
-  }, [activeFilter]);
+  }, [activeFilter, error]);
 
   return (
     <View style={styles.screen}>
@@ -62,19 +102,45 @@ function VoucherHistoryScreen({
       />
 
       <View style={styles.body}>
-        <View style={styles.emptyCard}>
-          <View style={styles.iconCircle}>
-            <EmptyHistoryIcon name={emptyContent.icon} />
+        {loading ? (
+          <ActivityIndicator color={VOUCHER_BLUE} />
+        ) : items.length > 0 ? (
+          <FlatList
+            data={items}
+            keyExtractor={item => item.walletId || item._id}
+            contentContainerStyle={{paddingBottom: 24}}
+            renderItem={({item}) => (
+              <View style={styles.card}>
+                <Text style={styles.code}>{item.code}</Text>
+                <Text style={styles.value}>{formatVoucherValue(item)}</Text>
+                <Text style={styles.meta}>
+                  {item.walletStatus === 'used'
+                    ? `Đã dùng${item.usedAt ? ` · ${new Date(item.usedAt).toLocaleDateString('vi-VN')}` : ''}`
+                    : item.walletStatus === 'expired'
+                      ? 'Hết hạn'
+                      : 'Trong kho'}
+                </Text>
+              </View>
+            )}
+          />
+        ) : (
+          <View style={styles.emptyCard}>
+            <View style={styles.iconCircle}>
+              <EmptyHistoryIcon name={emptyContent.icon} />
+            </View>
+            <Text style={styles.emptyTitle}>{emptyContent.title}</Text>
+            <Text style={styles.emptyDescription}>
+              {emptyContent.description}
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              style={styles.refreshButton}
+              onPress={load}>
+              <RefreshIcon color="#ffffff" />
+              <Text style={styles.refreshText}>Làm mới</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyTitle}>{emptyContent.title}</Text>
-          <Text style={styles.emptyDescription}>
-            {emptyContent.description}
-          </Text>
-          <TouchableOpacity activeOpacity={0.82} style={styles.refreshButton}>
-            <RefreshIcon color="#ffffff" />
-            <Text style={styles.refreshText}>Làm mới</Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
     </View>
   );
@@ -104,8 +170,31 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 41,
+    paddingHorizontal: 20,
     paddingBottom: 36,
+  },
+  card: {
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  code: {
+    color: VOUCHER_BLUE,
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  value: {
+    marginTop: 4,
+    fontWeight: '700',
+    color: VOUCHER_TEXT,
+  },
+  meta: {
+    marginTop: 6,
+    color: VOUCHER_MUTED,
+    fontSize: 13,
   },
   emptyCard: {
     alignItems: 'center',
