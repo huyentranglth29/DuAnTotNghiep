@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DangChieu from '../features/Showtime/components/DangChieu';
 import DatVe from '../features/Showtime/components/DatVe';
@@ -6,6 +6,7 @@ import KetQuaTimKiem from '../features/Showtime/components/KetQuaTimKiem';
 import MovieName, {
   MovieBookingInfo,
 } from '../features/Showtime/components/MovieName';
+import {SelectedShowtimeInfo} from '../features/Showtime/components/ChonGio';
 import { layTrangThaiTuTab } from '../features/Showtime/components/phimUtils';
 import SapChieu from '../features/Showtime/components/SapChieu';
 import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
@@ -20,16 +21,20 @@ const scheduleTabs = ['SẮP CHIẾU', 'ĐANG CHIẾU', 'SUẤT CHIẾU SỚM'];
 type ShowtimeNavigatorProps = {
   dangTim: boolean;
   tuKhoaDebounced: string;
+  onMovieFlowChange?: (inFlow: boolean) => void;
 };
 
 function ShowtimeNavigator({
   dangTim,
   tuKhoaDebounced,
+  onMovieFlowChange,
 }: ShowtimeNavigatorProps) {
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
     null,
   );
+  const [selectedShowtime, setSelectedShowtime] =
+    useState<SelectedShowtimeInfo | null>(null);
   const [showMovieDetail, setShowMovieDetail] = useState(false);
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
@@ -38,8 +43,13 @@ function ShowtimeNavigator({
     totalPrice: number;
   } | null>(null);
 
+  useEffect(() => {
+    onMovieFlowChange?.(!!selectedMovie);
+  }, [selectedMovie, onMovieFlowChange]);
+
   const chonPhim = (movie: MovieBookingInfo) => {
     setSelectedMovie(movie);
+    setSelectedShowtime(null);
     setShowMovieDetail(false);
     setShowWriteReview(false);
     setShowBooking(false);
@@ -56,21 +66,23 @@ function ShowtimeNavigator({
     );
   }
 
-  if (selectedMovie && bookingSummary) {
+  if (selectedMovie && bookingSummary && selectedShowtime) {
     return (
       <DatVeDetail
         movie={selectedMovie}
         seats={bookingSummary.seats}
         totalPrice={bookingSummary.totalPrice}
+        showtime={selectedShowtime}
         onClose={() => setBookingSummary(null)}
       />
     );
   }
 
-  if (selectedMovie && showBooking) {
+  if (selectedMovie && showBooking && selectedShowtime) {
     return (
       <DatVe
         movie={selectedMovie}
+        showtime={selectedShowtime}
         onBack={() => setShowBooking(false)}
         onContinue={summary => setBookingSummary(summary)}
       />
@@ -93,12 +105,16 @@ function ShowtimeNavigator({
         movie={selectedMovie}
         onBack={() => {
           setSelectedMovie(null);
+          setSelectedShowtime(null);
           setShowBooking(false);
           setBookingSummary(null);
           setShowWriteReview(false);
         }}
         onDetailPress={() => setShowMovieDetail(true)}
-        onShowtimePress={() => setShowBooking(true)}
+        onShowtimePress={showtime => {
+          setSelectedShowtime(showtime);
+          setShowBooking(true);
+        }}
       />
     );
   }
