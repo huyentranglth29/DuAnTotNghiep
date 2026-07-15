@@ -1,10 +1,10 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
@@ -15,6 +15,7 @@ function Showtime() {
   const [dangTim, setDangTim] = useState(false);
   const [tuKhoa, setTuKhoa] = useState('');
   const [tuKhoaDebounced, setTuKhoaDebounced] = useState('');
+  const [searchPressed, setSearchPressed] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setTuKhoaDebounced(tuKhoa), 300);
@@ -25,6 +26,12 @@ function Showtime() {
     setDangTim(false);
     setTuKhoa('');
     setTuKhoaDebounced('');
+  };
+
+  const moTimKiem = () => {
+    if (!dangTim) {
+      setDangTim(true);
+    }
   };
 
   return (
@@ -49,33 +56,43 @@ function Showtime() {
         </View>
       </View>
 
-      <View style={styles.searchRow}>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          style={styles.searchButton}
-          onPress={() => {
-            if (dangTim) {
-              dongTimKiem();
-            } else {
-              setDangTim(true);
-            }
-          }}>
-          <Text style={styles.searchIcon}>{dangTim ? '✕' : '⌕'}</Text>
-        </TouchableOpacity>
-
-        {dangTim && (
-          <View style={styles.inputBox}>
-            <TextInput
-              autoFocus
-              value={tuKhoa}
-              onChangeText={setTuKhoa}
-              placeholder="Tìm tên phim..."
-              placeholderTextColor="#a8a8a8"
-              style={styles.input}
-              returnKeyType="search"
-            />
-          </View>
-        )}
+      <View style={styles.searchSection}>
+        <Pressable
+          onPressIn={() => setSearchPressed(true)}
+          onPressOut={() => setSearchPressed(false)}
+          onPress={moTimKiem}
+          style={[
+            styles.searchBar,
+            searchPressed && styles.searchBarHover,
+            dangTim && styles.searchBarActive,
+          ]}>
+          <Text style={styles.searchIcon}>⌕</Text>
+          <TextInput
+            value={tuKhoa}
+            onChangeText={text => {
+              setTuKhoa(text);
+              if (!dangTim) {
+                setDangTim(true);
+              }
+            }}
+            onFocus={moTimKiem}
+            placeholder="Tìm tên phim..."
+            placeholderTextColor="#9aa3ad"
+            style={styles.input}
+            returnKeyType="search"
+          />
+          {dangTim && (
+            <Pressable
+              hitSlop={8}
+              onPress={dongTimKiem}
+              style={({pressed}) => [
+                styles.clearButton,
+                pressed && styles.clearButtonPressed,
+              ]}>
+              <Text style={styles.clearIcon}>✕</Text>
+            </Pressable>
+          )}
+        </Pressable>
       </View>
 
       <ShowtimeNavigator
@@ -164,44 +181,64 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 26,
   },
-  searchRow: {
+  searchSection: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 4,
-    gap: 10,
-  },
-  searchButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dce3ea',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
+    borderColor: '#d7e3ef',
+    backgroundColor: '#ffffff',
+    shadowColor: '#0f2744',
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 5,
+    gap: 8,
+  },
+  searchBarHover: {
+    transform: [{scale: 1.02}],
+    borderColor: '#8eb8da',
+    shadowOpacity: 0.22,
+    elevation: 8,
+  },
+  searchBarActive: {
+    borderColor: BLUE,
   },
   searchIcon: {
     color: BLUE,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    lineHeight: 20,
-  },
-  inputBox: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#dce3ea',
-    paddingHorizontal: 12,
-    minHeight: 36,
-    justifyContent: 'center',
+    lineHeight: 22,
   },
   input: {
+    flex: 1,
     color: '#1b1b1b',
     fontSize: 15,
     paddingVertical: 0,
+  },
+  clearButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eef3f8',
+  },
+  clearButtonPressed: {
+    transform: [{scale: 1.12}],
+    backgroundColor: '#d9e6f2',
+  },
+  clearIcon: {
+    color: BLUE,
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
 

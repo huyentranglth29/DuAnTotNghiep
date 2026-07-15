@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:movies": "node src/scripts/seedMovies.js"
+    "seed:movies": "node src/scripts/seedMovies.js",
+    "seed:showtimes": "node src/scripts/seedShowtimes.js",
+    "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
