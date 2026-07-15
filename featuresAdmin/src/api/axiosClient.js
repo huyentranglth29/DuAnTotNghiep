@@ -8,9 +8,23 @@ const axiosClient = axios.create({
   },
 });
 
+axiosClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('filmgo_admin_token');
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
 axiosClient.interceptors.response.use(
   response => {
     const payload = response.data;
+    if (response.config.url?.startsWith('/admin')) {
+      return payload;
+    }
+
     if (
       payload &&
       typeof payload === 'object' &&

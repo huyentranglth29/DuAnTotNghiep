@@ -17,7 +17,7 @@ const productSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, collection: "các sản phẩm" }
 );
 
 module.exports = mongoose.model("Product", productSchema);

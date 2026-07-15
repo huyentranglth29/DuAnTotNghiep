@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import DifferentMenuScreen, {
   DifferentScreenName,
 } from './screens/DifferentMenuScreen';
 import FreeVoucherScreen from './screens/FreeVoucherScreen';
 import MemberScreen from './screens/MemberScreen';
+import MyTicketsScreen from './screens/MyTicketsScreen';
 import NotificationScreen from './screens/NotificationScreen';
 import RecruitmentScreen from './screens/RecruitmentScreen';
 import SettingScreen from './screens/SettingScreen';
@@ -13,7 +14,7 @@ type DifferentProps = {
   onDetailChange?: (isDetail: boolean) => void;
 };
 
-function Different({ onDetailChange }: DifferentProps) {
+function Different({onDetailChange}: DifferentProps) {
   const [activeScreen, setActiveScreen] = useState<DifferentScreenName>('menu');
 
   const openScreen = (screen: DifferentScreenName) => {
@@ -24,6 +25,10 @@ function Different({ onDetailChange }: DifferentProps) {
   const goBack = () => {
     openScreen('menu');
   };
+
+  if (activeScreen === 'tickets') {
+    return <MyTicketsScreen onBack={goBack} />;
+  }
 
   if (activeScreen === 'voucher') {
     return <FreeVoucherScreen onBack={goBack} />;

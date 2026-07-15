@@ -81,6 +81,7 @@ const movieSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "phim",
   }
 );
 

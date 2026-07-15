@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -27,10 +28,35 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    status: {
+      type: String,
+      enum: ["active", "blocked"],
+      default: "active",
+    },
   },
   {
     timestamps: true,
+    collection: "người dùng",
   }
 );
+
+userSchema.pre("save", async function hashPassword() {
+  if (!this.isModified("password")) {
+    return;
+  }
+
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+userSchema.methods.comparePassword = function comparePassword(password) {
+  return bcrypt.compare(password, this.password);
+};
+
+userSchema.set("toJSON", {
+  transform(doc, ret) {
+    delete ret.password;
+    return ret;
+  },
+});
 
 module.exports = mongoose.model("User", userSchema);

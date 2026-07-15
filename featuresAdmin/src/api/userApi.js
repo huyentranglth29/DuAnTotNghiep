@@ -1,10 +1,5 @@
-import axiosClient from './axiosClient';
+import createAdminResourceApi from './adminResourceApi';
 
-const userApi = {
-  getAll: params => axiosClient.get('/users', {params}),
-  getById: id => axiosClient.get(`/users/${id}`),
-  update: (id, data) => axiosClient.put(`/users/${id}`, data),
-  remove: id => axiosClient.delete(`/users/${id}`),
-};
+const userApi = createAdminResourceApi('users');
 
 export default userApi;

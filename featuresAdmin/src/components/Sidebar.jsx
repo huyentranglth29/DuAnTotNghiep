@@ -36,6 +36,8 @@ function Sidebar() {
 
   const handleLogout = () => {
     localStorage.removeItem('filmgo_admin_logged_in');
+    localStorage.removeItem('filmgo_admin_token');
+    localStorage.removeItem('filmgo_admin_user');
     navigate('/login');
   };
 

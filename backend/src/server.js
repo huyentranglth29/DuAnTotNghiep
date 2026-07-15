@@ -15,6 +15,7 @@ const voucherRoutes = require("./routes/voucherRoutes");
 const productRoutes = require("./routes/productRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 // /movies: tương thích app mobile + admin (trước dùng json-server)
 app.use("/movies", movieRoutes);
 app.use("/api/movies", movieRoutes);

@@ -18,6 +18,7 @@ const generateToken = (userId, role) => {
   return jwt.sign(
     {
       id: userId,
+      userId,
       role: role,
     },
     getJwtSecret(),

@@ -1,54 +1,175 @@
-import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useEffect, useMemo, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  formatGio,
+  formatNgayNgan,
+  layDanhSachSuatChieu,
+  SuatChieuApi,
+} from '../../../services/showtimeService';
 
-const showtimeGroups = [
-  {
-    cinema: 'FilmGo Giải Phóng',
-    roomType: '2D PHỤ ĐỀ',
-    note: 'Suất chiếu muộn từ 22h00',
-    times: [
-      {time: '17:45', seats: '93 trống'},
-      {time: '19:30', seats: '47 trống'},
-      {time: '23:15', date: '01/07', seats: '89 trống', late: true},
-    ],
-  },
-];
-
-type ChonGioProps = {
-  onShowtimePress?: () => void;
+export type SelectedShowtimeInfo = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  price: number;
+  roomName: string;
+  roomType: string;
+  cinemaName: string;
 };
 
-function ChonGio({onShowtimePress}: ChonGioProps) {
+type ChonGioProps = {
+  movieId?: string | number;
+  selectedDateKey?: string;
+  onShowtimePress?: (showtime: SelectedShowtimeInfo) => void;
+};
+
+function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
+  const [items, setItems] = useState<SuatChieuApi[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!movieId) {
+        setItems([]);
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      try {
+        const data = await layDanhSachSuatChieu({
+          movieId: String(movieId),
+          date: selectedDateKey,
+          bookable: true,
+        });
+        if (!cancelled) {
+          setItems(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error)?.message || 'Không tải được suất chiếu');
+          setItems([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [movieId, selectedDateKey]);
+
+  const groups = useMemo(() => {
+    const map = new Map<
+      string,
+      {roomName: string; roomType: string; showtimes: SuatChieuApi[]}
+    >();
+
+    items.forEach(item => {
+      const roomName = item.room?.name || 'Phòng chiếu';
+      const roomType = item.room?.type || '2D';
+      const key = `${roomName}|${roomType}`;
+      if (!map.has(key)) {
+        map.set(key, {roomName, roomType, showtimes: []});
+      }
+      map.get(key)!.showtimes.push(item);
+    });
+
+    return Array.from(map.values());
+  }, [items]);
+
+  if (!movieId) {
+    return (
+      <Text style={styles.empty}>Chưa có mã phim để tải suất chiếu.</Text>
+    );
+  }
+
+  if (loading) {
+    return <ActivityIndicator style={{marginTop: 24}} color="#005f98" />;
+  }
+
+  if (error) {
+    return <Text style={styles.empty}>{error}</Text>;
+  }
+
+  if (groups.length === 0) {
+    return (
+      <Text style={styles.empty}>
+        Chưa có suất chiếu Admin cho ngày này. Hãy tạo suất trên Admin hoặc chọn
+        ngày khác.
+      </Text>
+    );
+  }
+
   return (
     <View style={styles.showtimeList}>
-      {showtimeGroups.map(group => (
-        <View key={group.cinema} style={styles.showtimeCard}>
-          <Text style={styles.cinemaName}>{group.cinema}</Text>
-          <Text style={styles.roomType}>{group.roomType}</Text>
+      {groups.map(group => (
+        <View
+          key={`${group.roomName}-${group.roomType}`}
+          style={styles.showtimeCard}>
+          <Text style={styles.cinemaName}>FilmGo Giải Phóng</Text>
+          <Text style={styles.roomType}>
+            {group.roomName} · {group.roomType}
+          </Text>
 
           <View style={styles.timeRow}>
-            {group.times.map(item => (
-              <TouchableOpacity
-                key={`${item.time}-${item.date ?? ''}`}
-                activeOpacity={0.78}
-                style={[styles.timeBlock, item.late && styles.timeBlockLate]}
-                onPress={onShowtimePress}>
-                <Text style={styles.timeText}>{item.time}</Text>
-                {item.date && <Text style={styles.timeDate}>{item.date}</Text>}
-                <Text style={styles.seatText}>{item.seats}</Text>
-              </TouchableOpacity>
-            ))}
+            {group.showtimes.map(item => {
+              const hour = new Date(item.startTime).getHours();
+              const late = hour >= 22;
+              return (
+                <TouchableOpacity
+                  key={item._id}
+                  activeOpacity={0.78}
+                  style={[styles.timeBlock, late && styles.timeBlockLate]}
+                  onPress={() =>
+                    onShowtimePress?.({
+                      id: item._id,
+                      startTime: item.startTime,
+                      endTime: item.endTime,
+                      price: Number(item.price) || 0,
+                      roomName: group.roomName,
+                      roomType: group.roomType,
+                      cinemaName: 'FilmGo Giải Phóng',
+                    })
+                  }>
+                  <Text style={styles.timeText}>{formatGio(item.startTime)}</Text>
+                  <Text style={styles.timeDate}>
+                    {formatNgayNgan(item.startTime)}
+                  </Text>
+                  <Text style={styles.seatText}>
+                    {Number(item.price).toLocaleString('vi-VN')}đ
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <View style={styles.noteRow}>
             <View style={styles.noteDot} />
-            <Text style={styles.noteText}>{group.note}</Text>
+            <Text style={styles.noteText}>
+              Suất lấy từ Admin · Phòng {group.roomName}
+            </Text>
           </View>
         </View>
       ))}
     </View>
   );
 }
+
+export default ChonGio;
 
 const styles = StyleSheet.create({
   showtimeList: {
@@ -63,6 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 14,
     paddingBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000000',
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -112,7 +234,7 @@ const styles = StyleSheet.create({
   },
   seatText: {
     color: '#555555',
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 5,
   },
   noteRow: {
@@ -130,7 +252,14 @@ const styles = StyleSheet.create({
   noteText: {
     color: '#5a5a5a',
     fontSize: 13,
+    flex: 1,
+  },
+  empty: {
+    marginTop: 18,
+    marginHorizontal: 16,
+    textAlign: 'center',
+    color: '#64748b',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
-
-export default ChonGio;

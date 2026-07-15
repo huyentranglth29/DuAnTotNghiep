@@ -6,7 +6,8 @@ export type MenuIconName =
   | 'member'
   | 'notification'
   | 'career'
-  | 'setting';
+  | 'setting'
+  | 'ticket';
 
 type MenuIconProps = {
   name: MenuIconName;
@@ -106,6 +107,26 @@ function MenuIcon({ name, color }: MenuIconProps) {
             fill={color}
           />
           <Circle cx={17} cy={17} r={4} fill="#ffffff" />
+        </>
+      )}
+
+      {name === 'ticket' && (
+        <>
+          <Path
+            d="M5 12h24v3.2a2.8 2.8 0 0 0 0 5.6V24H5v-3.2a2.8 2.8 0 0 0 0-5.6V12z"
+            stroke={color}
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+          <Line
+            x1={12}
+            y1={13}
+            x2={12}
+            y2={23}
+            stroke={color}
+            strokeWidth={2.4}
+            strokeDasharray="2 3"
+          />
         </>
       )}
     </Svg>

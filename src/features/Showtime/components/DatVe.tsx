@@ -10,6 +10,8 @@ import {
   View,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
+import {SelectedShowtimeInfo} from './ChonGio';
+import {formatGio, formatNgayNgan} from '../../../services/showtimeService';
 
 const BLUE = '#005f98';
 const SOLD = '#f02b12';
@@ -24,6 +26,7 @@ type DatVeProps = {
     duration?: string;
     poster: ImageSourcePropType;
   };
+  showtime: SelectedShowtimeInfo;
   onBack: () => void;
   onContinue: (summary: {seats: string[]; totalPrice: number}) => void;
 };
@@ -61,16 +64,19 @@ const rows = [
   ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8', 'I9', 'I10', 'I11', 'I12'],
 ];
 
-function DatVe({movie, onBack, onContinue}: DatVeProps) {
+function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const [selectedSeats, setSelectedSeats] = useState(new Set<string>());
   const [showAgeConfirm, setShowAgeConfirm] = useState(false);
   const duration = movie.duration ?? '109 phút';
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
-  const totalPrice = selectedSeatList.reduce(
-    (total, seat) => total + getSeatPrice(seat),
-    0,
-  );
+  const unitPrice = showtime.price > 0 ? showtime.price : 50000;
+  const totalPrice = selectedSeatList.reduce((total, seat) => {
+    // VIP hàng E–I cộng thêm nếu giá suất cơ bản
+    const isVip = /^[E-I]/.test(seat);
+    return total + (isVip ? Math.round(unitPrice * 1.1) : unitPrice);
+  }, 0);
   const hasSelectedSeats = selectedSeatList.length > 0;
+  const showMeta = `${showtime.roomType} | ${formatNgayNgan(showtime.startTime)} ${formatGio(showtime.startTime)} | ${showtime.roomName}`;
 
   const handleSeatPress = (seat: string) => {
     if (soldSeats.has(seat)) {
@@ -114,7 +120,7 @@ function DatVe({movie, onBack, onContinue}: DatVeProps) {
             <Text numberOfLines={1} style={styles.movieTitle}>
               {movie.title}
             </Text>
-            <Text style={styles.movieMeta}>2D Phụ đề | 01/07/2026 17:45 | {duration}</Text>
+            <Text style={styles.movieMeta}>{showMeta} | {duration}</Text>
           </View>
         </ImageBackground>
 

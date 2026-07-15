@@ -1,12 +1,22 @@
 const express = require("express");
-const controller = require("../controllers/voucherController");
+const authMiddleware = require("../middleware/authMiddleware");
+const {
+  listActive,
+  validate,
+  claim,
+  myVouchers,
+  myHistory,
+} = require("../controllers/userVoucherController");
 
 const router = express.Router();
 
-router.get("/", controller.getAll);
-router.post("/", controller.create);
-router.get("/:id", controller.getById);
-router.put("/:id", controller.update);
-router.delete("/:id", controller.remove);
+// Public — app user / đặt vé dùng được không cần admin
+router.get("/active", listActive);
+router.post("/validate", validate);
+
+// User đã đăng nhập
+router.get("/mine", authMiddleware, myVouchers);
+router.post("/claim", authMiddleware, claim);
+router.get("/history", authMiddleware, myHistory);
 
 module.exports = router;

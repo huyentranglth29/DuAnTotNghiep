@@ -32,26 +32,20 @@ function ShowtimeList() {
     status: '',
   });
 
-  const loadData = async (nextFilters = filters) => {
+  const loadData = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const params = {};
-      if (nextFilters.movie) params.movie = nextFilters.movie;
-      if (nextFilters.room) params.room = nextFilters.room;
-      if (nextFilters.date) params.date = nextFilters.date;
-      if (nextFilters.status) params.status = nextFilters.status;
-
       const [showtimeData, movieData, roomData] = await Promise.all([
-        showtimeApi.getAll(params),
-        movieApi.getAll(),
-        roomApi.getAll(),
+        showtimeApi.getAll({limit: 500, page: 1, sort: 'startTime'}),
+        movieApi.getAll({limit: 500, page: 1}),
+        roomApi.getAll({limit: 500, page: 1}),
       ]);
 
-      setShowtimes(Array.isArray(showtimeData) ? showtimeData : []);
-      setMovies(Array.isArray(movieData) ? movieData : []);
-      setRooms(Array.isArray(roomData) ? roomData : []);
+      setShowtimes(Array.isArray(showtimeData) ? showtimeData : showtimeData?.data || []);
+      setMovies(Array.isArray(movieData) ? movieData : movieData?.data || []);
+      setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
       setPage(1);
     } catch (err) {
       setError(err.message || 'Không tải được suất chiếu. Hãy chạy backend.');
@@ -69,21 +63,50 @@ function ShowtimeList() {
     const keyword = search.trim().toLowerCase();
 
     return showtimes.filter(item => {
+      const movieId = String(item.movie?._id || item.movie?.id || item.movie || '');
+      const roomId = String(item.room?._id || item.room?.id || item.room || '');
+
+      if (filters.movie && movieId !== String(filters.movie)) {
+        return false;
+      }
+
+      if (filters.room && roomId !== String(filters.room)) {
+        return false;
+      }
+
+      if (filters.date) {
+        const start = item.startTime ? new Date(item.startTime) : null;
+        if (!start || Number.isNaN(start.getTime())) {
+          return false;
+        }
+        const y = start.getFullYear();
+        const m = `${start.getMonth() + 1}`.padStart(2, '0');
+        const d = `${start.getDate()}`.padStart(2, '0');
+        if (`${y}-${m}-${d}` !== filters.date) {
+          return false;
+        }
+      }
+
+      const display = getDisplayStatus(item);
+
       if (filters.status) {
-        const display = getDisplayStatus(item);
         if (filters.status === 'scheduled') {
-          if (!(item.status === 'scheduled' && display.key !== 'showing')) {
+          // Sắp chiếu = chưa tới giờ (không gồm đang chiếu)
+          if (display.key !== 'scheduled') {
             return false;
           }
         } else if (filters.status === 'showing') {
           if (display.key !== 'showing') {
             return false;
           }
-        } else if (
-          item.status !== filters.status &&
-          display.key !== filters.status
-        ) {
-          return false;
+        } else if (filters.status === 'completed') {
+          if (display.key !== 'completed') {
+            return false;
+          }
+        } else if (filters.status === 'cancelled') {
+          if (item.status !== 'cancelled' && display.key !== 'cancelled') {
+            return false;
+          }
         }
       }
 
@@ -91,7 +114,6 @@ function ShowtimeList() {
         return true;
       }
 
-      const display = getDisplayStatus(item);
       const haystack = [
         shortCode(item._id),
         item.movie?.title,
@@ -108,7 +130,7 @@ function ShowtimeList() {
 
       return haystack.includes(keyword);
     });
-  }, [showtimes, filters.status, search]);
+  }, [showtimes, filters, search]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -123,14 +145,13 @@ function ShowtimeList() {
 
   const applyFilters = event => {
     event.preventDefault();
-    loadData(filters);
+    setPage(1);
   };
 
   const clearFilters = () => {
-    const empty = {movie: '', room: '', date: '', status: ''};
-    setFilters(empty);
+    setFilters({movie: '', room: '', date: '', status: ''});
     setSearch('');
-    loadData(empty);
+    setPage(1);
   };
 
   const handleSearch = event => {
