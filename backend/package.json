@@ -10,7 +10,9 @@
     "seed:showtimes": "node src/scripts/seedShowtimes.js",
     "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force",
     "create-admin": "node src/scripts/createAdmin.js",
-    "seed:data": "node src/scripts/seedData.js"
+    "seed:data": "node src/scripts/seedData.js",
+    "seed:vouchers": "node src/scripts/seedVoucherUsage.js",
+    "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

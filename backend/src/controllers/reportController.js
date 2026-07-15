@@ -251,6 +251,197 @@ const topMovies = async (req, res) => {
   }
 };
 
+const normalizeGenre = (genre) => {
+  if (Array.isArray(genre)) {
+    return genre.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (typeof genre === "string" && genre.trim()) {
+    return genre
+      .split(/[,/|]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return ["Khác"];
+};
+
+const voucherStats = async (req, res) => {
+  try {
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    const from = req.query.from ? new Date(req.query.from) : new Date(to);
+
+    if (!req.query.from) {
+      from.setDate(from.getDate() - 29);
+    }
+
+    from.setHours(0, 0, 0, 0);
+    to.setHours(23, 59, 59, 999);
+
+    const voucherBookingMatch = {
+      voucher: { $ne: null, $exists: true },
+      status: { $ne: "cancelled" },
+      createdAt: { $gte: from, $lte: to },
+    };
+
+    const Voucher = require("../models/Voucher");
+
+    const [usageTrend, usedByType, genreRaw, usageByVoucher, vouchers] =
+      await Promise.all([
+        Booking.aggregate([
+          { $match: voucherBookingMatch },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+          { $project: { _id: 0, date: "$_id", count: 1 } },
+        ]),
+        Booking.aggregate([
+          { $match: voucherBookingMatch },
+          {
+            $lookup: {
+              from: Voucher.collection.name,
+              localField: "voucher",
+              foreignField: "_id",
+              as: "voucherDoc",
+            },
+          },
+          { $unwind: "$voucherDoc" },
+          {
+            $group: {
+              _id: "$voucherDoc.discountType",
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              discountType: "$_id",
+              count: 1,
+            },
+          },
+        ]),
+        Booking.aggregate([
+          { $match: voucherBookingMatch },
+          {
+            $lookup: {
+              from: Showtime.collection.name,
+              localField: "showtime",
+              foreignField: "_id",
+              as: "showtime",
+            },
+          },
+          { $unwind: "$showtime" },
+          {
+            $lookup: {
+              from: Movie.collection.name,
+              localField: "showtime.movie",
+              foreignField: "_id",
+              as: "movie",
+            },
+          },
+          { $unwind: "$movie" },
+          {
+            $project: {
+              genre: "$movie.genre",
+            },
+          },
+        ]),
+        Booking.aggregate([
+          {
+            $match: {
+              voucher: { $ne: null, $exists: true },
+              status: { $ne: "cancelled" },
+            },
+          },
+          {
+            $group: {
+              _id: "$voucher",
+              usedCount: { $sum: 1 },
+            },
+          },
+        ]),
+        Voucher.find().sort({ createdAt: -1 }).lean(),
+      ]);
+
+    const genreCounts = {};
+    genreRaw.forEach((row) => {
+      normalizeGenre(row.genre).forEach((genre) => {
+        genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+      });
+    });
+
+    const genreTotal = Object.values(genreCounts).reduce((sum, n) => sum + n, 0);
+    const usageByGenre = Object.entries(genreCounts)
+      .map(([genre, count]) => ({
+        genre,
+        count,
+        percent: genreTotal ? Math.round((count / genreTotal) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    const typeTotal = usedByType.reduce((sum, row) => sum + row.count, 0);
+    const typeDistribution = ["percent", "amount"].map((discountType) => {
+      const found = usedByType.find((row) => row.discountType === discountType);
+      const count = found?.count || 0;
+      return {
+        discountType,
+        label: discountType === "percent" ? "Giảm %" : "Giảm số tiền",
+        count,
+        percent: typeTotal ? Math.round((count / typeTotal) * 100) : 0,
+      };
+    });
+
+    const usageMap = Object.fromEntries(
+      usageByVoucher.map((row) => [String(row._id), row.usedCount])
+    );
+
+    const voucherUsage = vouchers.map((voucher) => {
+      const usedCount = usageMap[String(voucher._id)] || 0;
+      const quantity = Number(voucher.quantity || 0);
+      const percent =
+        quantity > 0 ? Math.min(100, Math.round((usedCount / quantity) * 100)) : 0;
+
+      return {
+        ...voucher,
+        usedCount,
+        usagePercent: percent,
+      };
+    });
+
+    const dayMap = Object.fromEntries(
+      usageTrend.map((row) => [row.date, row.count])
+    );
+    const filledTrend = [];
+    const cursor = new Date(from);
+    while (cursor <= to) {
+      const key = cursor.toISOString().slice(0, 10);
+      filledTrend.push({ date: key, count: dayMap[key] || 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return ok(res, {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      usageTrend: filledTrend,
+      typeDistribution,
+      usageByGenre,
+      topVouchers: voucherUsage
+        .slice()
+        .sort((a, b) => b.usedCount - a.usedCount)
+        .slice(0, 4),
+      vouchers: voucherUsage,
+      totalUsages: usageTrend.reduce((sum, row) => sum + row.count, 0),
+    });
+  } catch (error) {
+    return fail(res, error);
+  }
+};
+
 module.exports = {
   revenueByDay,
   revenueByMovie,
@@ -258,4 +449,5 @@ module.exports = {
   ticketsByDay,
   seatOccupancy,
   topMovies,
+  voucherStats,
 };
