@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
+import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
 
 const BLUE = '#005f98';
 
@@ -16,6 +17,8 @@ function Showtime() {
   const [tuKhoa, setTuKhoa] = useState('');
   const [tuKhoaDebounced, setTuKhoaDebounced] = useState('');
   const [searchPressed, setSearchPressed] = useState(false);
+  const [anThanhTim, setAnThanhTim] = useState(false);
+  const [xemVe, setXemVe] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setTuKhoaDebounced(tuKhoa), 300);
@@ -34,70 +37,81 @@ function Showtime() {
     }
   };
 
+  if (xemVe) {
+    return <MyTicketsScreen onBack={() => setXemVe(false)} />;
+  }
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
-      <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>L</Text>
-        </View>
-        <View style={styles.memberInfo}>
-          <Text style={styles.greeting}>
-            Chào <Text style={styles.userName}>Lê Thị Ngọc Anh</Text>
-          </Text>
-          <View style={styles.memberRow}>
-            <Text style={styles.memberIcon}>♟</Text>
-            <Text style={styles.memberText}>MEMBER</Text>
-            <Text style={styles.starText}>☆ 0</Text>
-            <Text style={styles.ticketText}>▣ 0</Text>
+      {!anThanhTim && (
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>L</Text>
+          </View>
+          <View style={styles.memberInfo}>
+            <Text style={styles.greeting}>
+              Chào <Text style={styles.userName}>Lê Thị Ngọc Anh</Text>
+            </Text>
+            <View style={styles.memberRow}>
+              <Text style={styles.memberIcon}>♟</Text>
+              <Text style={styles.memberText}>MEMBER</Text>
+              <Text style={styles.starText}>☆ 0</Text>
+              <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
+                <Text style={styles.ticketText}>▣ Vé</Text>
+              </Pressable>
+            </View>
+          </View>
+          <View style={styles.logoBlock}>
+            <Text style={styles.logoFilm}>FilmGo</Text>
           </View>
         </View>
-        <View style={styles.logoBlock}>
-          <Text style={styles.logoFilm}>FilmGo</Text>
-        </View>
-      </View>
+      )}
 
-      <View style={styles.searchSection}>
-        <Pressable
-          onPressIn={() => setSearchPressed(true)}
-          onPressOut={() => setSearchPressed(false)}
-          onPress={moTimKiem}
-          style={[
-            styles.searchBar,
-            searchPressed && styles.searchBarHover,
-            dangTim && styles.searchBarActive,
-          ]}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            value={tuKhoa}
-            onChangeText={text => {
-              setTuKhoa(text);
-              if (!dangTim) {
-                setDangTim(true);
-              }
-            }}
-            onFocus={moTimKiem}
-            placeholder="Tìm tên phim..."
-            placeholderTextColor="#9aa3ad"
-            style={styles.input}
-            returnKeyType="search"
-          />
-          {dangTim && (
-            <Pressable
-              hitSlop={8}
-              onPress={dongTimKiem}
-              style={({pressed}) => [
-                styles.clearButton,
-                pressed && styles.clearButtonPressed,
-              ]}>
-              <Text style={styles.clearIcon}>✕</Text>
-            </Pressable>
-          )}
-        </Pressable>
-      </View>
+      {!anThanhTim && (
+        <View style={styles.searchSection}>
+          <Pressable
+            onPressIn={() => setSearchPressed(true)}
+            onPressOut={() => setSearchPressed(false)}
+            onPress={moTimKiem}
+            style={[
+              styles.searchBar,
+              searchPressed && styles.searchBarHover,
+              dangTim && styles.searchBarActive,
+            ]}>
+            <Text style={styles.searchIcon}>⌕</Text>
+            <TextInput
+              value={tuKhoa}
+              onChangeText={text => {
+                setTuKhoa(text);
+                if (!dangTim) {
+                  setDangTim(true);
+                }
+              }}
+              onFocus={moTimKiem}
+              placeholder="Tìm tên phim..."
+              placeholderTextColor="#9aa3ad"
+              style={styles.input}
+              returnKeyType="search"
+            />
+            {dangTim && (
+              <Pressable
+                hitSlop={8}
+                onPress={dongTimKiem}
+                style={({pressed}) => [
+                  styles.clearButton,
+                  pressed && styles.clearButtonPressed,
+                ]}>
+                <Text style={styles.clearIcon}>✕</Text>
+              </Pressable>
+            )}
+          </Pressable>
+        </View>
+      )}
 
       <ShowtimeNavigator
-        dangTim={dangTim}
+        dangTim={dangTim && !anThanhTim}
         tuKhoaDebounced={tuKhoaDebounced}
+        onMovieFlowChange={setAnThanhTim}
       />
     </ScrollView>
   );
