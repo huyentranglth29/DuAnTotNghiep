@@ -27,7 +27,6 @@ const userVoucherSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "voucher người dùng",
   }
 );
 
