@@ -19,6 +19,30 @@ const bookingSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    seatLabels: {
+      type: [String],
+      default: [],
+    },
+    movieTitle: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    cinemaName: {
+      type: String,
+      trim: true,
+      default: "FilmGo Giải Phóng",
+    },
+    roomName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    ticketCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
     voucher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Voucher",
