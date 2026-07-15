@@ -1,19 +1,38 @@
-import {DataTable, PageTitle} from '../../components/AdminMock';
+import notificationApi from '../../api/notificationApi';
+import AdminListPage from '../../components/AdminListPage';
+import {formatDateTime} from '../../utils/adminFormatters';
 
 function NotificationList() {
   return (
-    <section>
-      <PageTitle title="Quản lý thông báo" action="+ Tạo thông báo" to="/notifications/create" />
-      <DataTable
-        headers={['Tiêu đề', 'Đối tượng', 'Ngày gửi', 'Trạng thái']}
-        rows={[
-          ['Khuyến mãi cuối tuần', 'Tất cả', '16/05/2024', 'Đã gửi'],
-          ['Giảm giá cho thành viên VIP', 'Thành viên VIP', '15/05/2024', 'Đã gửi'],
-          ['Phim mới ra rạp', 'Tất cả', '14/05/2024', 'Đã gửi'],
-          ['Sinh nhật thành viên', 'Thành viên', '12/05/2024', 'Đã gửi'],
-        ]}
-      />
-    </section>
+    <AdminListPage
+      title="Quản lý thông báo"
+      api={notificationApi}
+      addTo="/notifications/create"
+      addLabel="+ Tạo thông báo"
+      searchPlaceholder="Tìm kiếm thông báo..."
+      fields={[
+        {name: 'title', label: 'Tiêu đề', required: true},
+        {name: 'content', label: 'Nội dung', type: 'textarea', required: true},
+        {
+          name: 'target',
+          label: 'Đối tượng',
+          type: 'select',
+          defaultValue: 'all',
+          options: [
+            {value: 'all', label: 'Tất cả'},
+            {value: 'vip', label: 'VIP'},
+            {value: 'newUser', label: 'Người dùng mới'},
+          ],
+        },
+        {name: 'image', label: 'Ảnh URL'},
+        {name: 'sentAt', label: 'Ngày gửi', type: 'datetime-local'},
+      ]}
+      columns={[
+        {key: 'title', title: 'Tiêu đề'},
+        {key: 'target', title: 'Đối tượng'},
+        {key: 'sentAt', title: 'Ngày gửi', render: item => formatDateTime(item.sentAt || item.createdAt)},
+      ]}
+    />
   );
 }
 

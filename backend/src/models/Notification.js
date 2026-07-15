@@ -16,7 +16,7 @@ const notificationSchema = new mongoose.Schema(
 
     sentAt: Date,
   },
-  { timestamps: true }
+  { timestamps: true, collection: "thông báo" }
 );
 
 module.exports = mongoose.model("Notification", notificationSchema);

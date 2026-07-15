@@ -27,11 +27,31 @@ import CreateNotification from '../pages/notifications/CreateNotification';
 import PersonalInformation from '../pages/personal information/PersonalInformation';
 import RevenueReport from '../pages/reports/RevenueReport';
 
+function isAuthenticated() {
+  return Boolean(localStorage.getItem('filmgo_admin_token'));
+}
+
+function ProtectedRoute() {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <AdminLayout />;
+}
+
+function LoginRoute() {
+  if (isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Login />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route element={<AdminLayout />}>
+      <Route path="/login" element={<LoginRoute />} />
+      <Route element={<ProtectedRoute />}>
         <Route index element={<Dashboard />} />
         <Route path="users" element={<UserList />} />
         <Route path="roles" element={<RolePermission />} />

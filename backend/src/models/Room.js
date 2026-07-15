@@ -25,6 +25,7 @@ const roomSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "phòng",
   }
 );
 
