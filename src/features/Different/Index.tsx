@@ -4,7 +4,6 @@ import DifferentMenuScreen, {
 } from './screens/DifferentMenuScreen';
 import FreeVoucherScreen from './screens/FreeVoucherScreen';
 import MemberScreen from './screens/MemberScreen';
-import MyTicketsScreen from './screens/MyTicketsScreen';
 import NotificationScreen from './screens/NotificationScreen';
 import RecruitmentScreen from './screens/RecruitmentScreen';
 import SettingScreen from './screens/SettingScreen';
@@ -25,10 +24,6 @@ function Different({onDetailChange}: DifferentProps) {
   const goBack = () => {
     openScreen('menu');
   };
-
-  if (activeScreen === 'tickets') {
-    return <MyTicketsScreen onBack={goBack} />;
-  }
 
   if (activeScreen === 'voucher') {
     return <FreeVoucherScreen onBack={goBack} />;
