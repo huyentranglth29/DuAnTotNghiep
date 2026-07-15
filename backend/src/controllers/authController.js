@@ -1,5 +1,4 @@
 const User = require("../models/User");
-const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 
 const sanitizeUser = (user) => {
@@ -23,15 +22,14 @@ const register = async (req, res) => {
       });
     }
 
-    // Mã hóa mật khẩu
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Tạo tài khoản
     const user = await User.create({
       fullName,
       email,
-      password: hashedPassword,
+      password,
       phone,
+      role: "user",
+      status: "active",
     });
 
     res.status(201).json({
@@ -64,8 +62,15 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản đã bị khóa",
+      });
+    }
+
     // So sánh mật khẩu
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -99,7 +104,7 @@ const profile = async (req, res) => {
 
   try {
 
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(req.user._id).select("-password");
 
     res.status(200).json({
       success: true,

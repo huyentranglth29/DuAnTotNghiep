@@ -19,7 +19,7 @@ function ShowtimeStatus() {
     setError('');
     try {
       const data = await showtimeApi.getAll();
-      setShowtimes(Array.isArray(data) ? data : []);
+      setShowtimes(Array.isArray(data) ? data : data?.data || []);
     } catch (err) {
       setError(err.message || 'Không tải được trạng thái suất chiếu');
     } finally {
