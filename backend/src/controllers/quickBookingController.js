@@ -62,6 +62,7 @@ const create = async (req, res, next) => {
     const code = "FG-" + Math.floor(100000 + Math.random() * 900000);
 
     const booking = new QuickBooking({
+      user: req.user._id,
       showtimeId: normalizedShowtimeId,
       movieTitle,
       movieDuration,
@@ -124,6 +125,16 @@ const getAll = async (req, res, next) => {
   }
 };
 
+// GET /api/quick-bookings/mine — chỉ vé của tài khoản đang đăng nhập
+const getMine = async (req, res, next) => {
+  try {
+    const bookings = await QuickBooking.find({user: req.user._id}).sort({createdAt: -1});
+    res.json({success: true, data: bookings});
+  } catch (error) {
+    next(error);
+  }
+};
+
 // DELETE /api/quick-bookings/:id — Xoá vé
 const remove = async (req, res, next) => {
   try {
@@ -138,4 +149,4 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { create, getAll, getSoldSeats, remove };
+module.exports = { create, getAll, getMine, getSoldSeats, remove };

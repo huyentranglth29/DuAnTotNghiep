@@ -95,6 +95,7 @@ const normalizeSort = (sort) => {
 const createAdminCrudController = (Model, options = {}) => {
   const populate = options.populate || "";
   const keywordFields = options.keywordFields || [];
+  const afterCreate = options.afterCreate;
 
   const applyPopulate = (query) => {
     if (!populate) return query;
@@ -146,6 +147,7 @@ const createAdminCrudController = (Model, options = {}) => {
     try {
       const item = new Model(req.body);
       await item.save();
+      if (afterCreate) await afterCreate(item, req);
       const created = await applyPopulate(Model.findById(item._id));
       return success(res, "Tạo mới thành công", sanitize(created), null, 201);
     } catch (err) {

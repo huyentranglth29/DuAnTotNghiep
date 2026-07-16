@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const quickBookingSchema = new mongoose.Schema(
   {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     showtimeId: {
       type: String,
       trim: true,
@@ -38,6 +39,10 @@ const quickBookingSchema = new mongoose.Schema(
       default: "khong_co",
     },
     paymentMethod: String,
+    voucher: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
+    voucherCode: String,
+    discount: { type: Number, default: 0, min: 0 },
+    subtotal: { type: Number, min: 0 },
     totalPrice: {
       type: Number,
       required: true,

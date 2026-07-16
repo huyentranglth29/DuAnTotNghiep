@@ -8,6 +8,8 @@ import Showtime from '../features/Showtime/Index';
 import TrangChu from '../features/TrangChu/Index';
 import VoucherNavigator from './VoucherNavigator';
 import { MAU_CHU_DE } from '../theme/cinemaNoir';
+import {useQueryClient} from '@tanstack/react-query';
+import {clearAuthSession} from '../services/voucherService';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
@@ -29,7 +31,8 @@ const tabs: TabItem[] = [
   { key: 'different', label: 'Khác', icon: 'grid' },
 ];
 
-function TabNavigator() {
+function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isVoucherDetail, setIsVoucherDetail] = useState(false);
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
@@ -59,6 +62,11 @@ function TabNavigator() {
             setIsVoucherDetail,
             setIsDifferentDetail,
             setIsPromotionDetail,
+            async () => {
+              await clearAuthSession();
+              queryClient.clear();
+              onLoggedOut();
+            },
           )}
         </View>
 
@@ -95,6 +103,7 @@ function renderTabContent(
   setIsVoucherDetail: (isDetail: boolean) => void,
   setIsDifferentDetail: (isDetail: boolean) => void,
   setIsPromotionDetail: (isDetail: boolean) => void,
+  onLogout: () => void,
 ) {
   if (activeTab === 'home') {
     return <TrangChu />;
@@ -112,7 +121,7 @@ function renderTabContent(
     return <Promotion onDetailChange={setIsPromotionDetail} />;
   }
 
-  return <Different onDetailChange={setIsDifferentDetail} />;
+  return <Different onDetailChange={setIsDifferentDetail} onLogout={onLogout} />;
 }
 
 function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {

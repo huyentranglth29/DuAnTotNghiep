@@ -172,13 +172,13 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           <Text style={styles.showtimeSubtitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <ChonGio
             movieId={movie.id}
-            onShowtimePress={setSelectedShowtime}
+            selectedShowtimeId={selectedShowtime?.id}
+            onShowtimePress={showtime =>
+              setSelectedShowtime(current =>
+                current?.id === showtime.id ? null : showtime,
+              )
+            }
           />
-          {selectedShowtime ? (
-            <Text style={styles.showtimeSubtitle}>
-              Đã chọn: {new Date(selectedShowtime.startTime).toLocaleString('vi-VN')}
-            </Text>
-          ) : null}
         </View>
 
         <View style={styles.promotionHeader}>

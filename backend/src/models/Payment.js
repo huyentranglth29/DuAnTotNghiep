@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
   {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     orderCode: { type: String, required: true, unique: true, trim: true },
     provider: { type: String, enum: ["vnpay", "mo_phong"], default: "vnpay" },
     status: {
@@ -16,7 +17,7 @@ const paymentSchema = new mongoose.Schema(
       ],
       default: "cho_thanh_toan",
     },
-    amount: { type: Number, required: true, min: 5000 },
+    amount: { type: Number, required: true, min: 0 },
     expiresAt: { type: Date, required: true },
     paidAt: Date,
     transactionNo: String,
@@ -28,6 +29,11 @@ const paymentSchema = new mongoose.Schema(
       default: "none",
     },
     booking: { type: mongoose.Schema.Types.ObjectId, ref: "QuickBooking" },
+    voucher: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
+    userVoucher: { type: mongoose.Schema.Types.ObjectId, ref: "UserVoucher" },
+    subtotal: { type: Number, min: 0 },
+    discount: { type: Number, default: 0, min: 0 },
+    voucherCode: String,
     bookingData: {
       showtimeId: { type: String, required: true },
       movieTitle: { type: String, required: true },

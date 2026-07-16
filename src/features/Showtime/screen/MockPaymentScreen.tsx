@@ -24,6 +24,8 @@ type Props = {
   ticketTotal: number;
   combos: ComboLine[];
   totalAmount: number;
+  voucherCode?: string;
+  voucherDiscount?: number;
   expiresAt: string;
   isProcessing: boolean;
   onBack: () => void;
@@ -102,7 +104,9 @@ function MockPaymentScreen(props: Props) {
         <View style={styles.promoCard}>
           <Text style={styles.promoIcon}>🎟️</Text>
           <Text style={styles.promoTitle}>Ưu đãi</Text>
-          <Text style={styles.promoHint}>Chưa áp dụng mã  ›</Text>
+          <Text style={[styles.promoHint, props.voucherCode && styles.promoApplied]}>
+            {props.voucherCode ? `${props.voucherCode}  −${money(props.voucherDiscount || 0)}` : 'Chưa áp dụng mã'}
+          </Text>
         </View>
 
         <View style={styles.bankCard}>
@@ -182,6 +186,7 @@ function MockPaymentScreen(props: Props) {
                   />
                 ))}
                 {comboTotal > 0 && <InvoiceRow label="Tổng combo" value={money(comboTotal)} />}
+                {!!props.voucherDiscount && <InvoiceRow label={`Voucher ${props.voucherCode}`} value={`−${money(props.voucherDiscount)}`} accent />}
                 <InvoiceRow label="Người đặt" value="Người dùng FilmGo" />
                 <InvoiceRow label="Số điện thoại" value="0394584627" />
                 <InvoiceRow label="Email" value="demo@filmgo.vn" />
@@ -236,6 +241,7 @@ const styles = StyleSheet.create({
   promoIcon: {fontSize: 18, marginRight: 9},
   promoTitle: {fontSize: 15, color: '#444', fontWeight: '700', flex: 1},
   promoHint: {fontSize: 12, color: '#999'},
+  promoApplied: {color: '#0f9d58', fontWeight: '800'},
   bankCard: {backgroundColor: '#fff', borderRadius: 17, padding: 14},
   bankSectionTitle: {fontSize: 17, color: '#333', fontWeight: '800'},
   bankSectionHint: {fontSize: 11, color: '#999', marginTop: 3, marginBottom: 12},

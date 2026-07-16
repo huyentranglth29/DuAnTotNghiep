@@ -20,6 +20,8 @@ import {
   getPaymentStatus,
   getProducts,
 } from '../../../services/apiService';
+import {getMyVouchers} from '../../../services/voucherService';
+import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
 
 const MOMO_PINK = '#d82d8b';
 const MOMO_DARK = '#a61f69';
@@ -78,7 +80,9 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState<{amount: number; expiresAt: string} | null>(null);
   const [comboQuantities, setComboQuantities] = useState<Record<string, number>>({});
+  const [selectedVoucher, setSelectedVoucher] = useState<FilmGoVoucher | null>(null);
   const productsQuery = useQuery({queryKey: ['payment-products'], queryFn: getProducts});
+  const vouchersQuery = useQuery({queryKey: ['payment-my-vouchers'], queryFn: getMyVouchers});
   const products = (((productsQuery.data as any) ?? []) as any[]).filter(
     item => item?.isActive && !String(item?.image || '').includes('example.com'),
   );
@@ -89,11 +93,27 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
     (sum, item) => sum + Number(item.price) * item.quantity,
     0,
   );
-  const orderTotal = totalPrice + comboTotal;
+  const subtotal = totalPrice + comboTotal;
+  const voucherDiscount = selectedVoucher
+    ? Math.min(
+        subtotal,
+        selectedVoucher.discountType === 'percent'
+          ? Math.min(Math.round(subtotal * selectedVoucher.discountValue / 100), selectedVoucher.maxDiscount ?? Number.MAX_SAFE_INTEGER)
+          : selectedVoucher.discountValue,
+      )
+    : 0;
+  const orderTotal = subtotal - voucherDiscount;
+  const myVouchers = (((vouchersQuery.data as any) ?? []) as FilmGoVoucher[]).filter(item => item.walletStatus === 'available');
   const genre = movie.genre ?? '2D Phụ đề';
   const roomName = showtime?.roomName ?? 'Phòng chiếu 07';
   const startTime = formatBookingTime(showtime?.startTime);
   const bookingDate = formatBookingDate(showtime?.startTime);
+
+  useEffect(() => {
+    if (selectedVoucher && subtotal < Number(selectedVoucher.minOrderValue || 0)) {
+      setSelectedVoucher(null);
+    }
+  }, [selectedVoucher, subtotal]);
 
   const changeComboQuantity = (product: any, delta: number) => {
     const id = String(product._id);
@@ -174,6 +194,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           productId: item._id,
           quantity: item.quantity,
         })),
+        voucherCode: selectedVoucher?.code,
         cinema: 'FilmGo Hà Trung (Thanh Hóa)',
         bookingDate: new Date().toLocaleDateString('vi-VN'),
         bookingTime: startTime,
@@ -236,6 +257,8 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
         ticketTotal={totalPrice}
         combos={selectedCombos}
         totalAmount={paymentInfo.amount}
+        voucherCode={selectedVoucher?.code}
+        voucherDiscount={voucherDiscount}
         expiresAt={paymentInfo.expiresAt}
         isProcessing={isProcessing}
         onBack={handlePaymentBack}
@@ -372,6 +395,27 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           </View>
         )}
 
+        <View style={styles.voucherHeaderRow}>
+          <View><Text style={styles.sectionLabel}>🎟️ Chọn voucher</Text><Text style={styles.comboOptional}>Không bắt buộc · Chỉ áp dụng một voucher</Text></View>
+          {selectedVoucher && <TouchableOpacity onPress={() => setSelectedVoucher(null)}><Text style={styles.removeVoucher}>Bỏ chọn</Text></TouchableOpacity>}
+        </View>
+        {vouchersQuery.isLoading ? <Text style={styles.comboLoading}>Đang tải voucher...</Text> : myVouchers.length === 0 ? (
+          <View style={styles.noVoucherCard}><Text style={styles.noVoucherText}>Bạn chưa có voucher khả dụng. Vào tab Voucher để nhận ưu đãi.</Text></View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.voucherList}>
+            {myVouchers.map(voucher => {
+              const eligible = subtotal >= Number(voucher.minOrderValue || 0);
+              const selected = selectedVoucher?._id === voucher._id;
+              return <TouchableOpacity key={voucher.walletId || voucher._id} disabled={!eligible || isProcessing} style={[styles.voucherCard, selected && styles.voucherCardSelected, !eligible && styles.voucherCardDisabled]} onPress={() => setSelectedVoucher(voucher)}>
+                <Text style={styles.voucherCode}>{voucher.code}</Text>
+                <Text style={styles.voucherValue}>{formatVoucherValue(voucher)}</Text>
+                <Text style={styles.voucherCondition}>{eligible ? `Đơn từ ${Number(voucher.minOrderValue || 0).toLocaleString('vi-VN')}đ` : `Chưa đủ đơn ${Number(voucher.minOrderValue || 0).toLocaleString('vi-VN')}đ`}</Text>
+                <Text style={[styles.voucherChoose, selected && styles.voucherChooseSelected]}>{selected ? '✓ Đã chọn' : eligible ? 'Áp dụng' : 'Chưa đủ điều kiện'}</Text>
+              </TouchableOpacity>;
+            })}
+          </ScrollView>
+        )}
+
         {/* === THÔNG TIN NGƯỜI NHẬN === */}
         <Text style={styles.sectionLabel}>Thông tin người nhận</Text>
         <View style={styles.cardRecipient}>
@@ -413,6 +457,9 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
             <Text style={styles.invoiceMiniValue}>{comboTotal.toLocaleString('vi-VN')}đ</Text>
           </View>
         )}
+        {voucherDiscount > 0 && (
+          <View style={styles.invoiceMiniRow}><Text style={styles.invoiceDiscountLabel}>Voucher {selectedVoucher?.code}</Text><Text style={styles.invoiceDiscountValue}>−{voucherDiscount.toLocaleString('vi-VN')}đ</Text></View>
+        )}
         <View style={styles.footerTotal}>
           <Text style={styles.footerTamTinh}>Tổng thanh toán</Text>
           <Text style={styles.footerAmount}>{orderTotal.toLocaleString('vi-VN')}đ</Text>
@@ -433,6 +480,21 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
 }
 
 const styles = StyleSheet.create({
+  voucherHeaderRow: {marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  removeVoucher: {color: '#e51978', fontSize: 12, fontWeight: '800'},
+  voucherList: {marginHorizontal: -2, marginBottom: 18},
+  voucherCard: {width: 210, minHeight: 128, marginHorizontal: 2, marginRight: 10, padding: 14, borderRadius: 15, borderWidth: 1.5, borderColor: '#f2b8d7', backgroundColor: '#fff8fc'},
+  voucherCardSelected: {borderColor: '#e51978', backgroundColor: '#fff0f8'},
+  voucherCardDisabled: {opacity: 0.48, borderColor: '#d1d5db', backgroundColor: '#f3f4f6'},
+  voucherCode: {fontSize: 16, color: '#e51978', fontWeight: '900'},
+  voucherValue: {fontSize: 14, color: '#1f2937', fontWeight: '800', marginTop: 6},
+  voucherCondition: {fontSize: 11, color: '#6b7280', marginTop: 5},
+  voucherChoose: {fontSize: 12, color: '#e51978', fontWeight: '800', marginTop: 9},
+  voucherChooseSelected: {color: '#0f9d58'},
+  noVoucherCard: {padding: 15, borderRadius: 13, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 18},
+  noVoucherText: {fontSize: 12, lineHeight: 18, color: '#7c8592'},
+  invoiceDiscountLabel: {fontSize: 12, color: '#0f9d58', fontWeight: '700'},
+  invoiceDiscountValue: {fontSize: 13, color: '#0f9d58', fontWeight: '900'},
   container: {
     flex: 1,
     backgroundColor: BG_GRAY,

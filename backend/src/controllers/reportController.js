@@ -5,6 +5,7 @@ const Room = require("../models/Room");
 const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
+const QuickBooking = require("../models/QuickBooking");
 
 const paidBookingMatch = {
   $or: [{ paymentStatus: "paid" }, { status: "paid" }],
@@ -366,6 +367,28 @@ const voucherStats = async (req, res) => {
         ]),
         Voucher.find().sort({ createdAt: -1 }).lean(),
       ]);
+
+    const quickMatch = {voucher: {$ne: null, $exists: true}, status: "paid", createdAt: {$gte: from, $lte: to}};
+    const [quickTrend, quickTypes, quickGenres, quickUsage] = await Promise.all([
+      QuickBooking.aggregate([{$match: quickMatch}, {$group: {_id: {$dateToString: {format: "%Y-%m-%d", date: "$createdAt"}}, count: {$sum: 1}}}]),
+      QuickBooking.aggregate([{$match: quickMatch}, {$lookup: {from: Voucher.collection.name, localField: "voucher", foreignField: "_id", as: "voucherDoc"}}, {$unwind: "$voucherDoc"}, {$group: {_id: "$voucherDoc.discountType", count: {$sum: 1}}}, {$project: {_id: 0, discountType: "$_id", count: 1}}]),
+      QuickBooking.find(quickMatch).select("movieGenre -_id").lean(),
+      QuickBooking.aggregate([{$match: {voucher: {$ne: null, $exists: true}, status: "paid"}}, {$group: {_id: "$voucher", usedCount: {$sum: 1}}}]),
+    ]);
+    quickTrend.forEach(row => {
+      const date = row._id;
+      const found = usageTrend.find(item => item.date === date);
+      if (found) found.count += row.count; else usageTrend.push({date, count: row.count});
+    });
+    quickTypes.forEach(row => {
+      const found = usedByType.find(item => item.discountType === row.discountType);
+      if (found) found.count += row.count; else usedByType.push(row);
+    });
+    quickGenres.forEach(row => genreRaw.push({genre: row.movieGenre}));
+    quickUsage.forEach(row => {
+      const found = usageByVoucher.find(item => String(item._id) === String(row._id));
+      if (found) found.usedCount += row.usedCount; else usageByVoucher.push(row);
+    });
 
     const genreCounts = {};
     genreRaw.forEach((row) => {

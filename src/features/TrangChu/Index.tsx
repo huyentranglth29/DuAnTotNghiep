@@ -25,6 +25,8 @@ import {
   getVouchers,
   getProducts,
   getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from '../../services/apiService';
 import TrangThaiTai from './components/TrangThaiTai';
 import {Phim} from '../../types/phim';
@@ -63,6 +65,7 @@ function TrangChu() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchQueryDebounced, setSearchQueryDebounced] = useState('');
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,6 +121,9 @@ function TrangChu() {
   const listVouchers = (vouchersQuery.data as any) ?? [];
   const listProducts = (productsQuery.data as any) ?? [];
   const listNews = (notificationsQuery.data as any) ?? [];
+  const unreadNotifications = Array.isArray(listNews)
+    ? listNews.filter((item: any) => !item.isRead).length
+    : 0;
 
   // Gộp các phim nổi bật + phim đang chiếu hot lên Banner
   const listBannerPhim = [
@@ -528,8 +534,13 @@ function TrangChu() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => Alert.alert('Thông báo', 'Không có thông báo mới nào.')}>
+              onPress={() => setShowNotifications(true)}>
               <Text style={styles.headerIcon}>🔔</Text>
+              {unreadNotifications > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>{Math.min(unreadNotifications, 99)}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconBtn}
@@ -539,6 +550,41 @@ function TrangChu() {
           </View>
         </View>
       )}
+
+      <Modal visible={showNotifications} animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+        <View style={styles.notificationScreen}>
+          <View style={styles.notificationHeader}>
+            <TouchableOpacity onPress={() => setShowNotifications(false)}><Text style={styles.notificationBack}>‹</Text></TouchableOpacity>
+            <Text style={styles.notificationTitle}>THÔNG BÁO</Text>
+            <TouchableOpacity onPress={async () => { try { await markAllNotificationsRead(); await notificationsQuery.refetch(); } catch (e) { Alert.alert('Thông báo', (e as Error).message); } }}>
+              <Text style={styles.notificationReadAll}>Đọc tất cả</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={Array.isArray(listNews) ? listNews : []}
+            keyExtractor={(item: any) => String(item._id)}
+            contentContainerStyle={styles.notificationList}
+            ListEmptyComponent={<Text style={styles.notificationEmpty}>Chưa có thông báo nào</Text>}
+            renderItem={({item}: any) => (
+              <TouchableOpacity style={[styles.notificationItem, item.isRead ? styles.notificationRead : styles.notificationUnread]} onPress={async () => {
+                try {
+                  if (!item.isRead) await markNotificationRead(item._id);
+                  await notificationsQuery.refetch();
+                } catch (error) {
+                  Alert.alert('Không thể đánh dấu đã đọc', (error as Error).message);
+                  return;
+                }
+                if (item.type === 'voucher') Alert.alert(item.title, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`);
+                else setSelectedNews(item);
+              }}>
+                <Text style={styles.notificationType}>{item.type === 'voucher' ? '🎟️' : item.type === 'phim' ? '🎬' : item.type === 'dat_ve' ? '🎫' : item.type === 'thanh_toan' ? '💳' : '🔔'}</Text>
+                <View style={{flex: 1}}><Text style={[styles.notificationItemTitle, item.isRead && styles.notificationReadTitle]}>{item.title}</Text><Text style={[styles.notificationContent, item.isRead && styles.notificationReadContent]} numberOfLines={3}>{item.content}</Text><Text style={styles.notificationTime}>{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</Text></View>
+                {!item.isRead && <View style={styles.unreadDot} />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
 
       <TrangThaiTai dangTai={dangTai} loi={loi} onThuLai={thuLai}>
         {isSearching ? (
@@ -928,6 +974,25 @@ function TrangChu() {
 }
 
 const styles = StyleSheet.create({
+  notificationScreen: {flex: 1, backgroundColor: '#f5f7fa'},
+  notificationHeader: {height: 76, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', backgroundColor: '#006ba6'},
+  notificationBack: {fontSize: 44, lineHeight: 46, color: '#fff', paddingRight: 12},
+  notificationTitle: {flex: 1, color: '#fff', fontSize: 21, fontWeight: '900'},
+  notificationReadAll: {color: '#fff', fontWeight: '700', fontSize: 13},
+  notificationList: {padding: 14, paddingBottom: 40},
+  notificationItem: {flexDirection: 'row', gap: 12, padding: 15, marginBottom: 10, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb'},
+  notificationUnread: {backgroundColor: '#eef8ff', borderColor: '#9dd8f7'},
+  notificationRead: {backgroundColor: '#ffffff', borderColor: '#e5e7eb'},
+  notificationType: {fontSize: 25},
+  notificationItemTitle: {fontSize: 16, fontWeight: '800', color: '#1f2937'},
+  notificationReadTitle: {fontWeight: '700', color: '#667085'},
+  notificationContent: {fontSize: 13, lineHeight: 19, color: '#667085', marginTop: 4},
+  notificationReadContent: {color: '#98a2b3'},
+  notificationTime: {fontSize: 11, color: '#9ca3af', marginTop: 7},
+  notificationEmpty: {textAlign: 'center', color: '#9ca3af', marginTop: 90, fontSize: 16},
+  unreadDot: {width: 9, height: 9, borderRadius: 5, backgroundColor: '#e51937', marginTop: 6},
+  notificationBadge: {position: 'absolute', right: 3, top: 3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#e51937', alignItems: 'center', justifyContent: 'center'},
+  notificationBadgeText: {color: '#fff', fontSize: 10, fontWeight: '900'},
   container: {
     flex: 1,
     backgroundColor: '#f5f6f8',

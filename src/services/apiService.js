@@ -152,7 +152,17 @@ export const getProducts = async () => {
  * GET /api/notifications
  */
 export const getNotifications = async () => {
-  return apiClient.get('/api/notifications');
+  const response = await apiClient.get('/api/notifications');
+  return response?.data ?? response ?? [];
+};
+
+export const markNotificationRead = async id => {
+  const response = await apiClient.post(`/api/notifications/${id}/read`);
+  return response?.data ?? response;
+};
+
+export const markAllNotificationsRead = async () => {
+  return apiClient.post('/api/notifications/read-all');
 };
 
 /**
@@ -205,10 +215,10 @@ export const cancelPayment = async (paymentId) => {
 
 /**
  * Lấy danh sách vé đã đặt từ MongoDB Atlas
- * GET /api/quick-bookings
+ * GET /api/quick-bookings/mine
  */
 export const getQuickBookings = async () => {
-  return apiClient.get('/api/quick-bookings');
+  return apiClient.get('/api/quick-bookings/mine');
 };
 
 export default apiClient;

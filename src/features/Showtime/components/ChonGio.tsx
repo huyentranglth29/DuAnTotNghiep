@@ -26,10 +26,11 @@ export type SelectedShowtimeInfo = {
 type ChonGioProps = {
   movieId?: string | number;
   selectedDateKey?: string;
+  selectedShowtimeId?: string;
   onShowtimePress?: (showtime: SelectedShowtimeInfo) => void;
 };
 
-function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
+function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}: ChonGioProps) {
   const [items, setItems] = useState<SuatChieuApi[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -129,11 +130,16 @@ function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
             {group.showtimes.map(item => {
               const hour = new Date(item.startTime).getHours();
               const late = hour >= 22;
+              const selected = selectedShowtimeId === item._id;
               return (
                 <TouchableOpacity
                   key={item._id}
                   activeOpacity={0.78}
-                  style={[styles.timeBlock, late && styles.timeBlockLate]}
+                  style={[
+                    styles.timeBlock,
+                    late && styles.timeBlockLate,
+                    selected && styles.timeBlockSelected,
+                  ]}
                   onPress={() =>
                     onShowtimePress?.({
                       id: item._id,
@@ -145,11 +151,11 @@ function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
                       cinemaName: 'FilmGo Hà Trung (Thanh Hóa)',
                     })
                   }>
-                  <Text style={styles.timeText}>{formatGio(item.startTime)}</Text>
-                  <Text style={styles.timeDate}>
+                  <Text style={[styles.timeText, selected && styles.selectedText]}>{formatGio(item.startTime)}</Text>
+                  <Text style={[styles.timeDate, selected && styles.selectedText]}>
                     {formatNgayNgan(item.startTime)}
                   </Text>
-                  <Text style={styles.seatText}>
+                  <Text style={[styles.seatText, selected && styles.selectedPrice]}>
                     {Number(item.price).toLocaleString('vi-VN')}đ
                   </Text>
                 </TouchableOpacity>
@@ -157,12 +163,6 @@ function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
             })}
           </View>
 
-          <View style={styles.noteRow}>
-            <View style={styles.noteDot} />
-            <Text style={styles.noteText}>
-              Suất lấy từ Admin · Phòng {group.roomName}
-            </Text>
-          </View>
         </View>
       ))}
     </View>
@@ -221,6 +221,13 @@ const styles = StyleSheet.create({
   timeBlockLate: {
     backgroundColor: '#b9d4f4',
   },
+  timeBlockSelected: {
+    backgroundColor: '#ec168c',
+    borderWidth: 2,
+    borderColor: '#bd0f6d',
+  },
+  selectedText: {color: '#ffffff'},
+  selectedPrice: {color: '#fff1f8', fontWeight: '700'},
   timeText: {
     color: '#111111',
     fontSize: 17,

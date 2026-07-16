@@ -14,7 +14,7 @@ const userVoucherSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["available", "used", "expired"],
+      enum: ["available", "reserved", "used", "expired"],
       default: "available",
     },
     usedAt: {
@@ -24,6 +24,7 @@ const userVoucherSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
     },
+    reservedPayment: { type: mongoose.Schema.Types.ObjectId, ref: "Payment" },
   },
   {
     timestamps: true,

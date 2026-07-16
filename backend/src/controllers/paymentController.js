@@ -5,7 +5,10 @@ const QuickBooking = require("../models/QuickBooking");
 const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const Product = require("../models/Product");
+const Voucher = require("../models/Voucher");
+const UserVoucher = require("../models/UserVoucher");
 const { buildQuery, sign, verify, formatVnpDate } = require("../utils/vnpay");
+const { createNotification } = require("../services/notificationService");
 
 const HOLD_MINUTES = 15;
 const STATUS_LABELS = {
@@ -24,6 +27,57 @@ const normalizeSeats = (seats) =>
 
 const normalizeGenre = (genre) =>
   Array.isArray(genre) ? genre.filter(Boolean).join(", ") : String(genre || "").trim();
+
+const notifyPendingPayment = payment => payment.user && createNotification({
+  user: payment.user, type: "thanh_toan", entityId: payment._id,
+  action: "mo_thanh_toan", title: "Đang chờ thanh toán",
+  content: `Giao dịch ${payment.orderCode} cho phim ${payment.bookingData.movieTitle} đang chờ thanh toán.`,
+});
+
+const notifyBookingFailure = (user, movieTitle, reason) => user && createNotification({
+  user, type: "dat_ve", action: "mo_dat_ve", title: "Đặt vé không thành công",
+  content: `${movieTitle ? `Phim ${movieTitle}: ` : ""}${reason}`,
+});
+
+async function prepareVoucher(userId, rawCode, subtotal) {
+  const code = String(rawCode || "").trim().toUpperCase();
+  if (!code) return { voucher: null, userVoucher: null, discount: 0 };
+  if (!userId) { const error = new Error("Vui lòng đăng nhập để sử dụng voucher"); error.status = 401; throw error; }
+  const voucher = await Voucher.findOne({ code }).lean();
+  if (!voucher) { const error = new Error("Voucher không tồn tại"); error.status = 404; throw error; }
+  const now = new Date();
+  if (voucher.status !== "active" || new Date(voucher.startDate) > now || new Date(voucher.endDate) < now) {
+    const error = new Error("Voucher không còn hiệu lực"); error.status = 400; throw error;
+  }
+  const owned = await UserVoucher.findOne({ user: userId, voucher: voucher._id, status: "available" });
+  if (!owned) { const error = new Error("Voucher chưa có trong kho hoặc đã được sử dụng"); error.status = 400; throw error; }
+  if (subtotal < Number(voucher.minOrderValue || 0)) {
+    const error = new Error(`Đơn hàng phải từ ${Number(voucher.minOrderValue).toLocaleString("vi-VN")}đ để dùng voucher`); error.status = 400; throw error;
+  }
+  let discount = voucher.discountType === "percent"
+    ? Math.round(subtotal * Number(voucher.discountValue) / 100)
+    : Number(voucher.discountValue);
+  if (voucher.maxDiscount != null) discount = Math.min(discount, Number(voucher.maxDiscount));
+  return { voucher, userVoucher: owned, discount: Math.min(subtotal, Math.max(0, discount)) };
+}
+
+async function reserveVoucher(payment) {
+  if (!payment.userVoucher) return;
+  const row = await UserVoucher.findOneAndUpdate(
+    { _id: payment.userVoucher, status: "available" },
+    { $set: { status: "reserved", reservedPayment: payment._id } },
+    { returnDocument: "after" }
+  );
+  if (!row) { const error = new Error("Voucher vừa được sử dụng ở giao dịch khác"); error.status = 409; throw error; }
+}
+
+async function releaseVoucher(payment) {
+  if (!payment.userVoucher) return;
+  await UserVoucher.updateOne(
+    { _id: payment.userVoucher, status: "reserved", reservedPayment: payment._id },
+    { $set: { status: "available" }, $unset: { reservedPayment: 1 } }
+  );
+}
 
 async function prepareCombos(rawCombos) {
   const quantities = new Map();
@@ -132,7 +186,15 @@ async function releasePayment(payment, status) {
   );
   if (!claimed) return Payment.findById(payment._id);
   await restoreComboStock(claimed);
+  await releaseVoucher(claimed);
   await BookedSeat.deleteMany({ payment: claimed._id });
+  if (claimed.user) {
+    await createNotification({
+      user: claimed.user, type: "thanh_toan", entityId: claimed._id,
+      action: "mo_thanh_toan", title: STATUS_LABELS[status],
+      content: `Giao dịch ${claimed.orderCode} cho phim ${claimed.bookingData.movieTitle}: ${STATUS_LABELS[status].toLowerCase()}.`,
+    });
+  }
   return claimed;
 }
 
@@ -167,6 +229,7 @@ async function completePayment(payment, query) {
   try {
     const data = claimed.bookingData;
     const booking = await QuickBooking.create({
+      user: claimed.user,
       showtimeId: data.showtimeId,
       movieTitle: data.movieTitle,
       movieDuration: data.movieDuration,
@@ -181,6 +244,10 @@ async function completePayment(payment, query) {
         : undefined,
       comboStatus: data.combos?.length ? "cho_nhan" : "khong_co",
       paymentMethod: claimed.bankCode,
+      voucher: claimed.voucher,
+      voucherCode: claimed.voucherCode,
+      discount: claimed.discount,
+      subtotal: claimed.subtotal,
       cinema: data.cinema || "FilmGo Hà Trung (Thanh Hóa)",
       bookingDate: data.bookingDate,
       bookingTime: data.bookingTime,
@@ -195,6 +262,19 @@ async function completePayment(payment, query) {
     claimed.booking = booking._id;
     if (claimed.inventoryStatus === "reserved") claimed.inventoryStatus = "committed";
     await claimed.save();
+    if (claimed.userVoucher) {
+      await UserVoucher.updateOne(
+        { _id: claimed.userVoucher, status: "reserved", reservedPayment: claimed._id },
+        { $set: { status: "used", usedAt: new Date(), booking: booking._id }, $unset: { reservedPayment: 1 } }
+      );
+    }
+    if (claimed.user) {
+      await createNotification({
+        user: claimed.user, type: "dat_ve", entityId: booking._id, action: "mo_ve",
+        title: "Đặt vé thành công",
+        content: `Thanh toán ${Number(claimed.amount).toLocaleString("vi-VN")}đ thành công. Ghế ${data.seats.join(", ")} xem phim ${data.movieTitle} đã được xác nhận.`,
+      });
+    }
     return claimed;
   } catch (error) {
     await Payment.updateOne(
@@ -254,13 +334,21 @@ const createVnpayPayment = async (req, res, next) => {
       return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);
     }, 0);
     const { combos, comboTotal } = await prepareCombos(req.body.combos);
-    const amount = ticketTotal + comboTotal;
+    const subtotal = ticketTotal + comboTotal;
+    const voucherInfo = await prepareVoucher(req.user?._id, req.body.voucherCode, subtotal);
+    const amount = subtotal - voucherInfo.discount;
     const movieTitle = showtime.movie?.title || String(req.body.movieTitle || "").trim();
 
     const now = new Date();
     const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
     const orderCode = `FG${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
     payment = await Payment.create({
+      user: req.user?._id,
+      voucher: voucherInfo.voucher?._id,
+      userVoucher: voucherInfo.userVoucher?._id,
+      voucherCode: voucherInfo.voucher?.code,
+      subtotal,
+      discount: voucherInfo.discount,
       orderCode,
       amount,
       expiresAt,
@@ -297,11 +385,14 @@ const createVnpayPayment = async (req, res, next) => {
         { ordered: true }
       );
       await reserveComboStock(payment);
+      await reserveVoucher(payment);
     } catch (error) {
       await restoreComboStock(payment);
+      await releaseVoucher(payment);
       await BookedSeat.deleteMany({ payment: payment._id });
       await Payment.deleteOne({ _id: payment._id });
       if (error?.code === 11000) {
+        await notifyBookingFailure(req.user?._id, movieTitle, "Một hoặc nhiều ghế vừa được người khác giữ.");
         return res.status(409).json({ success: false, message: "Một hoặc nhiều ghế vừa được người khác giữ" });
       }
       throw error;
@@ -327,6 +418,8 @@ const createVnpayPayment = async (req, res, next) => {
     const secureHash = sign(params, config.secret);
     const paymentUrl = `${config.paymentUrl}?${buildQuery(params)}&vnp_SecureHash=${secureHash}`;
 
+    await notifyPendingPayment(payment);
+
     return res.status(201).json({
       success: true,
       data: {
@@ -341,6 +434,7 @@ const createVnpayPayment = async (req, res, next) => {
   } catch (error) {
     if (payment?._id) {
       await restoreComboStock(payment);
+      await releaseVoucher(payment);
       await BookedSeat.deleteMany({ payment: payment._id });
       await Payment.deleteOne({ _id: payment._id, status: "cho_thanh_toan" });
     }
@@ -373,10 +467,18 @@ const createMockPayment = async (req, res, next) => {
       return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);
     }, 0);
     const { combos, comboTotal } = await prepareCombos(req.body.combos);
-    const amount = ticketTotal + comboTotal;
+    const subtotal = ticketTotal + comboTotal;
+    const voucherInfo = await prepareVoucher(req.user?._id, req.body.voucherCode, subtotal);
+    const amount = subtotal - voucherInfo.discount;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
     payment = await Payment.create({
+      user: req.user?._id,
+      voucher: voucherInfo.voucher?._id,
+      userVoucher: voucherInfo.userVoucher?._id,
+      voucherCode: voucherInfo.voucher?.code,
+      subtotal,
+      discount: voucherInfo.discount,
       orderCode: `MP${Date.now()}${Math.floor(100 + Math.random() * 900)}`,
       provider: "mo_phong",
       amount,
@@ -409,15 +511,20 @@ const createMockPayment = async (req, res, next) => {
         { ordered: true }
       );
       await reserveComboStock(payment);
+      await reserveVoucher(payment);
     } catch (error) {
       await restoreComboStock(payment);
+      await releaseVoucher(payment);
       await BookedSeat.deleteMany({ payment: payment._id });
       await Payment.deleteOne({ _id: payment._id });
       if (error?.code === 11000) {
+        await notifyBookingFailure(req.user?._id, payment.bookingData.movieTitle, "Một hoặc nhiều ghế vừa được người khác giữ.");
         return res.status(409).json({ success: false, message: "Một hoặc nhiều ghế vừa được người khác giữ" });
       }
       throw error;
     }
+
+    await notifyPendingPayment(payment);
 
     return res.status(201).json({
       success: true,
@@ -433,6 +540,7 @@ const createMockPayment = async (req, res, next) => {
   } catch (error) {
     if (payment?._id) {
       await restoreComboStock(payment);
+      await releaseVoucher(payment);
       await BookedSeat.deleteMany({ payment: payment._id });
       await Payment.deleteOne({ _id: payment._id, status: "cho_thanh_toan" });
     }
@@ -442,7 +550,7 @@ const createMockPayment = async (req, res, next) => {
 
 const completeMockPayment = async (req, res, next) => {
   try {
-    const payment = await Payment.findOne({ _id: req.params.id, provider: "mo_phong" });
+    const payment = await Payment.findOne({ _id: req.params.id, provider: "mo_phong", user: req.user._id });
     if (!payment) return res.status(404).json({ success: false, message: "Không tìm thấy giao dịch mô phỏng" });
     if (payment.status !== "cho_thanh_toan") {
       return res.status(409).json({ success: false, message: `Giao dịch đang ở trạng thái: ${STATUS_LABELS[payment.status]}` });
@@ -468,7 +576,7 @@ const completeMockPayment = async (req, res, next) => {
 
 const failMockPayment = async (req, res, next) => {
   try {
-    const payment = await Payment.findOne({ _id: req.params.id, provider: "mo_phong" });
+    const payment = await Payment.findOne({ _id: req.params.id, provider: "mo_phong", user: req.user._id });
     if (!payment) return res.status(404).json({ success: false, message: "Không tìm thấy giao dịch mô phỏng" });
     await releasePayment(payment, "that_bai");
     return res.json({ success: true, message: "Đã mô phỏng thanh toán thất bại và mở lại ghế" });
@@ -498,7 +606,7 @@ const vnpayReturn = async (req, res) => {
 
 const getPaymentStatus = async (req, res, next) => {
   try {
-    let payment = await Payment.findById(req.params.id).lean();
+    let payment = await Payment.findOne({_id: req.params.id, user: req.user._id}).lean();
     if (!payment) return res.status(404).json({ success: false, message: "Không tìm thấy giao dịch" });
     if (payment.status === "cho_thanh_toan" && new Date(payment.expiresAt) <= new Date()) {
       await releasePayment(await Payment.findById(payment._id), "het_han");
@@ -515,7 +623,7 @@ const getPaymentStatus = async (req, res, next) => {
 
 const cancelPayment = async (req, res, next) => {
   try {
-    const payment = await Payment.findById(req.params.id);
+    const payment = await Payment.findOne({_id: req.params.id, user: req.user._id});
     if (!payment) return res.status(404).json({ success: false, message: "Không tìm thấy giao dịch" });
     await releasePayment(payment, "da_huy");
     return res.json({ success: true, message: "Đã hủy thanh toán và mở lại ghế" });

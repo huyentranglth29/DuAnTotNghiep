@@ -16,6 +16,7 @@ const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const Voucher = require("../models/Voucher");
+const { createNotification } = require("../services/notificationService");
 
 const router = express.Router();
 
@@ -33,6 +34,11 @@ router.get("/reports/voucher-stats", reports.voucherStats);
 const resources = {
   movies: createAdminCrudController(Movie, {
     keywordFields: ["title", "description", "synopsis", "director", "genre"],
+    afterCreate: movie => createNotification({
+      title: `Phim mới: ${movie.title}`,
+      content: `${movie.title} vừa được cập nhật trên FilmGo. Xem thông tin và lịch chiếu ngay!`,
+      type: "phim", entityId: movie._id, action: "mo_chi_tiet_phim", image: movie.posterUrl,
+    }),
   }),
   rooms: createAdminCrudController(Room, {
     keywordFields: ["name", "type", "status"],
@@ -50,6 +56,11 @@ const resources = {
   }),
   vouchers: createAdminCrudController(Voucher, {
     keywordFields: ["code", "description", "status"],
+    afterCreate: voucher => createNotification({
+      title: `Voucher mới: ${voucher.code}`,
+      content: `${voucher.description || "Ưu đãi mới từ FilmGo"}. Nhận ngay trước khi hết lượt!`,
+      type: "voucher", entityId: voucher._id, action: "nhan_voucher",
+    }),
   }),
   products: createAdminCrudController(Product, {
     keywordFields: ["name", "description"],

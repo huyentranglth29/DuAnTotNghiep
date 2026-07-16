@@ -207,6 +207,7 @@ export function ConfirmDialog({
   cancelText,
   confirmText,
   onClose,
+  onConfirm,
 }: {
   visible: boolean;
   title: string;
@@ -214,6 +215,7 @@ export function ConfirmDialog({
   cancelText: string;
   confirmText: string;
   onClose: () => void;
+  onConfirm?: () => void;
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -223,7 +225,7 @@ export function ConfirmDialog({
           <Text style={styles.confirmMessage}>{message}</Text>
           <View style={styles.confirmDivider} />
           <View style={styles.confirmActions}>
-            <TouchableOpacity style={styles.confirmAction} onPress={onClose}>
+            <TouchableOpacity style={styles.confirmAction} onPress={onConfirm || onClose}>
               <Text style={styles.confirmCancel}>{cancelText}</Text>
             </TouchableOpacity>
             <View style={styles.confirmActionDivider} />
