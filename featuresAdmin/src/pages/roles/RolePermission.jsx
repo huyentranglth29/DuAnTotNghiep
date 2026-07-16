@@ -31,7 +31,7 @@ function RolePermission() {
         <article className="metricCard"><span>Tổng tài khoản</span><strong>{users.length}</strong></article>
       </div>
       <div className="panel">
-        <h3>Vai trò lấy từ collection người dùng</h3>
+        <h3>Vai trò lấy từ collection users</h3>
         <Table
           columns={[
             {key: 'fullName', title: 'Họ tên'},

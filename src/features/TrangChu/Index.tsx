@@ -203,7 +203,7 @@ function TrangChu() {
         >
           <View style={styles.posterContainer}>
             <Image source={{uri: item.posterUrl}} style={styles.moviePoster} />
-            {item.nhanTuoi && (
+            {!!item.nhanTuoi && (
               <View
                 style={[
                   styles.ageBadge,
@@ -216,7 +216,7 @@ function TrangChu() {
                 <Text style={styles.ageText}>{item.nhanTuoi}</Text>
               </View>
             )}
-            {item.diemDanhGia && (
+            {typeof item.diemDanhGia === 'number' && (
               <View style={styles.ratingBadge}>
                 <Text style={styles.starIcon}>★</Text>
                 <Text style={styles.ratingText}>{item.diemDanhGia.toFixed(1)}</Text>
@@ -335,7 +335,7 @@ function TrangChu() {
           <Text style={styles.searchResultTitle}>{item.tieuDe}</Text>
           <Text style={styles.searchResultGenre}>{item.theLoai}</Text>
           <View style={styles.searchResultRow}>
-            {item.nhanTuoi && (
+            {!!item.nhanTuoi && (
               <View style={[
                 styles.searchResultAgeBadge,
                 {
@@ -347,7 +347,7 @@ function TrangChu() {
             )}
             <Text style={styles.searchResultDuration}>{item.thoiLuong}</Text>
           </View>
-          {item.diemDanhGia && (
+          {typeof item.diemDanhGia === 'number' && (
             <Text style={styles.searchResultRating}>⭐ {item.diemDanhGia.toFixed(1)}/10</Text>
           )}
         </View>

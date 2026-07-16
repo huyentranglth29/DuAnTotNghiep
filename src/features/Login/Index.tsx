@@ -38,9 +38,9 @@ function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProp
       return;
     }
 
-    try {
-      setIsLoggingIn(true);
+    setIsLoggingIn(true);
 
+    try {
       const isSuccess = await onLoginPress?.({email, password});
 
       if (isSuccess) {
@@ -50,7 +50,14 @@ function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProp
 
       Alert.alert(
         'Thông báo',
-        'Tài khoản hoặc mật khẩu không đúng. Vui lòng đăng ký tài khoản trước.',
+        'Email hoặc mật khẩu không đúng.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Đăng nhập thất bại',
+        error instanceof Error
+          ? error.message
+          : 'Không thể đăng nhập. Vui lòng thử lại.',
       );
     } finally {
       setIsLoggingIn(false);

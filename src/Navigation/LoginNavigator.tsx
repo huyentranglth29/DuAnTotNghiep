@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useEffect, useState} from 'react';
-import {Alert} from 'react-native';
 import Login from '../features/Login/Index';
 import PorgotPass from '../features/Login/component/PorgotPass';
 import Register from '../features/Login/component/Register';
@@ -91,19 +90,14 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       <Register
         onBackToLogin={() => setActiveScreen('login')}
         onRegisterSuccess={async user => {
-          try {
-            await register({
-              fullName: user.fullName,
-              email: user.email,
-              password: user.password,
-              phone: user.phone || '',
-            });
-            await saveRegisteredUser(user);
-            setActiveScreen('login');
-          } catch (error: any) {
-            Alert.alert('Đăng ký thất bại', error.message || 'Không thể đăng ký tài khoản');
-            throw error;
-          }
+          await register({
+            fullName: user.fullName,
+            email: user.email,
+            password: user.password,
+            phone: user.phone || '',
+          });
+          await saveRegisteredUser(user);
+          setActiveScreen('login');
         }}
       />
     );
@@ -123,17 +117,13 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
           return true;
         }
 
-        try {
-          const response = (await login({ email, password })) as any;
-          if (response && response.success) {
-            onAuthenticated?.();
-            return true;
-          }
-          return false;
-        } catch (error: any) {
-          Alert.alert('Đăng nhập thất bại', error.message || 'Email hoặc mật khẩu không đúng');
-          return false;
+        const response = (await login({email, password})) as any;
+        if (response && response.success) {
+          onAuthenticated?.();
+          return true;
         }
+
+        throw new Error(response?.message || 'Email hoặc mật khẩu không đúng');
       }}
     />
   );

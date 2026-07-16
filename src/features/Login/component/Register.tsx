@@ -79,10 +79,12 @@ function Register({onBackToLogin, onRegisterSuccess}: RegisterProps) {
       });
 
       Alert.alert('Thành công', 'Đăng ký tài khoản thành công.');
-    } catch {
+    } catch (error) {
       Alert.alert(
-        'Thông báo',
-        'Không thể lưu tài khoản. Vui lòng thử lại.',
+        'Đăng ký thất bại',
+        error instanceof Error
+          ? error.message
+          : 'Không thể lưu tài khoản. Vui lòng thử lại.',
       );
     } finally {
       setIsRegistering(false);
