@@ -2656,8 +2656,17 @@ th {
   align-items: center;
 }
 
+.paymentHistoryFilters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 190px 190px 160px 160px;
+  gap: 12px;
+  align-items: center;
+}
+
 .paymentFilters input,
-.paymentFilters select {
+.paymentFilters select,
+.paymentHistoryFilters input,
+.paymentHistoryFilters select {
   width: 100%;
   min-height: 42px;
   padding: 10px 12px;
@@ -2666,8 +2675,311 @@ th {
   background: #fff;
 }
 
+.paymentLatest {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.bookingAdminPage {
+  display: grid;
+  gap: 16px;
+}
+
+.bookingFilters {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 360px);
+  gap: 12px;
+  align-items: center;
+}
+
+.bookingFilters input,
+.bookingFilters select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #cfd6df;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.bookingDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.bookingDetailMain,
+.bookingDetailAside {
+  display: grid;
+  gap: 16px;
+}
+
+.bookingDetailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bookingDetailHead span,
+.bookingDetailAside span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bookingDetailHead h3 {
+  margin: 4px 0 0;
+  font-size: 26px;
+}
+
+.bookingDetailBadges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bookingDetailItems {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bookingDetailItem {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.bookingDetailItem span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bookingDetailItem strong {
+  color: #111827;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.bookingDetailAside strong {
+  color: #dc2626;
+  font-size: 28px;
+}
+
+.bookingDetailAside p {
+  margin: 0;
+  color: #475569;
+}
+
+.dangerButton {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: #dc2626;
+  cursor: pointer;
+}
+
+.dangerButton:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 @media (max-width: 980px) {
-  .paymentFilters {
+  .paymentFilters,
+  .paymentHistoryFilters,
+  .bookingFilters,
+  .bookingDetailGrid,
+  .bookingDetailItems {
+    grid-template-columns: 1fr;
+  }
+}
+
+.electronicTicketPage {
+  display: grid;
+  gap: 16px;
+}
+
+.electronicTicketToolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 420px);
+  gap: 12px;
+}
+
+.electronicTicketToolbar input,
+.electronicTicketToolbar select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #cfd6df;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.electronicTicketLayout {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.electronicTicketCard {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 24px #0f172a14;
+}
+
+.electronicTicketStatus {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #f8fafc;
+}
+
+.electronicTicketTop {
+  padding: 22px 24px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #07111f, #0b6098);
+}
+
+.electronicTicketTop span {
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.electronicTicketTop h3 {
+  margin: 8px 0 6px;
+  font-size: 26px;
+  line-height: 32px;
+}
+
+.electronicTicketTop p {
+  margin: 0;
+  color: #dbeafe;
+  font-weight: 700;
+}
+
+.electronicTicketGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 22px 24px;
+}
+
+.electronicTicketGrid div {
+  display: grid;
+  gap: 5px;
+}
+
+.electronicTicketGrid small,
+.electronicTicketCode small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.electronicTicketGrid strong {
+  color: #111827;
+  font-size: 16px;
+}
+
+.electronicTicketCut {
+  height: 1px;
+  margin: 0 24px;
+  border-top: 2px dashed #d1d5db;
+}
+
+.electronicTicketCode {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 22px 24px 24px;
+  background: #fbfdff;
+}
+
+.electronicTicketCode strong {
+  color: #dc2626;
+  font-size: 28px;
+  letter-spacing: .12em;
+}
+
+.electronicBarcode {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  min-height: 54px;
+  margin-top: 4px;
+}
+
+.electronicBarcode span {
+  display: block;
+  height: 46px;
+  background: #111827;
+}
+
+.electronicTicketQr {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.electronicTicketQr h3 {
+  margin: 0;
+  color: #dc2626;
+  letter-spacing: .08em;
+}
+
+.electronicTicketQr p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+@media print {
+  .sidebar,
+  .header,
+  .electronicTicketToolbar,
+  .pageTitle button,
+  .electronicTicketQr .formActions {
+    display: none !important;
+  }
+
+  .adminLayout {
+    display: block;
+  }
+
+  .pageContent {
+    padding: 0;
+  }
+
+  .electronicTicketLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .electronicTicketToolbar,
+  .electronicTicketLayout,
+  .electronicTicketGrid {
     grid-template-columns: 1fr;
   }
 }

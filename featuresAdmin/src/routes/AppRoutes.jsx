@@ -11,10 +11,14 @@ import ShowtimeList from '../pages/showtimes/ShowtimeList';
 import ShowtimeAdd from '../pages/showtimes/ShowtimeAdd';
 import CreateShowtime from '../pages/showtimes/CreateShowtime';
 import ShowtimeStatus from '../pages/showtimes/ShowtimeStatus';
+import BookingCancel from '../pages/bookings/BookingCancel';
+import BookingDetail from '../pages/bookings/BookingDetail';
+import BookingHistory from '../pages/bookings/BookingHistory';
 import BookingList from '../pages/bookings/BookingList';
 import UserList from '../pages/users/UserList';
 import RolePermission from '../pages/roles/RolePermission';
 import TicketList from '../pages/tickets/TicketList';
+import ElectronicTicket from '../pages/tickets/ElectronicTicket';
 import GenerateQR from '../pages/tickets/GenerateQR';
 import TicketCheckin from '../pages/tickets/TicketCheckin';
 import CheckinResult from '../pages/tickets/CheckinResult';
@@ -25,6 +29,7 @@ import ReviewList from '../pages/reviews/ReviewList';
 import NotificationList from '../pages/notifications/NotificationList';
 import CreateNotification from '../pages/notifications/CreateNotification';
 import PersonalInformation from '../pages/personal information/PersonalInformation';
+import PaymentHistory from '../pages/payments/PaymentHistory';
 import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
 
@@ -67,8 +72,13 @@ function AppRoutes() {
         <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
+        <Route path="bookings/history" element={<BookingHistory />} />
+        <Route path="bookings/detail" element={<BookingDetail />} />
+        <Route path="bookings/cancel" element={<BookingCancel />} />
         <Route path="payments/status" element={<PaymentStatus />} />
+        <Route path="payments/history" element={<PaymentHistory />} />
         <Route path="tickets" element={<TicketList />} />
+        <Route path="tickets/electronic" element={<ElectronicTicket />} />
         <Route path="tickets/qr" element={<GenerateQR />} />
         <Route path="tickets/checkin" element={<TicketCheckin />} />
         <Route path="tickets/checkin-result" element={<CheckinResult />} />

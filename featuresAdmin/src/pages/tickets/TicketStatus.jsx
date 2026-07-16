@@ -5,7 +5,7 @@ import {getSeatLabel} from '../../utils/adminFormatters';
 function TicketStatus() {
   return (
     <AdminListPage
-      title="Quản lý trạng thái vé"
+      title="Theo dõi trạng thái vé"
       api={ticketApi}
       searchPlaceholder="Tìm kiếm vé..."
       fields={[
