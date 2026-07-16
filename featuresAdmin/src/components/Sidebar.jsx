@@ -15,14 +15,30 @@ const menuItems = [
       {to: '/showtimes/status', label: 'Trạng thái suất'},
     ],
   },
-  {to: '/bookings', label: 'Đơn đặt vé'},
+  {
+    label: 'Đơn đặt vé',
+    children: [
+      {to: '/bookings', label: 'Danh sách đơn'},
+      {to: '/bookings/history', label: 'Lịch sử đặt vé'},
+      {to: '/bookings/detail', label: 'Chi tiết đơn'},
+      {to: '/bookings/cancel', label: 'Hủy đặt vé'},
+    ],
+  },
+  {
+    label: 'Thanh toán',
+    children: [
+      {to: '/payments/status', label: 'Theo dõi thanh toán'},
+      {to: '/payments/history', label: 'Lịch sử thanh toán'},
+    ],
+  },
   {
     label: 'Vé',
     children: [
       {to: '/tickets', label: 'Danh sách vé'},
+      {to: '/tickets/electronic', label: 'Vé điện tử'},
       {to: '/tickets/qr', label: 'QR / Barcode'},
       {to: '/tickets/checkin', label: 'Checkin vé'},
-      {to: '/tickets/status', label: 'Trạng thái vé'},
+      {to: '/tickets/status', label: 'Theo dõi trạng thái vé'},
     ],
   },
   {to: '/vouchers', label: 'Voucher'},

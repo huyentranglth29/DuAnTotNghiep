@@ -70,20 +70,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    minHeight: 86,
+    minHeight: 66,
     justifyContent: 'center',
     backgroundColor: BLUE,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
   },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 23,
-    lineHeight: 30,
+    fontSize: 19,
+    lineHeight: 25,
     fontWeight: '900',
   },
   listContent: {
-    paddingTop: 12,
-    paddingHorizontal: 6,
+    paddingTop: 10,
+    paddingHorizontal: 12,
     paddingBottom: 16,
   },
 });

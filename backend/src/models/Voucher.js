@@ -56,4 +56,4 @@ const voucherSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Voucher", voucherSchema);
+module.exports = mongoose.model("Voucher", voucherSchema, "phiếu giảm giá");

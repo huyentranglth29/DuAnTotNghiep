@@ -44,6 +44,7 @@ function PromotionDetail({item, onBack, onShare}: PromotionDetailProps) {
         contentContainerStyle={styles.content}>
         <View style={styles.heroWrap}>
           <PromotionPaperTabs
+            size="compact"
             pinkStyle={styles.detailPinkTab}
             orangeStyle={styles.detailOrangeTab}
             greenStyle={styles.detailGreenTab}
@@ -57,6 +58,7 @@ function PromotionDetail({item, onBack, onShare}: PromotionDetailProps) {
 
         <View style={styles.articleImageWrap}>
           <PromotionPaperTabs
+            size="compact"
             pinkStyle={styles.articlePinkTab}
             orangeStyle={styles.articleOrangeTab}
             greenStyle={styles.articleGreenTab}
@@ -90,35 +92,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    minHeight: 86,
+    minHeight: 66,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: BLUE,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
   },
   backButton: {
-    width: 38,
-    height: 44,
+    width: 34,
+    height: 40,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,
     color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '900',
-    marginLeft: 12,
+    marginLeft: 10,
   },
   content: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 128,
+    paddingTop: 14,
+    paddingHorizontal: 18,
+    paddingBottom: 94,
   },
   heroWrap: {
     alignSelf: 'center',
-    width: '68%',
-    aspectRatio: 1.55,
+    width: '62%',
+    maxWidth: 270,
+    aspectRatio: 1.58,
     marginTop: 2,
   },
   hero: {
@@ -128,49 +131,51 @@ const styles = StyleSheet.create({
     backgroundColor: '#dfeaf2',
   },
   detailPinkTab: {
-    left: -20,
-    top: 58,
+    left: -16,
+    top: 42,
     backgroundColor: '#ff9ab2',
     transform: [{rotate: '-6deg'}],
   },
   detailOrangeTab: {
-    right: 16,
-    top: -10,
+    right: 14,
+    top: -8,
     backgroundColor: '#ff9726',
     transform: [{rotate: '4deg'}],
   },
   detailGreenTab: {
-    right: -18,
+    right: -14,
     top: 6,
     backgroundColor: '#b8e345',
     transform: [{rotate: '8deg'}],
   },
   title: {
     color: TEXT,
-    fontSize: 30,
-    lineHeight: 37,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '900',
     textAlign: 'center',
-    marginTop: 31,
+    marginTop: 24,
   },
   date: {
     color: MUTED,
-    fontSize: 20,
-    lineHeight: 27,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '500',
     textAlign: 'center',
-    marginTop: 11,
+    marginTop: 8,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#dedede',
-    marginTop: 24,
-    marginBottom: 36,
+    marginTop: 20,
+    marginBottom: 28,
   },
   articleImageWrap: {
-    width: '100%',
-    aspectRatio: 1.45,
-    marginBottom: 28,
+    alignSelf: 'center',
+    width: '92%',
+    maxWidth: 430,
+    aspectRatio: 1.58,
+    marginBottom: 24,
   },
   articleImage: {
     width: '100%',
@@ -179,42 +184,42 @@ const styles = StyleSheet.create({
     backgroundColor: '#dfeaf2',
   },
   articlePinkTab: {
-    left: -5,
-    top: 76,
+    left: -12,
+    top: 58,
     backgroundColor: '#ff9ab2',
     transform: [{rotate: '-6deg'}],
   },
   articleOrangeTab: {
-    right: 50,
-    top: -13,
+    right: 48,
+    top: -12,
     backgroundColor: '#ff9726',
     transform: [{rotate: '4deg'}],
   },
   articleGreenTab: {
-    right: -4,
+    right: -12,
     top: 5,
     backgroundColor: '#b8e345',
     transform: [{rotate: '8deg'}],
   },
   paragraph: {
     color: TEXT,
-    fontSize: 25,
-    lineHeight: 34,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: '800',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   shareWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 8,
-    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 10,
     backgroundColor: '#ffffff',
   },
   shareButton: {
-    height: 86,
+    height: 60,
     borderRadius: 8,
     backgroundColor: BLUE,
     flexDirection: 'row',
@@ -223,10 +228,10 @@ const styles = StyleSheet.create({
   },
   shareText: {
     color: '#ffffff',
-    fontSize: 25,
-    lineHeight: 32,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '900',
-    marginLeft: 12,
+    marginLeft: 10,
   },
 });
 
