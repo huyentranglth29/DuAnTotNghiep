@@ -13,10 +13,20 @@ const unwrap = payload => {
 
 export async function restoreAuthSession() {
   const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-  if (token) {
-    setAuthToken(token);
+  if (!token) {
+    return null;
   }
-  return token;
+
+  setAuthToken(token);
+
+  try {
+    // Token cũ / user đã bị seed lại → xóa session để tránh "Người dùng không tồn tại"
+    await apiClient.get('/api/auth/profile');
+    return token;
+  } catch {
+    await clearAuthSession();
+    return null;
+  }
 }
 
 export async function saveAuthSession({token, user}) {
