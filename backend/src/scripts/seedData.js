@@ -197,15 +197,24 @@ const upsertBy = async (Model, key, records) => {
 
 const createSeatsForRoom = async (room) => {
   const seats = [];
-  const rows = ["A", "B"];
+  const rows = {
+    A: 14,
+    B: 14,
+    C: 15,
+    D: 15,
+    E: 14,
+    F: 15,
+    G: 13,
+    H: 13,
+  };
 
-  for (const row of rows) {
-    for (let number = 1; number <= 10; number += 1) {
+  for (const [row, count] of Object.entries(rows)) {
+    for (let number = 1; number <= count; number += 1) {
       seats.push({
         room: room._id,
         row,
         number,
-        type: row === "B" ? "vip" : "normal",
+        type: row >= "E" ? "vip" : "normal",
         status: "active",
       });
     }
@@ -214,10 +223,15 @@ const createSeatsForRoom = async (room) => {
   for (const seat of seats) {
     await Seat.findOneAndUpdate(
       { room: seat.room, row: seat.row, number: seat.number },
-      { $setOnInsert: seat },
+      { $set: seat },
       { returnDocument: "after", upsert: true, runValidators: true },
     );
   }
+
+  await Room.updateOne(
+    { _id: room._id },
+    { $set: { totalSeats: seats.length } },
+  );
 };
 
 const seedShowtimes = async (movieDocs, roomDocs) => {
