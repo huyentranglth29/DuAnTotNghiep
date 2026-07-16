@@ -16,10 +16,22 @@ const productRoutes = require("./routes/productRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const { releaseExpiredPayments } = require("./controllers/paymentController");
 
 dotenv.config();
 
-connectDB();
+connectDB().then(async () => {
+  await releaseExpiredPayments().catch((error) =>
+    console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
+  );
+  const cleanupTimer = setInterval(() => {
+    releaseExpiredPayments().catch((error) =>
+      console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
+    );
+  }, 60 * 1000);
+  cleanupTimer.unref();
+});
 
 const app = express();
 
@@ -47,6 +59,7 @@ app.use("/api/vouchers", voucherRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

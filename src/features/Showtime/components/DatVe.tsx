@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ImageBackground,
   ImageSourcePropType,
   Modal,
@@ -56,6 +57,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const [isLoadingSeats, setIsLoadingSeats] = useState(true);
   const [seatError, setSeatError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const selectedSeatsRef = useRef(new Set<string>());
   const duration = movie.duration ?? '109 phút';
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
   const unitPrice = showtime.price > 0 ? showtime.price : 55000;
@@ -76,30 +78,53 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let refreshing = false;
     setIsLoadingSeats(true);
     setSeatError('');
     setSelectedSeats(new Set());
+    selectedSeatsRef.current = new Set();
 
-    layGheTheoSuatChieu(showtime.id)
-      .then(seats => {
-        if (!cancelled) {
-          setSeatItems(seats);
-          setSoldSeats(new Set(seats.filter(seat => seat.isBooked).map(seat => seat.label)));
+    const refreshSeats = async (initial = false) => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const seats = await layGheTheoSuatChieu(showtime.id);
+        if (cancelled) return;
+        const nextSold = new Set(seats.filter(seat => seat.isBooked).map(seat => seat.label));
+        const unavailableSelected = Array.from(selectedSeatsRef.current).filter(label => nextSold.has(label));
+
+        setSeatItems(seats);
+        setSoldSeats(nextSold);
+        if (unavailableSelected.length) {
+          const nextSelected = new Set(selectedSeatsRef.current);
+          unavailableSelected.forEach(label => nextSelected.delete(label));
+          selectedSeatsRef.current = nextSelected;
+          setSelectedSeats(nextSelected);
+          setShowConfirm(false);
+          Alert.alert(
+            'Ghế vừa được người khác chọn',
+            `Ghế ${unavailableSelected.join(', ')} không còn trống và đã được bỏ khỏi lựa chọn của bạn.`,
+          );
         }
-      })
-      .catch(error => {
-        if (!cancelled) {
+        setSeatError('');
+      } catch (error) {
+        if (!cancelled && initial) {
           setSoldSeats(new Set());
           setSeatItems([]);
           setSeatError((error as Error)?.message || 'Không tải được trạng thái ghế');
         }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingSeats(false);
-      });
+      } finally {
+        refreshing = false;
+        if (!cancelled && initial) setIsLoadingSeats(false);
+      }
+    };
+
+    refreshSeats(true);
+    const timer = setInterval(() => refreshSeats(false), 4000);
 
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, [showtime.id]);
 
@@ -112,6 +137,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       } else {
         next.add(seat);
       }
+      selectedSeatsRef.current = next;
       return next;
     });
   };

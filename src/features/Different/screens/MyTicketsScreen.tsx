@@ -24,6 +24,17 @@ type Ticket = {
   cinema: string;
   code: string;
   createdAt: string;
+  combos?: Array<{
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  ticketTotal?: number;
+  comboTotal?: number;
+  comboPickupCode?: string;
+  comboStatus?: 'khong_co' | 'cho_nhan' | 'da_nhan';
+  paymentMethod?: string;
 };
 
 type MyTicketsScreenProps = {
@@ -121,6 +132,39 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               </Text>
             </View>
           </View>
+
+          {item.paymentMethod ? (
+            <Text style={styles.paymentMethodLine}>
+              Thanh toán: {{
+                MBBANK_MO_PHONG: 'MB Bank',
+                VCB_MO_PHONG: 'Vietcombank',
+                NCB_MO_PHONG: 'NCB',
+              }[item.paymentMethod] || item.paymentMethod} (mô phỏng)
+            </Text>
+          ) : null}
+
+          {!!item.combos?.length && (
+            <View style={styles.comboTicketBox}>
+              <View style={styles.comboTicketHeader}>
+                <Text style={styles.comboTicketTitle}>🍿 COMBO BẮP NƯỚC</Text>
+                <Text style={styles.comboTicketStatus}>
+                  {item.comboStatus === 'da_nhan' ? 'ĐÃ NHẬN' : 'CHỜ NHẬN'}
+                </Text>
+              </View>
+              {item.combos.map((combo, index) => (
+                <View key={`${combo.name}-${index}`} style={styles.comboTicketRow}>
+                  <Text style={styles.comboTicketName}>{combo.name} × {combo.quantity}</Text>
+                  <Text style={styles.comboTicketPrice}>
+                    {Number(combo.totalPrice).toLocaleString('vi-VN')}đ
+                  </Text>
+                </View>
+              ))}
+              <View style={styles.comboPickupRow}>
+                <Text style={styles.comboPickupLabel}>MÃ NHẬN COMBO</Text>
+                <Text style={styles.comboPickupCode}>{item.comboPickupCode || '—'}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Đường cắt răng cưa giữa vé */}
@@ -306,6 +350,25 @@ const styles = StyleSheet.create({
     color: '#222222',
     marginTop: 3,
   },
+  paymentMethodLine: {color: '#777777', fontSize: 11, marginTop: 14, fontWeight: '600'},
+  comboTicketBox: {
+    backgroundColor: '#fff5f7',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+  },
+  comboTicketHeader: {flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
+  comboTicketTitle: {color: '#5d2530', fontSize: 12, fontWeight: '800'},
+  comboTicketStatus: {color: '#e51937', fontSize: 9, fontWeight: '800'},
+  comboTicketRow: {flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5},
+  comboTicketName: {flex: 1, color: '#555555', fontSize: 11, marginRight: 8},
+  comboTicketPrice: {color: '#333333', fontSize: 11, fontWeight: '700'},
+  comboPickupRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#f0d6dc', paddingTop: 8, marginTop: 5,
+  },
+  comboPickupLabel: {color: '#8d6b72', fontSize: 9, fontWeight: '700'},
+  comboPickupCode: {color: '#e51937', fontSize: 15, fontWeight: '900', letterSpacing: 1},
   cutLineContainer: {
     flexDirection: 'row',
     alignItems: 'center',

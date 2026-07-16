@@ -17,7 +17,10 @@ const getSoldSeats = async (req, res, next) => {
       });
     }
 
-    const rows = await BookedSeat.find({ showtimeId })
+    const rows = await BookedSeat.find({
+      showtimeId,
+      $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+    })
       .select("seatLabel -_id")
       .sort({ seatLabel: 1 })
       .lean();

@@ -113,7 +113,10 @@ const getShowtimeSeats = async (req, res, next) => {
       Seat.find({ room: showtime.room._id, status: "active" })
         .sort({ row: 1, number: 1 })
         .lean(),
-      BookedSeat.find({ showtimeId: String(showtime._id) }).distinct("seatLabel"),
+      BookedSeat.find({
+        showtimeId: String(showtime._id),
+        $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+      }).distinct("seatLabel"),
     ]);
     const sold = new Set(soldLabels);
 

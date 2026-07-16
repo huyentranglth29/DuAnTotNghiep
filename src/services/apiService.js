@@ -173,6 +173,36 @@ export const getSoldSeats = async (showtimeId) => {
   return Array.isArray(data) ? data : [];
 };
 
+/** Tạo giao dịch VNPAY Sandbox và giữ ghế tạm thời. */
+export const createVnpayPayment = async (payload) => {
+  return apiClient.post('/api/payments/vnpay/create', payload);
+};
+
+/** Tạo giao dịch mô phỏng nội bộ, không cần tài khoản cổng thanh toán. */
+export const createMockPayment = async (payload) => {
+  return apiClient.post('/api/payments/mock/create', payload);
+};
+
+/** Mô phỏng kết quả thành công và phát hành vé thật trong MongoDB. */
+export const completeMockPayment = async (paymentId, bankCode) => {
+  return apiClient.post(`/api/payments/mock/${paymentId}/complete`, {bankCode});
+};
+
+/** Mô phỏng kết quả thất bại và giải phóng ghế. */
+export const failMockPayment = async (paymentId) => {
+  return apiClient.post(`/api/payments/mock/${paymentId}/fail`);
+};
+
+/** Kiểm tra trạng thái giao dịch sau khi quay lại từ VNPAY. */
+export const getPaymentStatus = async (paymentId) => {
+  return apiClient.get(`/api/payments/${paymentId}/status`);
+};
+
+/** Hủy giao dịch đang chờ và giải phóng ghế. */
+export const cancelPayment = async (paymentId) => {
+  return apiClient.post(`/api/payments/${paymentId}/cancel`);
+};
+
 /**
  * Lấy danh sách vé đã đặt từ MongoDB Atlas
  * GET /api/quick-bookings

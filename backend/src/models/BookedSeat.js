@@ -16,12 +16,17 @@ const bookedSeatSchema = new mongoose.Schema(
     booking: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "QuickBooking",
-      required: true,
     },
+    payment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+    },
+    expiresAt: Date,
   },
   { timestamps: true }
 );
 
 bookedSeatSchema.index({ showtimeId: 1, seatLabel: 1 }, { unique: true });
+bookedSeatSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("BookedSeat", bookedSeatSchema, "ghế đã đặt");

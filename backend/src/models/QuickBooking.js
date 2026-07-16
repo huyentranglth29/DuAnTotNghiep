@@ -21,6 +21,23 @@ const quickBookingSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
+    combos: [{
+      product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      name: String,
+      image: String,
+      quantity: { type: Number, min: 1 },
+      unitPrice: { type: Number, min: 0 },
+      totalPrice: { type: Number, min: 0 },
+    }],
+    ticketTotal: { type: Number, min: 0, default: 0 },
+    comboTotal: { type: Number, min: 0, default: 0 },
+    comboPickupCode: String,
+    comboStatus: {
+      type: String,
+      enum: ["khong_co", "cho_nhan", "da_nhan"],
+      default: "khong_co",
+    },
+    paymentMethod: String,
     totalPrice: {
       type: Number,
       required: true,
