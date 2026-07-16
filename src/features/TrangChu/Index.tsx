@@ -128,6 +128,12 @@ function TrangChu() {
     seats: string[];
     totalPrice: number;
   } | null>(null);
+  const [selectedShowtime, setSelectedShowtime] = useState<{
+    startTime: string;
+    roomName: string;
+    roomType: string;
+    price: number;
+  } | null>(null);
 
   // Cấu hình Auto-slide cho Banner
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -220,11 +226,7 @@ function TrangChu() {
           style={styles.bookBtn}
           activeOpacity={0.8}
           onPress={() => {
-            setSelectedMovie(item);
-            Alert.alert(
-              'Thông báo',
-              `Đã chọn nhanh phim "${item.tieuDe}" cho bảng Đặt vé nhanh phía trên!`,
-            );
+            setSelectedDetailMovie(item);
           }}>
           <Text style={styles.bookBtnText}>Mua vé</Text>
         </TouchableOpacity>
@@ -369,10 +371,12 @@ function TrangChu() {
         }}
         seats={bookingSummary.seats}
         totalPrice={bookingSummary.totalPrice}
+        showtime={selectedShowtime ?? undefined}
         onClose={() => {
           setBookingSummary(null);
           setShowBooking(false);
           setSelectedDetailMovie(null);
+          setSelectedShowtime(null);
         }}
       />
     );
@@ -380,6 +384,16 @@ function TrangChu() {
 
   // Nếu đang ở màn hình chọn ghế
   if (selectedDetailMovie && showBooking) {
+    // Tạo showtime mặc định nếu chưa có từ MovieNameDetail
+    const defaultShowtime = selectedShowtime ?? {
+      id: 'default-showtime-id',
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+      price: 55000,
+      roomName: 'Phòng chiếu 07',
+      roomType: '2D Phụ đề',
+      cinemaName: 'Cine Prestige Hà Trung (Thanh Hóa)',
+    };
     return (
       <DatVe
         movie={{
@@ -387,6 +401,7 @@ function TrangChu() {
           duration: selectedDetailMovie.thoiLuong,
           poster: {uri: selectedDetailMovie.posterUrl},
         }}
+        showtime={defaultShowtime as any}
         onBack={() => setShowBooking(false)}
         onContinue={(summary) => setBookingSummary(summary)}
       />
@@ -404,7 +419,7 @@ function TrangChu() {
           genre: selectedDetailMovie.theLoai,
           poster: {uri: selectedDetailMovie.posterUrl},
           description: selectedDetailMovie.tomTat,
-        }}
+        } as any}
         onBack={() => setSelectedDetailMovie(null)}
         onTimeSelect={(time) => {
           setSelectedBookingTime(time);

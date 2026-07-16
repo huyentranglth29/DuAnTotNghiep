@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Image,
   ImageSourcePropType,
   Modal,
   ScrollView,
@@ -9,13 +10,14 @@ import {
   View,
   Alert,
 } from 'react-native';
-import Svg, {Path, Rect} from 'react-native-svg';
+import Svg, {Path} from 'react-native-svg';
 import {createQuickBooking} from '../../../services/apiService';
 
-const BLUE = '#005f98';
-const TEXT = '#3d4054';
-const MUTED = '#b8b8b8';
-const RED = '#f22a10';
+const MOMO_PINK = '#d82d8b';
+const MOMO_DARK = '#a61f69';
+const TEXT_DARK = '#1a1a1a';
+const TEXT_MUTED = '#888888';
+const BG_GRAY = '#f4f4f6';
 
 type DatVeDetailProps = {
   movie: {
@@ -26,75 +28,52 @@ type DatVeDetailProps = {
   };
   seats: string[];
   totalPrice: number;
+  showtime?: {
+    startTime: string;
+    endTime?: string;
+    roomName?: string;
+    roomType?: string;
+  };
   onClose: () => void;
 };
 
-const combos = [
-  {
-    title: 'Family Combo 69oz',
-    description:
-      'TIẾT KIỆM 95K!!! Gồm: 2 Bắp (69oz) + 4 Nước có gas (22oz) + 2 Snack Oishi (80g)',
-    color: '#62c7df',
-    badge: 'FAMILY',
-    price: 269000,
-  },
-  {
-    title: 'Combo See Me - Mùi Phở',
-    description:
-      'SIÊU HOTTT!!! Combo phiên bản giới hạn: 1 Ly "Mùi Phở" hấp dẫn kèm nước có gas + 1 Bắp (69oz)',
-    color: '#db4b42',
-    badge: 'MÙI PHỞ',
-    price: 159000,
-  },
-  {
-    title: 'FilmGo Combo 69oz',
-    description: 'TIẾT KIỆM 28K!!! Gồm: 1 Bắp (69oz) + 1 Nước có gas (22oz)',
-    color: '#9bd24f',
-    badge: 'FILMGO',
-    price: 89000,
-  },
-  {
-    title: 'Combo Minions',
-    description: 'ƯU ĐÃI GIỚI HẠN 01 ly Minions tặng kèm 01 phần nước Pepsi miễn phí.',
-    color: '#ffc33d',
-    badge: '139k',
-    price: 139000,
-  },
-  {
-    title: 'Sweet Combo 69oz',
-    description: 'TIẾT KIỆM 46K!!! Gồm: 1 Bắp (69oz) + 2 Nước có gas (22oz)',
-    color: '#f5a6bd',
-    badge: 'SWEET',
-    price: 119000,
-  },
-];
-
-const paymentMethods = [
-  {label: 'MÃ QR', icon: 'qr', active: true},
-  {label: 'VÍ MOMO', icon: 'momo'},
-  {label: 'VÍ ZALOPAY', icon: 'zalo'},
-];
-
-const PAYMENT_TIMEOUT_SECONDS = 10 * 60;
-
-function formatCountdown(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${`${minutes}`.padStart(2, '0')}:${`${seconds}`.padStart(2, '0')}`;
+function formatBookingTime(iso?: string) {
+  if (!iso) {
+    return new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+  }
+  try {
+    return new Date(iso).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+  } catch {
+    return iso;
+  }
 }
 
-function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS);
-  const genre = movie.genre ?? 'Giật gân, Kinh dị';
-  const duration = movie.duration ?? '109 phút';
+function formatBookingDate(iso?: string) {
+  if (!iso) {
+    const now = new Date();
+    const days = ['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+    return `${days[now.getDay()]}, ${now.toLocaleDateString('vi-VN')}`;
+  }
+  try {
+    const d = new Date(iso);
+    const days = ['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+    return `${days[d.getDay()]}, ${d.toLocaleDateString('vi-VN')}`;
+  } catch {
+    return iso;
+  }
+}
 
-
+function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const genre = movie.genre ?? '2D Phụ đề';
+  const roomName = showtime?.roomName ?? 'Phòng chiếu 07';
+  const startTime = formatBookingTime(showtime?.startTime);
+  const bookingDate = formatBookingDate(showtime?.startTime);
 
-  const handlePayment = async () => {
+  const handleConfirmPayment = async () => {
     if (isProcessing) return;
+    setShowConfirm(false);
     setIsProcessing(true);
     try {
       await createQuickBooking({
@@ -102,696 +81,524 @@ function DatVeDetail({movie, seats, totalPrice, onClose}: DatVeDetailProps) {
         movieDuration: movie.duration,
         movieGenre: movie.genre,
         seats: seats,
-        totalPrice: totalPrice, // Lưu giá gốc hoặc thêm giá combo tuỳ ý (ở đây dùng totalPrice gốc như cũ)
+        totalPrice: totalPrice,
         cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
         bookingDate: new Date().toLocaleDateString('vi-VN'),
-        bookingTime: new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}),
+        bookingTime: startTime,
       });
       Alert.alert(
-        'Thanh toán thành công',
-        'Cảm ơn bạn đã đặt vé. Bạn có thể kiểm tra vé trong mục "Khác > Vé của tôi".',
-        [{ text: 'Đóng', onPress: onClose }]
+        '🎉 Đặt vé thành công!',
+        `Vé phim "${movie.title}" đã được đặt thành công!\nBạn có thể kiểm tra vé trong mục "Khác > Vé của tôi".`,
+        [{text: 'Xong', onPress: onClose}],
       );
     } catch (e) {
       console.log('❌ Lỗi lưu vé:', e);
-      Alert.alert('Lỗi', 'Thanh toán thất bại, vui lòng thử lại.');
+      Alert.alert('Lỗi', 'Đặt vé thất bại, vui lòng thử lại.');
       setIsProcessing(false);
     }
   };
 
-  const discount = 0;
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setRemainingSeconds(current => {
-        if (current <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const comboTotal = combos.reduce((sum, combo) => {
-    const quantity = quantities[combo.title] ?? 0;
-    return sum + quantity * combo.price;
-  }, 0);
-  const grandTotal = totalPrice + comboTotal;
-  const payable = grandTotal - discount;
-
-  const updateCombo = (title: string, change: number) => {
-    setQuantities(current => ({
-      ...current,
-      [title]: Math.max(0, (current[title] ?? 0) + change),
-    }));
-  };
-
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity activeOpacity={0.75} style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeText}>×</Text>
+        <TouchableOpacity activeOpacity={0.75} style={styles.backBtn} onPress={onClose}>
+          <Svg width={26} height={26} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M15 5L8 12l7 7"
+              stroke="#333333"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>THANH TOÁN</Text>
+        <Text style={styles.headerTitle}>Thông tin thanh toán</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        <View style={styles.ticketCard}>
-          <ImageBackground
-            source={movie.poster}
-            style={styles.ticketHero}
-            imageStyle={styles.ticketHeroImage}>
-            <View style={styles.ticketHeroOverlay} />
-            <Text numberOfLines={1} style={styles.movieTitle}>
-              {movie.title}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
+
+        {/* === THÔNG TIN ĐẶT VÉ === */}
+        <Text style={styles.sectionLabel}>Thông tin đặt vé</Text>
+        <View style={styles.card}>
+          {/* Warning banner */}
+          <View style={styles.warningBanner}>
+            <Text style={styles.warningIcon}>💬</Text>
+            <Text style={styles.warningText}>
+              Bạn ơi, vé đã mua sẽ{' '}
+              <Text style={styles.warningBold}>không thể hoàn, huỷ, đổi vé.</Text>
+              {' '}Bạn nhớ kiểm tra kỹ thông tin nha!
             </Text>
-            <Text style={styles.movieMeta}>2D Phụ đề | {genre} | {duration}</Text>
-          </ImageBackground>
+          </View>
 
-          <View style={styles.perforation} />
+          {/* Cinema & Movie info */}
+          <View style={styles.movieInfoRow}>
+            <Image source={movie.poster} style={styles.posterThumb} />
+            <View style={styles.movieInfoText}>
+              <Text style={styles.cinemaName}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+              <Text style={styles.movieTitle} numberOfLines={2}>{movie.title}</Text>
+              <View style={styles.ageBadge}>
+                <Text style={styles.ageText}>16+</Text>
+              </View>
+              <Text style={styles.movieMeta} numberOfLines={2}>
+                Phim được phổ biến đến người xem từ đủ 16 tuổi trở lên
+              </Text>
+            </View>
+          </View>
 
-          <View style={styles.ticketInfo}>
-            <InfoRow label="Rạp chiếu" value="FilmGo Giải Phóng" />
-            <InfoRow label="Ngày chiếu" value="2026-07-01" />
-            <InfoRow label="Giờ chiếu" value="17:45" />
-            <InfoRow label="Phòng chiếu" value="P4" />
-            <InfoRow label="Loại vé" value="VIP" />
-            <InfoRow label="Ghế" value={seats.join(', ') || '--'} />
+          {/* Dashed divider */}
+          <View style={styles.dashedDivider} />
+
+          {/* Booking details grid */}
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Thời gian:</Text>
+              <Text style={styles.detailValuePink}>{startTime}</Text>
+              <Text style={styles.detailValuePink}>{bookingDate}</Text>
+            </View>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Định dạng:</Text>
+              <Text style={styles.detailValuePink}>{genre}</Text>
+            </View>
+          </View>
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Phòng chiếu:</Text>
+              <Text style={styles.detailValueBold}>{roomName}</Text>
+            </View>
+            <View style={styles.detailCol}>
+              <Text style={styles.detailLabel}>Số ghế:</Text>
+              <Text style={styles.detailValueBold}>{seats.join(', ') || '--'}</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>COMBO ƯU ĐÃI LỚN</Text>
-        <View style={styles.comboList}>
-          {combos.map(combo => (
-            <View key={combo.title} style={styles.comboItem}>
-              <ComboThumb color={combo.color} badge={combo.badge} />
-              <View style={styles.comboTextBlock}>
-                <Text numberOfLines={1} style={styles.comboTitle}>
-                  {combo.title}
-                </Text>
-                <Text numberOfLines={3} style={styles.comboDescription}>
-                  {combo.description}
-                </Text>
-                <Text style={styles.comboPrice}>{formatVnd(combo.price)}</Text>
-              </View>
-              <View style={styles.stepper}>
-                <Text style={styles.quantity}>{quantities[combo.title] ?? 0}</Text>
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  style={[styles.stepButton, styles.stepButtonPlus]}
-                  onPress={() => updateCombo(combo.title, 1)}>
-                  <Text style={styles.stepText}>+</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  style={styles.stepButton}
-                  onPress={() => updateCombo(combo.title, -1)}>
-                  <Text style={styles.stepText}>−</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+        {/* === THÔNG TIN NGƯỜI NHẬN === */}
+        <Text style={styles.sectionLabel}>Thông tin người nhận</Text>
+        <View style={styles.cardRecipient}>
+          <View style={styles.recipientInfo}>
+            <Text style={styles.recipientName}>Người dùng FilmGo</Text>
+            <Text style={styles.recipientContact}>0394584627 - demo@filmgo.vn</Text>
+          </View>
+          <TouchableOpacity style={styles.editBtn}>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+              <Path
+                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                stroke={MOMO_PINK}
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
+              <Path
+                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                stroke={MOMO_PINK}
+                strokeWidth={2}
+                strokeLinecap="round"
+              />
+            </Svg>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>PHƯƠNG THỨC GIẢM GIÁ</Text>
-        <OptionRow label="FilmGo Voucher" />
-        <OptionRow label="Điểm FilmGo" />
-
-        <View style={styles.totalBlock}>
-          <MoneyRow label="Tiền vé" value={formatVnd(totalPrice)} />
-          <MoneyRow label="Tiền combo" value={formatVnd(comboTotal)} />
-          <MoneyRow label="Tổng tiền" value={formatVnd(grandTotal)} valueStyle={styles.redMoney} />
-          <MoneyRow label="Số tiền được giảm" value={formatVnd(discount)} valueStyle={styles.blueMoney} />
-          <MoneyRow label="Số tiền cần thanh toán" value={formatVnd(payable)} valueStyle={styles.redMoney} />
-        </View>
-
-        <Text style={styles.sectionTitle}>THANH TOÁN</Text>
-        <Text style={styles.paymentTitle}>Chọn thẻ thanh toán</Text>
-        <View style={styles.paymentList}>
-          {paymentMethods.map(method => (
-            <TouchableOpacity
-              key={method.label}
-              activeOpacity={0.75}
-              style={[styles.paymentMethod, method.active && styles.paymentMethodActive]}>
-              <PaymentIcon name={method.icon} active={method.active} />
-              <Text style={[styles.paymentLabel, method.active && styles.paymentLabelActive]}>
-                {method.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.remainingTitle}>THỜI GIAN CÒN LẠI</Text>
-        <Text
-          style={[
-            styles.remainingTime,
-            remainingSeconds <= 60 && styles.remainingTimeUrgent,
-          ]}>
-          {formatCountdown(remainingSeconds)}
-        </Text>
-        <Text style={styles.termText}>
-          Nhấn "THANH TOÁN" đồng nghĩa với việc bạn đồng ý với{' '}
-          <Text style={styles.termLink}>Điều khoản sử dụng</Text> và đang mua vé
-          cho người có độ tuổi phù hợp.
+        {/* Terms */}
+        <Text style={styles.terms}>
+          Bằng cách bấm Tiếp tục, bạn đồng ý với các{' '}
+          <Text style={styles.termsLink}>điều khoản này</Text>
+          {' '}của MoMo và chính sách của rạp
         </Text>
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          style={styles.payButton}
-          onPress={handlePayment}
-          disabled={isProcessing}>
-          <Text style={styles.payButtonText}>
-            {isProcessing ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN'}
-          </Text>
-        </TouchableOpacity>
+        {/* Spacer for footer */}
+        <View style={{height: 100}} />
       </ScrollView>
 
+      {/* === STICKY FOOTER === */}
+      <View style={styles.footer}>
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerTamTinh}>Tạm tính</Text>
+          <Text style={styles.footerAmount}>{totalPrice.toLocaleString('vi-VN')}đ</Text>
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[styles.footerBtn, isProcessing && styles.footerBtnDisabled]}
+          onPress={() => setShowConfirm(true)}
+          disabled={isProcessing}>
+          <Text style={styles.footerBtnText}>
+            {isProcessing ? 'Đang xử lý...' : 'Tiếp tục'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* === MODAL XÁC NHẬN === */}
       <Modal
         transparent
-        visible={showCancelConfirm}
-        animationType="fade"
-        onRequestClose={() => setShowCancelConfirm(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.confirmBox}>
-            <Text style={styles.confirmTitle}>Xác nhận</Text>
-            <Text style={styles.confirmMessage}>
-              Bạn có chắc chắn muốn hủy thanh toán?
+        visible={showConfirm}
+        animationType="slide"
+        onRequestClose={() => setShowConfirm(false)}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowConfirm(false)}>
+          <View style={styles.confirmSheet}>
+            <TouchableOpacity
+              style={styles.closeX}
+              onPress={() => setShowConfirm(false)}>
+              <Text style={styles.closeXText}>✕</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.confirmTitle}>Xác nhận đặt vé</Text>
+            <Text style={styles.confirmSubtitle}>
+              Bạn đang đặt vé xem phim {movie.title}:
             </Text>
 
-            <View style={styles.confirmActions}>
-              <TouchableOpacity
-                activeOpacity={0.75}
-                style={styles.confirmButton}
-                onPress={() => setShowCancelConfirm(false)}>
-                <Text style={styles.noText}>Không</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.75}
-                style={styles.confirmButton}
-                onPress={onClose}>
-                <Text style={styles.yesText}>Có</Text>
-              </TouchableOpacity>
+            <View style={styles.confirmRow}>
+              <Text style={styles.confirmRowIcon}>🎬</Text>
+              <View>
+                <Text style={styles.confirmRowTextPink}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+                <Text style={styles.confirmRowSub}>Thanh Hóa</Text>
+              </View>
             </View>
+
+            <View style={styles.confirmRow}>
+              <Text style={styles.confirmRowIcon}>🕐</Text>
+              <Text style={styles.confirmRowTextPink}>{startTime}</Text>
+            </View>
+
+            <View style={styles.confirmRow}>
+              <Text style={styles.confirmRowIcon}>📅</Text>
+              <Text style={styles.confirmRowTextPink}>{bookingDate}</Text>
+            </View>
+
+            <View style={styles.confirmRow}>
+              <Text style={styles.confirmRowIcon}>💺</Text>
+              <Text style={styles.confirmRowText}>Ghế: <Text style={styles.confirmBold}>{seats.join(', ')}</Text></Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.confirmBtn}
+              onPress={handleConfirmPayment}>
+              <Text style={styles.confirmBtnText}>Xác nhận</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
 }
 
-function InfoRow({label, value}: {label: string; value: string}) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
-function OptionRow({label}: {label: string}) {
-  return (
-    <TouchableOpacity activeOpacity={0.75} style={styles.optionRow}>
-      <Text style={styles.optionText}>{label}</Text>
-      <View style={styles.optionArrow}>
-        <Text style={styles.optionArrowText}>›</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function MoneyRow({
-  label,
-  value,
-  valueStyle,
-}: {
-  label: string;
-  value: string;
-  valueStyle: object;
-}) {
-  return (
-    <View style={styles.moneyRow}>
-      <Text style={styles.moneyLabel}>{label}</Text>
-      <Text style={[styles.moneyValue, valueStyle]}>{value}</Text>
-    </View>
-  );
-}
-
-function ComboThumb({color, badge}: {color: string; badge: string}) {
-  return (
-    <View style={[styles.comboThumb, {backgroundColor: color}]}>
-      <View style={styles.bucket}>
-        <Text style={styles.bucketText}>FILMGO</Text>
-      </View>
-      <View style={styles.cup} />
-      <Text style={styles.comboBadge}>{badge}</Text>
-    </View>
-  );
-}
-
-function PaymentIcon({name, active}: {name: string; active?: boolean}) {
-  const color = active ? BLUE : MUTED;
-
-  if (name === 'qr') {
-    return (
-      <Svg width={32} height={32} viewBox="0 0 32 32">
-        <Rect x={5} y={5} width={7} height={7} stroke={color} strokeWidth={2} fill="none" />
-        <Rect x={20} y={5} width={7} height={7} stroke={color} strokeWidth={2} fill="none" />
-        <Rect x={5} y={20} width={7} height={7} stroke={color} strokeWidth={2} fill="none" />
-        <Path d="M18 18h4v4h-4zM24 18h3v9h-3M18 24h3v3h-3" stroke={color} strokeWidth={2} />
-      </Svg>
-    );
-  }
-
-  if (name === 'momo') {
-    return (
-      <View style={styles.walletIcon}>
-        <Text style={styles.walletIconText}>mo</Text>
-        <Text style={styles.walletIconText}>mo</Text>
-      </View>
-    );
-  }
-
-  if (name === 'spay' || name === 'zalo') {
-    return (
-      <View style={[styles.squareWallet, {borderColor: color}]}>
-        <Text style={[styles.squareWalletText, {color}]}>{name === 'spay' ? 'S Pay' : 'Zalo'}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <Svg width={34} height={28} viewBox="0 0 34 28">
-      <Rect x={3} y={6} width={28} height={18} rx={2} stroke={color} strokeWidth={2} fill="none" />
-      <Path d="M3 12h28M9 19h7" stroke={color} strokeWidth={2} />
-      {name === 'cards' && (
-        <Rect x={7} y={2} width={24} height={18} rx={2} stroke={color} strokeWidth={2} fill="none" />
-      )}
-    </Svg>
-  );
-}
-
-function formatVnd(value: number) {
-  return `${value.toLocaleString('vi-VN')}đ`;
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f3f3',
+    backgroundColor: BG_GRAY,
   },
   header: {
-    height: 86,
-    alignItems: 'center',
+    height: 60,
     flexDirection: 'row',
-    backgroundColor: BLUE,
-    paddingHorizontal: 14,
-    paddingTop: 4,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eeeeee',
   },
-  closeButton: {
-    width: 34,
-    height: 34,
+  backBtn: {
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
-  },
-  closeText: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '300',
-    lineHeight: 32,
+    marginRight: 6,
   },
   headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
+    color: TEXT_DARK,
+    fontSize: 17,
+    fontWeight: '700',
   },
-  body: {
-    padding: 10,
-    paddingBottom: 26,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
-  ticketCard: {
-    overflow: 'hidden',
-    borderRadius: 4,
+  sectionLabel: {
+    color: TEXT_DARK,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  card: {
     backgroundColor: '#ffffff',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000000',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     shadowOffset: {width: 0, height: 2},
   },
-  ticketHero: {
-    height: 112,
-    alignItems: 'center',
-    justifyContent: 'center',
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fff8e7',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ffe9b0',
   },
-  ticketHeroImage: {
-    resizeMode: 'cover',
+  warningIcon: {
+    fontSize: 18,
   },
-  ticketHeroOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255,255,255,0.68)',
+  warningText: {
+    flex: 1,
+    color: '#7a5200',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  warningBold: {
+    fontWeight: '700',
+    color: '#7a5200',
+  },
+  movieInfoRow: {
+    flexDirection: 'row',
+    padding: 14,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  posterThumb: {
+    width: 80,
+    height: 110,
+    borderRadius: 8,
+    backgroundColor: '#cccccc',
+  },
+  movieInfoText: {
+    flex: 1,
+  },
+  cinemaName: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    marginBottom: 4,
   },
   movieTitle: {
-    color: '#222433',
-    fontSize: 22,
-    fontWeight: '900',
+    color: TEXT_DARK,
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  ageBadge: {
+    backgroundColor: '#ff8800',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+  },
+  ageText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   movieMeta: {
-    color: '#202231',
-    fontSize: 15,
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  perforation: {
-    height: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#d8d8d8',
-    backgroundColor: '#eeeeee',
-  },
-  ticketInfo: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 5,
-  },
-  infoLabel: {
-    width: 118,
-    color: TEXT,
-    fontSize: 18,
-  },
-  infoValue: {
-    flex: 1,
-    color: TEXT,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  sectionTitle: {
-    color: TEXT,
-    fontSize: 22,
-    fontWeight: '900',
-    marginTop: 18,
-    marginBottom: 10,
-  },
-  comboList: {
-    gap: 7,
-  },
-  comboItem: {
-    minHeight: 82,
-    alignItems: 'center',
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-  },
-  comboThumb: {
-    width: 62,
-    height: 62,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 31,
-    marginRight: 9,
-  },
-  bucket: {
-    width: 27,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 4,
-    backgroundColor: BLUE,
-  },
-  bucketText: {
-    color: '#ffffff',
-    fontSize: 7,
-    fontWeight: '900',
-  },
-  cup: {
-    position: 'absolute',
-    right: 13,
-    top: 16,
-    width: 15,
-    height: 28,
-    borderRadius: 4,
-    backgroundColor: '#ffffff',
-  },
-  comboBadge: {
-    position: 'absolute',
-    bottom: 8,
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '900',
-  },
-  comboTextBlock: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  comboTitle: {
-    color: TEXT,
-    fontSize: 16,
-  },
-  comboDescription: {
-    color: '#303244',
+    color: TEXT_MUTED,
     fontSize: 12,
-    lineHeight: 14,
-    marginTop: 5,
+    lineHeight: 17,
   },
-  comboPrice: {
-    color: RED,
+  dashedDivider: {
+    borderTopWidth: 1.5,
+    borderTopColor: '#dddddd',
+    borderStyle: 'dashed',
+    marginHorizontal: 14,
+    marginBottom: 14,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    marginBottom: 14,
+  },
+  detailCol: {
+    flex: 1,
+  },
+  detailLabel: {
+    color: TEXT_MUTED,
     fontSize: 13,
-    fontWeight: '800',
-    marginTop: 4,
+    marginBottom: 3,
   },
-  stepper: {
-    width: 82,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  detailValuePink: {
+    color: MOMO_PINK,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
   },
-  quantity: {
-    color: '#050505',
-    fontSize: 19,
-    fontWeight: '900',
+  detailValueBold: {
+    color: TEXT_DARK,
+    fontSize: 14,
+    fontWeight: '700',
   },
-  stepButton: {
-    width: 26,
-    height: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 13,
-    backgroundColor: '#8f9aa3',
-  },
-  stepButtonPlus: {
-    backgroundColor: '#0079bd',
-  },
-  stepText: {
-    color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 25,
-  },
-  optionRow: {
-    height: 58,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cardRecipient: {
     backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    marginBottom: 7,
-  },
-  optionText: {
-    color: TEXT,
-    fontSize: 19,
-  },
-  optionArrow: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 14,
-    backgroundColor: '#eeeeee',
-  },
-  optionArrowText: {
-    color: TEXT,
-    fontSize: 29,
-    lineHeight: 29,
-  },
-  totalBlock: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
-  },
-  moneyRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+  },
+  recipientInfo: {
+    flex: 1,
+  },
+  recipientName: {
+    color: TEXT_DARK,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  recipientContact: {
+    color: TEXT_MUTED,
+    fontSize: 13,
+  },
+  editBtn: {
+    padding: 6,
+  },
+  terms: {
+    color: TEXT_MUTED,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+  },
+  termsLink: {
+    color: MOMO_PINK,
+    fontWeight: '600',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#eeeeee',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
+    elevation: 10,
+    shadowColor: '#000000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: -2},
+  },
+  footerTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 9,
-  },
-  moneyLabel: {
-    color: TEXT,
-    fontSize: 19,
-  },
-  moneyValue: {
-    fontSize: 21,
-    fontWeight: '900',
-  },
-  redMoney: {
-    color: RED,
-  },
-  blueMoney: {
-    color: BLUE,
-  },
-  paymentTitle: {
-    color: TEXT,
-    fontSize: 21,
-    fontWeight: '900',
-    marginBottom: 10,
-  },
-  paymentList: {
-    gap: 7,
-  },
-  paymentMethod: {
-    height: 56,
     alignItems: 'center',
-    flexDirection: 'row',
-    paddingHorizontal: 18,
-    gap: 26,
+    marginBottom: 12,
   },
-  paymentMethodActive: {
-    borderWidth: 1,
-    borderStyle: 'dotted',
-    borderColor: BLUE,
-    borderRadius: 6,
-    backgroundColor: '#ffffff',
+  footerTamTinh: {
+    color: TEXT_MUTED,
+    fontSize: 15,
   },
-  paymentLabel: {
-    color: MUTED,
-    fontSize: 19,
-  },
-  paymentLabelActive: {
-    color: BLUE,
-  },
-  walletIcon: {
-    width: 27,
-    height: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 3,
-    backgroundColor: '#2d2d2d',
-  },
-  walletIconText: {
-    color: '#ffffff',
-    fontSize: 8,
-    fontWeight: '900',
-    lineHeight: 9,
-  },
-  squareWallet: {
-    width: 27,
-    height: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: 4,
-  },
-  squareWalletText: {
-    fontSize: 7,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  remainingTitle: {
-    color: TEXT,
-    fontSize: 23,
-    fontWeight: '900',
-    marginTop: 20,
-  },
-  remainingTime: {
-    color: '#171822',
-    fontSize: 34,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginVertical: 16,
-  },
-  remainingTimeUrgent: {
-    color: RED,
-  },
-  termText: {
-    color: '#1f202b',
+  footerAmount: {
+    color: TEXT_DARK,
     fontSize: 18,
-    lineHeight: 28,
+    fontWeight: '800',
   },
-  termLink: {
-    color: BLUE,
-    fontWeight: '900',
-  },
-  payButton: {
-    height: 58,
+  footerBtn: {
+    backgroundColor: MOMO_PINK,
+    borderRadius: 14,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: BLUE,
-    marginTop: 18,
-    marginBottom: 10,
   },
-  payButtonText: {
+  footerBtnDisabled: {
+    backgroundColor: '#e8a0c8',
+  },
+  footerBtnText: {
     color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  confirmSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 36,
+    elevation: 20,
+  },
+  closeX: {
+    alignSelf: 'flex-end',
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.54)',
-    paddingHorizontal: 36,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 18,
+    marginBottom: 8,
   },
-  confirmBox: {
-    width: '100%',
-    maxWidth: 330,
-    borderRadius: 4,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 18,
-    elevation: 8,
-    shadowColor: '#000000',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: {width: 0, height: 6},
+  closeXText: {
+    color: '#444444',
+    fontSize: 16,
+    fontWeight: '600',
   },
   confirmTitle: {
-    color: '#252525',
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 28,
+    color: TEXT_DARK,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 6,
   },
-  confirmMessage: {
-    color: '#333333',
-    fontSize: 17,
-    lineHeight: 23,
-    marginBottom: 58,
+  confirmSubtitle: {
+    color: TEXT_MUTED,
+    fontSize: 14,
+    marginBottom: 20,
   },
-  confirmActions: {
+  confirmRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
   },
-  confirmButton: {
-    minWidth: 74,
-    minHeight: 38,
+  confirmRowIcon: {
+    fontSize: 22,
+    width: 30,
+  },
+  confirmRowTextPink: {
+    color: MOMO_PINK,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  confirmRowSub: {
+    color: TEXT_MUTED,
+    fontSize: 13,
+  },
+  confirmRowText: {
+    color: TEXT_DARK,
+    fontSize: 15,
+  },
+  confirmBold: {
+    fontWeight: '700',
+  },
+  confirmBtn: {
+    backgroundColor: MOMO_PINK,
+    borderRadius: 14,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginTop: 8,
   },
-  noText: {
-    color: '#ef5555',
-    fontSize: 16,
-  },
-  yesText: {
-    color: BLUE,
-    fontSize: 16,
+  confirmBtnText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });
 
