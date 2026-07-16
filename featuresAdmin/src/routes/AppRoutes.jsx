@@ -25,6 +25,7 @@ import ReviewList from '../pages/reviews/ReviewList';
 import NotificationList from '../pages/notifications/NotificationList';
 import CreateNotification from '../pages/notifications/CreateNotification';
 import PersonalInformation from '../pages/personal information/PersonalInformation';
+import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
 
 function isAuthenticated() {
@@ -66,6 +67,7 @@ function AppRoutes() {
         <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
+        <Route path="payments/status" element={<PaymentStatus />} />
         <Route path="tickets" element={<TicketList />} />
         <Route path="tickets/qr" element={<GenerateQR />} />
         <Route path="tickets/checkin" element={<TicketCheckin />} />

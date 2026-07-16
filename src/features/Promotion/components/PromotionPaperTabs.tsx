@@ -31,12 +31,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   compactTab: {
-    width: 40,
-    height: 58,
+    width: 34,
+    height: 50,
   },
   regularTab: {
-    width: 54,
-    height: 80,
+    width: 46,
+    height: 68,
   },
 });
 

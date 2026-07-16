@@ -47,7 +47,7 @@ function TabButton({
 
 const styles = StyleSheet.create({
   tabRow: {
-    height: 62,
+    height: 50,
     flexDirection: 'row',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BORDER,
@@ -60,8 +60,8 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: '#b0b0b0',
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '800',
   },
   tabTextActive: {
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 3,
+    height: 2,
     backgroundColor: '#7f5b50',
   },
 });

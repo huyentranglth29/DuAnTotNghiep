@@ -16,6 +16,7 @@ const menuItems = [
     ],
   },
   {to: '/bookings', label: 'Đơn đặt vé'},
+  {to: '/payments/status', label: 'Theo dõi thanh toán'},
   {
     label: 'Vé',
     children: [

@@ -2643,3 +2643,31 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+.paymentPage {
+  display: grid;
+  gap: 16px;
+}
+
+.paymentFilters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 220px 220px;
+  gap: 12px;
+  align-items: center;
+}
+
+.paymentFilters input,
+.paymentFilters select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #cfd6df;
+  border-radius: 6px;
+  background: #fff;
+}
+
+@media (max-width: 980px) {
+  .paymentFilters {
+    grid-template-columns: 1fr;
+  }
+}
