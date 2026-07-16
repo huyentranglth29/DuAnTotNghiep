@@ -69,7 +69,6 @@ const bookingSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "đặt chỗ",
   }
 );
 

@@ -3,11 +3,7 @@ import React, {useEffect, useState} from 'react';
 import Login from '../features/Login/Index';
 import PorgotPass from '../features/Login/component/PorgotPass';
 import Register from '../features/Login/component/Register';
-import {
-  loginWithApi,
-  registerWithApi,
-  restoreAuthSession,
-} from '../services/voucherService';
+import {login, register} from '../services/apiService';
 
 type LoginScreen = 'login' | 'porgotPass' | 'register';
 type RegisteredUser = {
@@ -39,13 +35,10 @@ const isSameCredentials = (
 
 function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
   const [activeScreen, setActiveScreen] = useState<LoginScreen>('login');
-  const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(
-    null,
-  );
+  const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null);
 
   useEffect(() => {
     loadRegisteredUser();
-    restoreAuthSession().catch(() => undefined);
   }, []);
 
   const loadRegisteredUser = async () => {
@@ -97,15 +90,12 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       <Register
         onBackToLogin={() => setActiveScreen('login')}
         onRegisterSuccess={async user => {
-          try {
-            await registerWithApi({
-              fullName: user.fullName,
-              email: user.email,
-              password: user.password,
-            });
-          } catch (error) {
-            console.warn('Register API:', (error as Error)?.message);
-          }
+          await register({
+            fullName: user.fullName,
+            email: user.email,
+            password: user.password,
+            phone: user.phone || '',
+          });
           await saveRegisteredUser(user);
           setActiveScreen('login');
         }}
@@ -118,26 +108,22 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
       onForgotPasswordPress={() => setActiveScreen('porgotPass')}
       onRegisterPress={() => setActiveScreen('register')}
       onLoginPress={async ({email, password}) => {
-        try {
-          await loginWithApi({email, password});
+        const defaultUser = DEFAULT_USERS.find(item =>
+          isSameCredentials(item, email, password),
+        );
+
+        if (defaultUser) {
           onAuthenticated?.();
           return true;
-        } catch {
-          const user = await findRegisteredUser();
-          const defaultUser = DEFAULT_USERS.find(item =>
-            isSameCredentials(item, email, password),
-          );
-
-          if (
-            (user && isSameCredentials(user, email, password)) ||
-            defaultUser
-          ) {
-            onAuthenticated?.();
-            return true;
-          }
-
-          return false;
         }
+
+        const response = (await login({email, password})) as any;
+        if (response && response.success) {
+          onAuthenticated?.();
+          return true;
+        }
+
+        throw new Error(response?.message || 'Email hoặc mật khẩu không đúng');
       }}
     />
   );

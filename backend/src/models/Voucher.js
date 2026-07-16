@@ -53,7 +53,6 @@ const voucherSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "phiếu giảm giá",
   }
 );
 

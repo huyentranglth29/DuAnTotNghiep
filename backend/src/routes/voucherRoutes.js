@@ -11,6 +11,7 @@ const {
 const router = express.Router();
 
 // Public — app user / đặt vé dùng được không cần admin
+router.get("/", listActive);
 router.get("/active", listActive);
 router.post("/validate", validate);
 

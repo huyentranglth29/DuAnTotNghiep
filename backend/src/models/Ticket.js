@@ -36,7 +36,6 @@ const ticketSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "vé",
   }
 );
 

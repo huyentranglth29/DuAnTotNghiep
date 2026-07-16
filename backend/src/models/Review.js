@@ -22,7 +22,7 @@ const reviewSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true, collection: "đánh giá" }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Review", reviewSchema);

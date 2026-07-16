@@ -1,444 +1,423 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  Alert,
+  RefreshControl,
 } from 'react-native';
-import Svg, {Rect} from 'react-native-svg';
-import {
-  getMyBookings,
-  restoreAuthSession,
-} from '../../../services/voucherService';
+import Svg, { Path } from 'react-native-svg';
+import { getQuickBookings } from '../../../services/apiService';
 
-const HEADER_BLUE = '#005f98';
+type Ticket = {
+  _id: string;
+  movieTitle: string;
+  movieDuration?: string;
+  movieGenre?: string;
+  seats: string[];
+  totalPrice: number;
+  bookingDate: string;
+  bookingTime: string;
+  cinema: string;
+  code: string;
+  createdAt: string;
+};
 
 type MyTicketsScreenProps = {
   onBack: () => void;
 };
 
-type SeatDoc = {
-  row?: string;
-  number?: number;
-};
-
-type BookingItem = {
-  _id: string;
-  totalPrice?: number;
-  status?: string;
-  paymentStatus?: string;
-  createdAt?: string;
-  ticketCode?: string;
-  seatLabels?: string[];
-  movieTitle?: string;
-  cinemaName?: string;
-  roomName?: string;
-  seats?: SeatDoc[];
-  voucher?: {code?: string} | null;
-  showtime?: {
-    startTime?: string;
-    endTime?: string;
-    price?: number;
-    movie?: {
-      title?: string;
-      genre?: string | string[];
-      duration?: string | number;
-    };
-    room?: {name?: string; type?: string};
-  };
-};
-
-function formatMoney(value?: number) {
-  return `${Number(value || 0).toLocaleString('vi-VN')}đ`;
-}
-
-function formatWhen(value?: string) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('vi-VN');
-}
-
-function formatTime(value?: string) {
-  if (!value) return '—';
-  return new Date(value).toLocaleTimeString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatDate(value?: string) {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString('vi-VN');
-}
-
-function getSeatText(item: BookingItem) {
-  if (item.seatLabels?.length) {
-    return item.seatLabels.join(', ');
-  }
-  if (item.seats?.length) {
-    return item.seats
-      .map(s => `${s.row || ''}${s.number ?? ''}`.trim())
-      .filter(Boolean)
-      .join(', ');
-  }
-  return '—';
-}
-
-function getRoomName(item: BookingItem) {
-  return item.roomName || item.showtime?.room?.name || '—';
-}
-
-function getMovieTitle(item: BookingItem) {
-  const title =
-    item.movieTitle ||
-    item.showtime?.movie?.title ||
-    '';
-  return title.trim() || 'Đang cập nhật tên phim';
-}
-
-/** Vẽ barcode từ mã vé (Code-128 style đơn giản theo pattern) */
-function TicketBarcode({code}: {code: string}) {
-  const bars = useMemo(() => {
-    const source = code.toUpperCase();
-    const items: {x: number; w: number}[] = [];
-    let x = 4;
-    for (let i = 0; i < source.length; i += 1) {
-      const n = source.charCodeAt(i);
-      const pattern = [
-        (n % 3) + 1,
-        (n % 2) + 1,
-        ((n >> 2) % 3) + 1,
-        1,
-        ((n >> 3) % 2) + 1,
-      ];
-      pattern.forEach((w, idx) => {
-        if (idx % 2 === 0) {
-          items.push({x, w});
-        }
-        x += w + 1;
-      });
-    }
-    // quiet zone + stop bars
-    items.push({x: x + 2, w: 3});
-    items.push({x: x + 7, w: 1});
-    items.push({x: x + 10, w: 3});
-    return {items, width: x + 18};
-  }, [code]);
-
-  return (
-    <View style={styles.barcodeBox}>
-      <Svg width="100%" height={84} viewBox={`0 0 ${bars.width} 84`}>
-        {bars.items.map((bar, index) => (
-          <Rect
-            key={`${bar.x}-${index}`}
-            x={bar.x}
-            y={4}
-            width={bar.w}
-            height={76}
-            fill="#0f172a"
-          />
-        ))}
-      </Svg>
-      <Text style={styles.barcodeCode}>{code}</Text>
-    </View>
-  );
-}
-
-function DetailRow({label, value}: {label: string; value: string}) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  );
-}
-
-function MyTicketsScreen({onBack}: MyTicketsScreenProps) {
-  const [items, setItems] = useState<BookingItem[]>([]);
+function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selected, setSelected] = useState<BookingItem | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const fetchTickets = useCallback(async () => {
     try {
-      const token = await restoreAuthSession();
-      if (!token) {
-        setItems([]);
-        setError('Đăng nhập để xem vé đã mua.');
-        return;
-      }
-      const data = await getMyBookings();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError((err as Error)?.message || 'Không tải được vé');
-      setItems([]);
+      setError(null);
+      const response = await getQuickBookings() as any;
+      const data = response?.data ?? response ?? [];
+      setTickets(Array.isArray(data) ? data : []);
+    } catch (e: any) {
+      setError('Không thể tải danh sách vé. Vui lòng kiểm tra kết nối mạng.');
+      console.log('Error fetching tickets:', e?.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    fetchTickets();
+  }, [fetchTickets]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchTickets();
+  };
+
+  const renderBarcode = () => {
+    return (
+      <View style={styles.barcodeContainer}>
+        <View style={styles.barcodeLines}>
+          {[1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2].map((val, idx) => (
+            <View
+              key={idx}
+              style={{
+                width: val,
+                height: 44,
+                backgroundColor: '#111111',
+                marginRight: 2,
+              }}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderTicketItem = ({ item }: { item: Ticket }) => {
+    return (
+      <View style={styles.ticketCard}>
+        {/* Badge trạng thái */}
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>✓ ĐÃ THANH TOÁN</Text>
+        </View>
+
+        {/* Phần trên của vé */}
+        <View style={styles.ticketTop}>
+          <Text style={styles.ticketCinema}>🎬 {item.cinema}</Text>
+          <Text style={styles.ticketTitle} numberOfLines={2}>{item.movieTitle}</Text>
+          {item.movieGenre ? (
+            <Text style={styles.ticketGenre}>{item.movieGenre}</Text>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>NGÀY CHIẾU</Text>
+              <Text style={styles.infoVal}>{item.bookingDate || '—'}</Text>
+            </View>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>GIỜ CHIẾU</Text>
+              <Text style={styles.infoVal}>{item.bookingTime || '—'}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.infoRow, { marginTop: 14 }]}>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>GHẾ</Text>
+              <Text style={styles.infoVal}>{item.seats?.join(', ') || '—'}</Text>
+            </View>
+            <View style={styles.infoCol}>
+              <Text style={styles.infoLabel}>TỔNG TIỀN</Text>
+              <Text style={[styles.infoVal, { color: '#e51937' }]}>
+                {Number(item.totalPrice).toLocaleString('vi-VN')}đ
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Đường cắt răng cưa giữa vé */}
+        <View style={styles.cutLineContainer}>
+          <View style={styles.circleCutLeft} />
+          <View style={styles.dashedLine} />
+          <View style={styles.circleCutRight} />
+        </View>
+
+        {/* Phần dưới của vé (cuống vé / mã nhận vé) */}
+        <View style={styles.ticketBottom}>
+          <Text style={styles.codeLabel}>MÃ NHẬN VÉ</Text>
+          <Text style={styles.codeVal}>{item.code}</Text>
+          {renderBarcode()}
+          <Text style={styles.ticketNote}>Xuất trình mã này tại quầy</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backText}>‹</Text>
+        <TouchableOpacity activeOpacity={0.75} style={styles.backButton} onPress={onBack}>
+          <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M15 5L8 12l7 7"
+              stroke="#ffffff"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>VÉ CỦA TÔI</Text>
-        <View style={{width: 40}} />
+        <Text style={styles.headerTitle}>Vé của tôi</Text>
+        <TouchableOpacity activeOpacity={0.75} style={styles.refreshBtn} onPress={onRefresh}>
+          <Text style={styles.refreshText}>↻ Tải lại</Text>
+        </TouchableOpacity>
       </View>
 
-      {loading && items.length === 0 ? (
-        <ActivityIndicator style={{marginTop: 40}} color={HEADER_BLUE} />
+      {/* Nội dung */}
+      {loading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#005f98" />
+          <Text style={styles.loadingText}>Đang tải vé...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchTickets}>
+            <Text style={styles.retryText}>Thử lại</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
-          data={items}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.list}
+          data={tickets}
+          keyExtractor={(item) => item._id || item.code}
+          renderItem={renderTicketItem}
+          contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={load} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#005f98']} />
           }
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Chưa có vé nào</Text>
-              <Text style={styles.emptyHint}>
-                {error ||
-                  'Sau khi thanh toán thành công, vé sẽ hiện ở đây.'}
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🎟️</Text>
+              <Text style={styles.emptyText}>Bạn chưa đặt vé nào.</Text>
+              <Text style={styles.emptySubText}>
+                Sau khi đặt vé thành công từ Trang chủ, vé sẽ tự động hiện tại đây.
               </Text>
             </View>
           }
-          renderItem={({item}) => (
-            <TouchableOpacity
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() => setSelected(item)}>
-              <Text style={styles.movieTitle}>{getMovieTitle(item)}</Text>
-              <Text style={styles.meta}>
-                {item.cinemaName || 'FilmGo Giải Phóng'} · {getRoomName(item)}
-              </Text>
-              <Text style={styles.meta}>
-                {formatDate(item.showtime?.startTime)} ·{' '}
-                {formatTime(item.showtime?.startTime)} · Ghế {getSeatText(item)}
-              </Text>
-              <View style={styles.row}>
-                <Text style={styles.price}>{formatMoney(item.totalPrice)}</Text>
-                <Text style={styles.status}>
-                  {item.paymentStatus === 'paid' || item.status === 'paid'
-                    ? 'Đã thanh toán'
-                    : item.status || '—'}
-                </Text>
-              </View>
-              <Text style={styles.tapHint}>Chạm để xem mã vạch / chi tiết</Text>
-            </TouchableOpacity>
-          )}
         />
       )}
-
-      <Modal
-        visible={!!selected}
-        animationType="slide"
-        onRequestClose={() => setSelected(null)}>
-        {selected ? (
-          <View style={styles.detailScreen}>
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={() => setSelected(null)}>
-                <Text style={styles.backText}>‹</Text>
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>CHI TIẾT VÉ</Text>
-              <View style={{width: 40}} />
-            </View>
-
-            <ScrollView contentContainerStyle={styles.detailBody}>
-              <Text style={styles.detailMovie}>{getMovieTitle(selected)}</Text>
-              <Text style={styles.detailSub}>
-                Mã vé: {getTicketCode(selected)}
-              </Text>
-
-              <View style={styles.detailCard}>
-                <DetailRow
-                  label="Rạp chiếu"
-                  value={selected.cinemaName || 'FilmGo Giải Phóng'}
-                />
-                <DetailRow label="Phòng" value={getRoomName(selected)} />
-                <DetailRow
-                  label="Ngày chiếu"
-                  value={formatDate(selected.showtime?.startTime)}
-                />
-                <DetailRow
-                  label="Giờ chiếu"
-                  value={formatTime(selected.showtime?.startTime)}
-                />
-                <DetailRow label="Ghế" value={getSeatText(selected)} />
-                <DetailRow
-                  label="Giá tiền"
-                  value={formatMoney(selected.totalPrice)}
-                />
-                {selected.voucher?.code ? (
-                  <DetailRow
-                    label="Voucher"
-                    value={selected.voucher.code}
-                  />
-                ) : null}
-                <DetailRow
-                  label="Đặt lúc"
-                  value={formatWhen(selected.createdAt)}
-                />
-                <DetailRow
-                  label="Trạng thái"
-                  value={
-                    selected.paymentStatus === 'paid' ||
-                    selected.status === 'paid'
-                      ? 'Đã thanh toán'
-                      : selected.status || '—'
-                  }
-                />
-              </View>
-
-              <Text style={styles.scanTitle}>Mã vạch — nhân viên quét duyệt</Text>
-              <TicketBarcode code={getTicketCode(selected)} />
-            </ScrollView>
-          </View>
-        ) : null}
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {flex: 1, backgroundColor: '#f8fafc'},
+  container: {
+    flex: 1,
+    backgroundColor: '#f0f4f8',
+  },
   header: {
-    height: 84,
-    backgroundColor: HEADER_BLUE,
+    height: 70,
+    backgroundColor: '#005f98',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
-  backBtn: {
+  backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backText: {color: '#fff', fontSize: 32, lineHeight: 34, fontWeight: '300'},
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: 'bold',
   },
-  list: {padding: 16, paddingBottom: 40},
-  empty: {marginTop: 60, alignItems: 'center', paddingHorizontal: 24},
-  emptyTitle: {fontSize: 18, fontWeight: '800', color: '#0f172a'},
-  emptyHint: {
+  refreshBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 6,
+  },
+  refreshText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  ticketCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 22,
+    overflow: 'hidden',
+  },
+  statusBadge: {
+    backgroundColor: '#00b96b',
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  statusText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  ticketTop: {
+    padding: 20,
+  },
+  ticketCinema: {
+    fontSize: 13,
+    color: '#005f98',
+    fontWeight: 'bold',
+  },
+  ticketTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111111',
     marginTop: 8,
+    lineHeight: 28,
+  },
+  ticketGenre: {
+    fontSize: 12,
+    color: '#777777',
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eeeeee',
+    marginVertical: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  infoCol: {
+    width: '48%',
+  },
+  infoLabel: {
+    fontSize: 10,
+    color: '#999999',
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  infoVal: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#222222',
+    marginTop: 3,
+  },
+  cutLineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 22,
+    backgroundColor: '#ffffff',
+  },
+  circleCutLeft: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#f0f4f8',
+    marginLeft: -11,
+  },
+  circleCutRight: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#f0f4f8',
+    marginRight: -11,
+  },
+  dashedLine: {
+    flex: 1,
+    height: 1,
+    borderWidth: 1,
+    borderColor: '#dddddd',
+    borderStyle: 'dashed',
+  },
+  ticketBottom: {
+    backgroundColor: '#fafafa',
+    padding: 20,
+    alignItems: 'center',
+  },
+  codeLabel: {
+    fontSize: 11,
+    color: '#999999',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  codeVal: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#e51937',
+    marginTop: 4,
+    letterSpacing: 3,
+  },
+  barcodeContainer: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  barcodeLines: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ticketNote: {
+    fontSize: 11,
+    color: '#aaaaaa',
+    marginTop: 8,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#777777',
+    marginTop: 12,
+  },
+  errorIcon: {
+    fontSize: 48,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#555555',
     textAlign: 'center',
-    color: '#64748b',
+    marginTop: 12,
     lineHeight: 20,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  retryBtn: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    backgroundColor: '#005f98',
+    borderRadius: 10,
   },
-  movieTitle: {fontSize: 16, fontWeight: '800', color: '#0f172a'},
-  meta: {marginTop: 4, color: '#64748b', fontSize: 13},
-  row: {
-    marginTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  price: {fontSize: 15, fontWeight: '800', color: '#dc2626'},
-  status: {
-    color: '#16a34a',
-    fontWeight: '700',
-    fontSize: 12,
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  tapHint: {
-    marginTop: 8,
-    color: HEADER_BLUE,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  detailScreen: {flex: 1, backgroundColor: '#f8fafc'},
-  detailBody: {padding: 16, paddingBottom: 40},
-  detailMovie: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#0f172a',
-    textAlign: 'center',
-  },
-  detailSub: {
-    marginTop: 6,
-    textAlign: 'center',
-    color: '#64748b',
-    fontWeight: '600',
-  },
-  detailCard: {
-    marginTop: 16,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eef2f7',
-  },
-  detailLabel: {color: '#64748b', fontSize: 14, fontWeight: '600'},
-  detailValue: {
-    flex: 1,
-    textAlign: 'right',
-    color: '#0f172a',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  scanTitle: {
-    marginTop: 22,
-    marginBottom: 10,
-    textAlign: 'center',
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  barcodeBox: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  barcodeCode: {
-    marginTop: 8,
-    letterSpacing: 2,
-    fontWeight: '800',
-    color: '#0f172a',
+  retryText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
     fontSize: 15,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 120,
+    paddingHorizontal: 32,
+  },
+  emptyIcon: {
+    fontSize: 64,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginTop: 16,
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: '#888888',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });
 

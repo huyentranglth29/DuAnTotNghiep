@@ -23,6 +23,8 @@ export type MovieBookingInfo = {
   duration?: string;
   genre?: string;
   poster: ImageSourcePropType;
+  description?: string;
+  tomTat?: string;
 };
 
 type MovieNameProps = {

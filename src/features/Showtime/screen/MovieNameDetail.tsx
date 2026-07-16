@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   Image,
   ImageBackground,
@@ -7,6 +7,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Modal,
+  Alert,
 } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { MovieBookingInfo } from '../components/MovieName';
@@ -17,6 +19,7 @@ type MovieNameDetailProps = {
   movie: MovieBookingInfo;
   onBack: () => void;
   onWriteReview?: (movie: MovieBookingInfo) => void;
+  onTimeSelect?: (time: string) => void;
 };
 
 const promotions = [
@@ -38,13 +41,53 @@ const promotions = [
   },
 ];
 
-function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps) {
+function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNameDetailProps) {
   const duration = movie.duration ?? '109 phút';
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [selectedTime, setSelectedTime] = useState<string>('');
+
+  useEffect(() => {
+    let timer: any;
+    if (showTrailerModal && isPlaying) {
+      timer = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) return 0;
+          return prev + 2;
+        });
+      }, 300);
+    }
+    return () => clearInterval(timer);
+  }, [showTrailerModal, isPlaying]);
+
+  const formatTime = (pct: number) => {
+    const totalSec = Math.round((pct / 100) * 150); // 150 giây = 2m30s
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+  };
+
+  const handleBookTicketPress = () => {
+    if (selectedTime) {
+      if (onTimeSelect) {
+        onTimeSelect(selectedTime);
+      }
+    } else {
+      scrollViewRef.current?.scrollTo({
+        y: 400,
+        animated: true,
+      });
+      Alert.alert('Thông báo', 'Vui lòng chọn khung giờ chiếu hôm nay ở bên dưới!');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
         <ImageBackground source={movie.poster} style={styles.hero} imageStyle={styles.heroImage}>
           <View style={styles.darkOverlay} />
           <View style={styles.topBar}>
@@ -62,7 +105,15 @@ function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps)
             <Text style={styles.topTitle}>Chi tiết phim</Text>
           </View>
 
-          <View style={styles.playButton}>
+          <TouchableOpacity
+            style={styles.playButton}
+            activeOpacity={0.8}
+            onPress={() => {
+              setProgress(0);
+              setIsPlaying(true);
+              setShowTrailerModal(true);
+            }}
+          >
             <Svg width={64} height={64} viewBox="0 0 64 64" fill="none">
               <Circle cx={32} cy={32} r={30} fill="rgba(255,255,255,0.72)" />
               <Path
@@ -72,13 +123,13 @@ function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps)
                 strokeLinejoin="round"
               />
             </Svg>
-          </View>
+          </TouchableOpacity>
         </ImageBackground>
 
         <View style={styles.infoBlock}>
           <Image source={movie.poster} style={styles.poster} />
           <View style={styles.titleBlock}>
-            <Text numberOfLines={1} style={styles.movieTitle}>
+            <Text numberOfLines={2} style={styles.movieTitle}>
               {movie.title}
             </Text>
             <View style={styles.agePill}>
@@ -106,13 +157,31 @@ function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps)
         </View>
 
         <Text style={styles.description}>
-          Bear, một chàng trai si tình, đã bẻ gãy món đồ chơi bí ẩn mang tên
-          "Liễu Ước Nguyện" để đổi lấy tình yêu của cô gái mình thầm thương.
-          Điều ước nhanh chóng trở thành hiện thực, nhưng hạnh phúc mà anh hằng
-          mong đợi lại dần biến thành cơn ác mộng. Bear dần nhận ra một sự thật
-          rùng rợn: cái giá phải trả cho món quà kỳ diệu đó kinh hoàng và đen
-          tối hơn bất cứ điều gì anh có thể tưởng tượng.
+          {movie.description || movie.tomTat || "Bear, một chàng trai si tình, đã bẻ gãy món đồ chơi bí ẩn mang tên \"Liễu Ước Nguyện\" để đổi lấy tình yêu của cô gái mình thầm thương. Điều ước nhanh chóng trở thành hiện thực, nhưng hạnh phúc mà anh hằng mong đợi lại dần biến thành cơn ác mộng. Bear dần nhận ra một sự thật rùng rợn: cái giá phải trả cho món quà kỳ diệu đó kinh hoàng và đen tối hơn bất cứ điều gì anh có thể tưởng tượng."}
         </Text>
+
+        {/* Lịch chiếu hôm nay */}
+        <View style={styles.showtimeSection}>
+          <Text style={styles.sectionTitle}>📅 LỊCH CHIẾU HÔM NAY</Text>
+          <Text style={styles.showtimeSubtitle}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+          <View style={styles.timeSlotsRow}>
+            {['09:00', '13:00', '20:00'].map(time => {
+              const isSelected = selectedTime === time;
+              return (
+                <TouchableOpacity
+                  key={time}
+                  style={[styles.timeSlotBtn, isSelected && styles.timeSlotBtnSelected]}
+                  onPress={() => {
+                    setSelectedTime(time);
+                  }}>
+                  <Text style={[styles.timeSlotText, isSelected && styles.timeSlotTextSelected]}>
+                    {time}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={styles.promotionHeader}>
           <Text style={styles.sectionTitle}>KHUYẾN MÃI</Text>
@@ -139,14 +208,65 @@ function MovieNameDetail({ movie, onBack, onWriteReview }: MovieNameDetailProps)
         <CommentsList />
       </ScrollView>
 
-      <TouchableOpacity activeOpacity={0.8} style={styles.shareButton}>
-        <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
-          <Circle cx={18} cy={5} r={3} fill="#ffffff" />
-          <Circle cx={6} cy={12} r={3} fill="#ffffff" />
-          <Circle cx={18} cy={19} r={3} fill="#ffffff" />
-          <Path d="M8.8 10.7l6.4-4.4M8.8 13.3l6.4 4.4" stroke="#ffffff" strokeWidth={2.2} />
-        </Svg>
-        <Text style={styles.shareText}>Chia sẻ</Text>
+      {/* Modal Phát Trailer Giả Lập */}
+      <Modal
+        visible={showTrailerModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowTrailerModal(false)}
+      >
+        <View style={styles.trailerContainer}>
+          <View style={styles.trailerHeader}>
+            <TouchableOpacity
+              style={styles.closeTrailerBtn}
+              onPress={() => setShowTrailerModal(false)}
+            >
+              <Text style={styles.closeTrailerText}>✕ Đóng</Text>
+            </TouchableOpacity>
+            <Text style={styles.trailerTitleText} numberOfLines={1}>
+              Trailer - {movie.title}
+            </Text>
+          </View>
+          
+          <ImageBackground
+            source={movie.poster}
+            style={styles.trailerVideoArea}
+            imageStyle={{opacity: 0.25}}
+          >
+            <View style={styles.videoPlayerScreen}>
+              <Image source={movie.poster} style={styles.trailerPosterSmall} />
+              {isPlaying ? (
+                <View style={styles.playingStatusBadge}>
+                  <Text style={styles.playingStatusText}>🔴 Đang phát Trailer</Text>
+                </View>
+              ) : (
+                <View style={styles.playingStatusBadge}>
+                  <Text style={styles.playingStatusText}>⏸ Tạm dừng</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.videoControls}>
+              <TouchableOpacity
+                style={styles.playPauseBtn}
+                onPress={() => setIsPlaying(!isPlaying)}
+              >
+                <Text style={styles.playPauseIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBarBg}>
+                  <View style={[styles.progressBarActive, {width: `${progress}%`}]} />
+                </View>
+                <Text style={styles.videoTimeText}>{formatTime(progress)} / 02:30</Text>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
+      </Modal>
+
+      <TouchableOpacity activeOpacity={0.8} style={styles.bookTicketBtn} onPress={handleBookTicketPress}>
+        <Text style={styles.bookTicketBtnText}>ĐẶT VÉ NGAY</Text>
       </TouchableOpacity>
     </View>
   );
@@ -332,23 +452,181 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 16,
   },
-  shareButton: {
+  bookTicketBtn: {
     position: 'absolute',
     left: 16,
     right: 16,
     bottom: 14,
     height: 52,
     alignItems: 'center',
-    backgroundColor: BLUE,
+    backgroundColor: '#e51937',
     borderRadius: 10,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 14,
+    zIndex: 999,
+    elevation: 5,
   },
-  shareText: {
+  bookTicketBtnText: {
     color: '#ffffff',
     fontSize: 19,
     fontWeight: '900',
+  },
+  showtimeSection: {
+    paddingHorizontal: 22,
+    paddingTop: 24,
+  },
+  showtimeSubtitle: {
+    fontSize: 13,
+    color: '#666666',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  timeSlotsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    gap: 12,
+  },
+  timeSlotBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  timeSlotBtnSelected: {
+    backgroundColor: '#e51937',
+    borderColor: '#e51937',
+  },
+  timeSlotText: {
+    fontSize: 15,
+    color: '#333333',
+    fontWeight: 'bold',
+  },
+  timeSlotTextSelected: {
+    color: '#ffffff',
+  },
+  trailerContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+  },
+  trailerHeader: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: '#1a1a1a',
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  closeTrailerBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#333333',
+    borderRadius: 6,
+    marginRight: 16,
+  },
+  closeTrailerText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  trailerTitleText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  trailerVideoArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  videoPlayerScreen: {
+    width: '80%',
+    height: '50%',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333333',
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  trailerPosterSmall: {
+    width: '70%',
+    height: '80%',
+    borderRadius: 8,
+    resizeMode: 'contain',
+  },
+  playingStatusBadge: {
+    position: 'absolute',
+    top: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  playingStatusText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  videoControls: {
+    width: '90%',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  playPauseBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#e51937',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  playPauseIcon: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  progressContainer: {
+    flex: 1,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#333333',
+    borderRadius: 3,
+    width: '100%',
+  },
+  progressBarActive: {
+    height: 6,
+    backgroundColor: '#e51937',
+    borderRadius: 3,
+  },
+  videoTimeText: {
+    color: '#888888',
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: 'bold',
   },
 });
 
