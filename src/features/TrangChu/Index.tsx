@@ -179,10 +179,19 @@ function TrangChu() {
       return;
     }
 
-    Alert.alert(
-      'Đặt vé thành công',
-      `Bạn đã chọn đặt vé nhanh:\n🎬 Phim: ${selectedMovie.tieuDe}\n📍 Rạp: ${selectedCinema}\n⏰ Suất chiếu: ${selectedTime}\n\nHệ thống đang kết nối dữ liệu đặt vé!`,
-    );
+    const mockShowtime = {
+      id: 'quick-booking-' + selectedTime,
+      startTime: new Date().toISOString().split('T')[0] + 'T' + selectedTime + ':00.000Z',
+      endTime: new Date().toISOString().split('T')[0] + 'T' + (parseInt(selectedTime.split(':')[0]) + 2) + ':00:00.000Z',
+      price: 55000,
+      roomName: 'Phòng chiếu 07',
+      roomType: '2D Phụ đề',
+      cinemaName: selectedCinema,
+    };
+
+    setSelectedDetailMovie(selectedMovie);
+    setSelectedShowtime(mockShowtime);
+    setShowBooking(true);
   };
 
   const renderMovieCard = ({item}: {item: Phim}) => {

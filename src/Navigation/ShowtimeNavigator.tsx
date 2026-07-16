@@ -95,6 +95,19 @@ function ShowtimeNavigator({
         movie={selectedMovie}
         onBack={() => setShowMovieDetail(false)}
         onWriteReview={() => setShowWriteReview(true)}
+        onTimeSelect={time => {
+          const mockShowtime: SelectedShowtimeInfo = {
+            id: 'mock-showtime-' + time,
+            startTime: new Date().toISOString().split('T')[0] + 'T' + time + ':00.000Z',
+            endTime: new Date().toISOString().split('T')[0] + 'T' + (parseInt(time.split(':')[0]) + 2) + ':00:00.000Z',
+            price: 55000,
+            roomName: 'Phòng chiếu 07',
+            roomType: '2D Phụ đề',
+            cinemaName: 'Cine Prestige Hà Trung (Thanh Hóa)',
+          };
+          setSelectedShowtime(mockShowtime);
+          setShowBooking(true);
+        }}
       />
     );
   }
