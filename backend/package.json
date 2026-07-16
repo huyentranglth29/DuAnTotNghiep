@@ -11,6 +11,7 @@
     "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force",
     "create-admin": "node src/scripts/createAdmin.js",
     "migrate:users": "node src/scripts/migrateUsersCollection.js",
+    "migrate:collections:vi": "node src/scripts/migrateCollectionsToVietnamese.js",
     "seed:data": "node src/scripts/seedData.js",
     "seed:vouchers": "node src/scripts/seedVoucherUsage.js",
     "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js"

@@ -46,5 +46,4 @@ const quickBookingSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("QuickBooking", quickBookingSchema);
-
+module.exports = mongoose.model("QuickBooking", quickBookingSchema, "đặt vé nhanh");

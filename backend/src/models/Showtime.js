@@ -36,4 +36,4 @@ const showtimeSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Showtime", showtimeSchema);
+module.exports = mongoose.model("Showtime", showtimeSchema, "giờ chiếu");

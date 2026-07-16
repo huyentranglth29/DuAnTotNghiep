@@ -34,4 +34,4 @@ const seatSchema = new mongoose.Schema(
 
 seatSchema.index({ room: 1, row: 1, number: 1 }, { unique: true });
 
-module.exports = mongoose.model("Seat", seatSchema);
+module.exports = mongoose.model("Seat", seatSchema, "chỗ ngồi");

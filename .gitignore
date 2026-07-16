@@ -39,6 +39,9 @@ local.properties
 .env
 .env.local
 
+# Local database backups
+/backups/
+
 # node.js
 #
 node_modules/

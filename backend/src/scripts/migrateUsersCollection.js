@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 
 dotenv.config();
 
-const SOURCE_COLLECTION = "người dùng";
-const TARGET_COLLECTION = "users";
+const SOURCE_COLLECTION = "users";
+const TARGET_COLLECTION = "người dùng";
 
 async function migrateUsersCollection() {
   await mongoose.connect(process.env.MONGO_URI);
@@ -15,7 +15,7 @@ async function migrateUsersCollection() {
   const sourceUsers = await source.find({}).toArray();
 
   if (!sourceUsers.length) {
-    console.log("No users found in legacy collection.");
+    console.log("No users found in English collection.");
     await mongoose.disconnect();
     return;
   }

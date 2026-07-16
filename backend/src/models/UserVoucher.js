@@ -32,4 +32,4 @@ const userVoucherSchema = new mongoose.Schema(
 
 userVoucherSchema.index({ user: 1, voucher: 1 }, { unique: true });
 
-module.exports = mongoose.model("UserVoucher", userVoucherSchema);
+module.exports = mongoose.model("UserVoucher", userVoucherSchema, "voucher người dùng");
