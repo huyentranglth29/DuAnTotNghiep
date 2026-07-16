@@ -29,6 +29,10 @@ import {Phim} from '../../types/phim';
 import MovieNameDetail from '../Showtime/screen/MovieNameDetail';
 import DatVe from '../Showtime/components/DatVe';
 import DatVeDetail from '../Showtime/screen/DatVeDetail';
+import {
+  formatGio,
+  layDanhSachSuatChieu,
+} from '../../services/showtimeService';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -114,9 +118,18 @@ function TrangChu() {
 
   // State cho Đặt Vé Nhanh
   const [selectedMovie, setSelectedMovie] = useState<Phim | null>(null);
-  const [selectedCinema, setSelectedCinema] = useState<string>('Cine Prestige Hà Trung');
+  const [selectedCinema, setSelectedCinema] = useState<string>('FilmGo Hà Trung');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showMovieDropdown, setShowMovieDropdown] = useState(false);
+  const quickShowtimesQuery = useQuery({
+    queryKey: ['quick-showtimes', selectedMovie?.id],
+    queryFn: () =>
+      layDanhSachSuatChieu({
+        movieId: String(selectedMovie!.id),
+        bookable: true,
+      }),
+    enabled: Boolean(selectedMovie?.id),
+  });
 
   // State cho Chi tiết Phim
   const [selectedDetailMovie, setSelectedDetailMovie] = useState<Phim | null>(null);
@@ -129,10 +142,13 @@ function TrangChu() {
     totalPrice: number;
   } | null>(null);
   const [selectedShowtime, setSelectedShowtime] = useState<{
+    id: string;
     startTime: string;
+    endTime?: string;
     roomName: string;
     roomType: string;
     price: number;
+    cinemaName?: string;
   } | null>(null);
 
   // Cấu hình Auto-slide cho Banner
@@ -163,8 +179,6 @@ function TrangChu() {
     setActiveBannerIndex(index);
   };
 
-  const listTimes = ['09:30', '13:00', '16:15', '19:45', '22:30'];
-
   const handleQuickBook = () => {
     if (!selectedMovie) {
       Alert.alert('Thông báo', 'Vui lòng chọn phim muốn xem!');
@@ -179,18 +193,24 @@ function TrangChu() {
       return;
     }
 
-    const mockShowtime = {
-      id: 'quick-booking-' + selectedTime,
-      startTime: new Date().toISOString().split('T')[0] + 'T' + selectedTime + ':00.000Z',
-      endTime: new Date().toISOString().split('T')[0] + 'T' + (parseInt(selectedTime.split(':')[0]) + 2) + ':00:00.000Z',
-      price: 55000,
-      roomName: 'Phòng chiếu 07',
-      roomType: '2D Phụ đề',
+    const item = quickShowtimesQuery.data?.find(showtime => showtime._id === selectedTime);
+    if (!item) {
+      Alert.alert('Thông báo', 'Suất chiếu không còn khả dụng, vui lòng chọn lại!');
+      return;
+    }
+
+    const realShowtime = {
+      id: item._id,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      price: Number(item.price) || 0,
+      roomName: item.room?.name || 'Phòng chiếu',
+      roomType: item.room?.type || '2D',
       cinemaName: selectedCinema,
     };
 
     setSelectedDetailMovie(selectedMovie);
-    setSelectedShowtime(mockShowtime);
+    setSelectedShowtime(realShowtime);
     setShowBooking(true);
   };
 
@@ -401,7 +421,7 @@ function TrangChu() {
       price: 55000,
       roomName: 'Phòng chiếu 07',
       roomType: '2D Phụ đề',
-      cinemaName: 'Cine Prestige Hà Trung (Thanh Hóa)',
+      cinemaName: 'FilmGo Hà Trung (Thanh Hóa)',
     };
     return (
       <DatVe
@@ -428,10 +448,15 @@ function TrangChu() {
           genre: selectedDetailMovie.theLoai,
           poster: {uri: selectedDetailMovie.posterUrl},
           description: selectedDetailMovie.tomTat,
+          director: selectedDetailMovie.daoDien,
+          cast: selectedDetailMovie.danhSachDienVien?.map(item => item.ten),
+          releaseDate: selectedDetailMovie.ngayPhatHanh,
+          ageRating: selectedDetailMovie.nhanTuoi,
         } as any}
         onBack={() => setSelectedDetailMovie(null)}
-        onTimeSelect={(time) => {
-          setSelectedBookingTime(time);
+        onShowtimeSelect={(showtime) => {
+          setSelectedBookingTime(showtime.startTime);
+          setSelectedShowtime(showtime);
           setShowBooking(true);
         }}
       />
@@ -576,6 +601,7 @@ function TrangChu() {
                         style={styles.dropdownItem}
                         onPress={() => {
                           setSelectedMovie(movie);
+                          setSelectedTime('');
                           setShowMovieDropdown(false);
                         }}>
                         <Text style={styles.dropdownItemText}>{movie.tieuDe}</Text>
@@ -590,7 +616,7 @@ function TrangChu() {
             <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownLabel}>Rạp chiếu</Text>
               <View style={styles.fixedCinemaBox}>
-                <Text style={styles.fixedCinemaText}>📍 Cine Prestige Hà Trung (Thanh Hóa)</Text>
+                <Text style={styles.fixedCinemaText}>📍 FilmGo Hà Trung (Thanh Hóa)</Text>
               </View>
             </View>
 
@@ -598,23 +624,27 @@ function TrangChu() {
             <View style={styles.timeSelectContainer}>
               <Text style={styles.dropdownLabel}>Suất chiếu</Text>
               <View style={styles.timeButtonsRow}>
-                {listTimes.map(time => {
-                  const isSelected = selectedTime === time;
+                {(quickShowtimesQuery.data ?? []).map(showtime => {
+                  const isSelected = selectedTime === showtime._id;
                   return (
                     <TouchableOpacity
-                      key={time}
+                      key={showtime._id}
                       style={[styles.timeBtn, isSelected && styles.timeBtnSelected]}
-                      onPress={() => setSelectedTime(time)}>
+                      onPress={() => setSelectedTime(showtime._id)}>
                       <Text
                         style={[
                           styles.timeBtnText,
                           isSelected && styles.timeBtnTextSelected,
                         ]}>
-                        {time}
+                        {formatGio(showtime.startTime)}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
+                {selectedMovie && !quickShowtimesQuery.isLoading &&
+                (quickShowtimesQuery.data ?? []).length === 0 ? (
+                  <Text>Chưa có suất chiếu khả dụng</Text>
+                ) : null}
               </View>
             </View>
 

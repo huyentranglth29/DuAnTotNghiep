@@ -158,10 +158,19 @@ export const getNotifications = async () => {
 /**
  * Lưu đặt vé nhanh lên MongoDB Atlas
  * POST /api/quick-bookings
- * body: { movieTitle, movieDuration, movieGenre, seats, totalPrice, cinema, bookingDate, bookingTime }
+ * body: { showtimeId, movieTitle, movieDuration, movieGenre, seats, totalPrice, cinema, bookingDate, bookingTime }
  */
 export const createQuickBooking = async (payload) => {
   return apiClient.post('/api/quick-bookings', payload);
+};
+
+/** Lấy nhãn ghế đã thanh toán của một suất chiếu. */
+export const getSoldSeats = async (showtimeId) => {
+  const response = await apiClient.get('/api/quick-bookings/sold-seats', {
+    params: {showtimeId},
+  });
+  const data = response?.data ?? response ?? [];
+  return Array.isArray(data) ? data : [];
 };
 
 /**

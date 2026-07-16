@@ -29,6 +29,7 @@ type DatVeDetailProps = {
   seats: string[];
   totalPrice: number;
   showtime?: {
+    id: string;
     startTime: string;
     endTime?: string;
     roomName?: string;
@@ -77,12 +78,13 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
     setIsProcessing(true);
     try {
       await createQuickBooking({
+        showtimeId: showtime?.id,
         movieTitle: movie.title,
         movieDuration: movie.duration,
         movieGenre: movie.genre,
         seats: seats,
         totalPrice: totalPrice,
-        cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
+        cinema: 'FilmGo Hà Trung (Thanh Hóa)',
         bookingDate: new Date().toLocaleDateString('vi-VN'),
         bookingTime: startTime,
       });
@@ -93,7 +95,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
       );
     } catch (e) {
       console.log('❌ Lỗi lưu vé:', e);
-      Alert.alert('Lỗi', 'Đặt vé thất bại, vui lòng thử lại.');
+      Alert.alert('Không thể đặt ghế', (e as Error)?.message || 'Đặt vé thất bại, vui lòng thử lại.');
       setIsProcessing(false);
     }
   };
@@ -137,7 +139,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           <View style={styles.movieInfoRow}>
             <Image source={movie.poster} style={styles.posterThumb} />
             <View style={styles.movieInfoText}>
-              <Text style={styles.cinemaName}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+              <Text style={styles.cinemaName}>FilmGo Hà Trung (Thanh Hóa)</Text>
               <Text style={styles.movieTitle} numberOfLines={2}>{movie.title}</Text>
               <View style={styles.ageBadge}>
                 <Text style={styles.ageText}>16+</Text>
@@ -253,7 +255,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
             <View style={styles.confirmRow}>
               <Text style={styles.confirmRowIcon}>🎬</Text>
               <View>
-                <Text style={styles.confirmRowTextPink}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+                <Text style={styles.confirmRowTextPink}>FilmGo Hà Trung (Thanh Hóa)</Text>
                 <Text style={styles.confirmRowSub}>Thanh Hóa</Text>
               </View>
             </View>

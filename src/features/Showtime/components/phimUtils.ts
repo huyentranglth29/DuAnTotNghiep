@@ -8,6 +8,11 @@ export function phimSangBooking(phim: Phim): MovieBookingInfo {
     duration: phim.thoiLuong,
     genre: phim.theLoai,
     poster: {uri: phim.posterUrl},
+    description: phim.tomTat,
+    director: phim.daoDien,
+    cast: phim.danhSachDienVien?.map(item => item.ten),
+    releaseDate: phim.ngayPhatHanh,
+    ageRating: phim.nhanTuoi,
   };
 }
 

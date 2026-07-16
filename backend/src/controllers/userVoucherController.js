@@ -359,7 +359,7 @@ const checkout = async (req, res) => {
       : [];
 
     let roomName = String(req.body.roomName || "").trim();
-    let cinemaName = String(req.body.cinemaName || "").trim() || "FilmGo Giải Phóng";
+    let cinemaName = String(req.body.cinemaName || "").trim() || "FilmGo Hà Trung (Thanh Hóa)";
 
     if (!roomName) {
       const populatedShowtime = await Showtime.findById(showtimeId).populate(

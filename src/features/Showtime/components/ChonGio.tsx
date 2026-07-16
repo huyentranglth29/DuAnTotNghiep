@@ -120,7 +120,7 @@ function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
         <View
           key={`${group.roomName}-${group.roomType}`}
           style={styles.showtimeCard}>
-          <Text style={styles.cinemaName}>FilmGo Giải Phóng</Text>
+          <Text style={styles.cinemaName}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <Text style={styles.roomType}>
             {group.roomName} · {group.roomType}
           </Text>
@@ -142,7 +142,7 @@ function ChonGio({movieId, selectedDateKey, onShowtimePress}: ChonGioProps) {
                       price: Number(item.price) || 0,
                       roomName: group.roomName,
                       roomType: group.roomType,
-                      cinemaName: 'FilmGo Giải Phóng',
+                      cinemaName: 'FilmGo Hà Trung (Thanh Hóa)',
                     })
                   }>
                   <Text style={styles.timeText}>{formatGio(item.startTime)}</Text>

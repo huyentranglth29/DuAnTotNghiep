@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const quickBookingSchema = new mongoose.Schema(
   {
+    showtimeId: {
+      type: String,
+      trim: true,
+    },
     movieTitle: {
       type: String,
       required: true,
@@ -24,7 +28,7 @@ const quickBookingSchema = new mongoose.Schema(
     },
     cinema: {
       type: String,
-      default: "Cine Prestige Hà Trung (Thanh Hóa)",
+      default: "FilmGo Hà Trung (Thanh Hóa)",
     },
     bookingDate: {
       type: String,

@@ -25,6 +25,10 @@ export type MovieBookingInfo = {
   poster: ImageSourcePropType;
   description?: string;
   tomTat?: string;
+  director?: string;
+  cast?: string[];
+  releaseDate?: string;
+  ageRating?: string;
 };
 
 type MovieNameProps = {

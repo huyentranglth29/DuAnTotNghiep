@@ -13,13 +13,14 @@ import {
 import Svg, { Circle, Path } from 'react-native-svg';
 import { MovieBookingInfo } from '../components/MovieName';
 import CommentsList from '../components/CommentsList';
+import ChonGio, {SelectedShowtimeInfo} from '../components/ChonGio';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
   movie: MovieBookingInfo;
   onBack: () => void;
   onWriteReview?: (movie: MovieBookingInfo) => void;
-  onTimeSelect?: (time: string) => void;
+  onShowtimeSelect?: (showtime: SelectedShowtimeInfo) => void;
 };
 
 const promotions = [
@@ -41,7 +42,7 @@ const promotions = [
   },
 ];
 
-function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNameDetailProps) {
+function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
   const duration = movie.duration ?? '109 phút';
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
 
@@ -49,7 +50,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNa
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [selectedShowtime, setSelectedShowtime] = useState<SelectedShowtimeInfo | null>(null);
 
   useEffect(() => {
     let timer: any;
@@ -72,9 +73,9 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNa
   };
 
   const handleBookTicketPress = () => {
-    if (selectedTime) {
-      if (onTimeSelect) {
-        onTimeSelect(selectedTime);
+    if (selectedShowtime) {
+      if (onShowtimeSelect) {
+        onShowtimeSelect(selectedShowtime);
       }
     } else {
       scrollViewRef.current?.scrollTo({
@@ -132,19 +133,20 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNa
             <Text numberOfLines={2} style={styles.movieTitle}>
               {movie.title}
             </Text>
-            <View style={styles.agePill}>
-              <Text style={styles.agePillText}>Chỉ dành cho người trên 18 tuổi</Text>
-            </View>
+            {movie.ageRating ? (
+              <View style={styles.agePill}>
+                <Text style={styles.agePillText}>{movie.ageRating}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
 
         <View style={styles.detailsGrid}>
           <Text style={styles.detailLabel}>ĐẠO DIỄN</Text>
-          <Text style={styles.detailValue}>Curry Barker</Text>
+          <Text style={styles.detailValue}>{movie.director || 'Đang cập nhật'}</Text>
           <Text style={styles.detailLabel}>DIỄN VIÊN</Text>
           <Text style={styles.detailValue}>
-            Michael Johnston, Inde Navarrette, Cooper Tomlinson, Megan Lawless,
-            Andy Richter
+            {movie.cast?.join(', ') || 'Đang cập nhật'}
           </Text>
           <Text style={styles.detailLabel}>THỂ LOẠI</Text>
           <Text style={styles.detailValue}>{genre}</Text>
@@ -153,34 +155,30 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onTimeSelect }: MovieNa
           <Text style={styles.detailLabel}>NGÔN NGỮ</Text>
           <Text style={styles.detailValue}>Tiếng Anh</Text>
           <Text style={styles.detailLabel}>NGÀY KHỞI CHIẾU</Text>
-          <Text style={styles.detailValue}>19/06/2026</Text>
+          <Text style={styles.detailValue}>
+            {movie.releaseDate
+              ? new Date(movie.releaseDate).toLocaleDateString('vi-VN')
+              : 'Đang cập nhật'}
+          </Text>
         </View>
 
         <Text style={styles.description}>
           {movie.description || movie.tomTat || "Bear, một chàng trai si tình, đã bẻ gãy món đồ chơi bí ẩn mang tên \"Liễu Ước Nguyện\" để đổi lấy tình yêu của cô gái mình thầm thương. Điều ước nhanh chóng trở thành hiện thực, nhưng hạnh phúc mà anh hằng mong đợi lại dần biến thành cơn ác mộng. Bear dần nhận ra một sự thật rùng rợn: cái giá phải trả cho món quà kỳ diệu đó kinh hoàng và đen tối hơn bất cứ điều gì anh có thể tưởng tượng."}
         </Text>
 
-        {/* Lịch chiếu hôm nay */}
+        {/* Lịch chiếu lấy trực tiếp từ MongoDB qua API */}
         <View style={styles.showtimeSection}>
-          <Text style={styles.sectionTitle}>📅 LỊCH CHIẾU HÔM NAY</Text>
-          <Text style={styles.showtimeSubtitle}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
-          <View style={styles.timeSlotsRow}>
-            {['09:00', '13:00', '20:00'].map(time => {
-              const isSelected = selectedTime === time;
-              return (
-                <TouchableOpacity
-                  key={time}
-                  style={[styles.timeSlotBtn, isSelected && styles.timeSlotBtnSelected]}
-                  onPress={() => {
-                    setSelectedTime(time);
-                  }}>
-                  <Text style={[styles.timeSlotText, isSelected && styles.timeSlotTextSelected]}>
-                    {time}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <Text style={styles.sectionTitle}>📅 LỊCH CHIẾU</Text>
+          <Text style={styles.showtimeSubtitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
+          <ChonGio
+            movieId={movie.id}
+            onShowtimePress={setSelectedShowtime}
+          />
+          {selectedShowtime ? (
+            <Text style={styles.showtimeSubtitle}>
+              Đã chọn: {new Date(selectedShowtime.startTime).toLocaleString('vi-VN')}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.promotionHeader}>
