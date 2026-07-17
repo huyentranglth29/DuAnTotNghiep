@@ -91,6 +91,28 @@ export function buildStartTimeIso(date, time) {
   return new Date(`${date}T${time}:00`).toISOString();
 }
 
+export function getDurationMinutes(duration) {
+  if (typeof duration === 'number' && Number.isFinite(duration)) {
+    return duration;
+  }
+
+  const text = String(duration || '');
+  const hours = Number(text.match(/(\d+)\s*h/i)?.[1] || 0);
+  const minutes = Number(text.match(/(\d+)\s*m/i)?.[1] || 0);
+  if (hours || minutes) {
+    return hours * 60 + minutes;
+  }
+
+  const numeric = Number(text);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 120;
+}
+
+export function buildEndTimeIso(startTime, duration) {
+  const endTime = new Date(startTime);
+  endTime.setMinutes(endTime.getMinutes() + getDurationMinutes(duration) + 15);
+  return endTime.toISOString();
+}
+
 export function shortCode(id = '') {
   const text = String(id);
   return `SC-${text.slice(-4).toUpperCase()}`;

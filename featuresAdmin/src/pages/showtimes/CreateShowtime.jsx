@@ -5,6 +5,7 @@ import roomApi from '../../api/roomApi';
 import showtimeApi from '../../api/showtimeApi';
 import SelectDropdown from '../../components/SelectDropdown';
 import {
+  buildEndTimeIso,
   buildStartTimeIso,
   formatDate,
   formatDuration,
@@ -110,10 +111,12 @@ function CreateShowtime() {
 
     setSaving(true);
     try {
+      const startTime = buildStartTimeIso(form.date, form.time);
       const payload = {
         movie: form.movie,
         room: form.room,
-        startTime: buildStartTimeIso(form.date, form.time),
+        startTime,
+        endTime: buildEndTimeIso(startTime, selectedMovie?.duration),
         price: Number(String(form.price).replace(/[^\d]/g, '')),
         status: form.status,
       };
