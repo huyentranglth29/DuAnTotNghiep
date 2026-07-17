@@ -152,24 +152,73 @@ export const getProducts = async () => {
  * GET /api/notifications
  */
 export const getNotifications = async () => {
-  return apiClient.get('/api/notifications');
+  const response = await apiClient.get('/api/notifications');
+  return response?.data ?? response ?? [];
+};
+
+export const markNotificationRead = async id => {
+  const response = await apiClient.post(`/api/notifications/${id}/read`);
+  return response?.data ?? response;
+};
+
+export const markAllNotificationsRead = async () => {
+  return apiClient.post('/api/notifications/read-all');
 };
 
 /**
  * Lưu đặt vé nhanh lên MongoDB Atlas
  * POST /api/quick-bookings
- * body: { movieTitle, movieDuration, movieGenre, seats, totalPrice, cinema, bookingDate, bookingTime }
+ * body: { showtimeId, movieTitle, movieDuration, movieGenre, seats, totalPrice, cinema, bookingDate, bookingTime }
  */
 export const createQuickBooking = async (payload) => {
   return apiClient.post('/api/quick-bookings', payload);
 };
 
+/** Lấy nhãn ghế đã thanh toán của một suất chiếu. */
+export const getSoldSeats = async (showtimeId) => {
+  const response = await apiClient.get('/api/quick-bookings/sold-seats', {
+    params: {showtimeId},
+  });
+  const data = response?.data ?? response ?? [];
+  return Array.isArray(data) ? data : [];
+};
+
+/** Tạo giao dịch VNPAY Sandbox và giữ ghế tạm thời. */
+export const createVnpayPayment = async (payload) => {
+  return apiClient.post('/api/payments/vnpay/create', payload);
+};
+
+/** Tạo giao dịch mô phỏng nội bộ, không cần tài khoản cổng thanh toán. */
+export const createMockPayment = async (payload) => {
+  return apiClient.post('/api/payments/mock/create', payload);
+};
+
+/** Mô phỏng kết quả thành công và phát hành vé thật trong MongoDB. */
+export const completeMockPayment = async (paymentId, bankCode) => {
+  return apiClient.post(`/api/payments/mock/${paymentId}/complete`, {bankCode});
+};
+
+/** Mô phỏng kết quả thất bại và giải phóng ghế. */
+export const failMockPayment = async (paymentId) => {
+  return apiClient.post(`/api/payments/mock/${paymentId}/fail`);
+};
+
+/** Kiểm tra trạng thái giao dịch sau khi quay lại từ VNPAY. */
+export const getPaymentStatus = async (paymentId) => {
+  return apiClient.get(`/api/payments/${paymentId}/status`);
+};
+
+/** Hủy giao dịch đang chờ và giải phóng ghế. */
+export const cancelPayment = async (paymentId) => {
+  return apiClient.post(`/api/payments/${paymentId}/cancel`);
+};
+
 /**
  * Lấy danh sách vé đã đặt từ MongoDB Atlas
- * GET /api/quick-bookings
+ * GET /api/quick-bookings/mine
  */
 export const getQuickBookings = async () => {
-  return apiClient.get('/api/quick-bookings');
+  return apiClient.get('/api/quick-bookings/mine');
 };
 
 export default apiClient;

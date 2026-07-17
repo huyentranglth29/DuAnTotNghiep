@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
@@ -99,6 +101,96 @@ const login = async (req, res) => {
   }
 };
 
+// Đăng nhập / đăng ký bằng Google
+const googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Thiếu idToken từ Google",
+      });
+    }
+
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_WEB_CLIENT_ID;
+
+    if (!clientId) {
+      return res.status(500).json({
+        success: false,
+        message: "GOOGLE_CLIENT_ID chưa được cấu hình trên server",
+      });
+    }
+
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+
+    if (!payload?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Không lấy được thông tin email từ Google",
+      });
+    }
+
+    const email = payload.email.toLowerCase();
+    const fullName = payload.name || payload.given_name || email.split("@")[0];
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      user = await User.create({
+        fullName,
+        email,
+        password: crypto.randomBytes(24).toString("hex"),
+        role: "user",
+        status: "active",
+        authProvider: "google",
+        googleId: payload.sub,
+      });
+    } else {
+      if (user.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: "Tài khoản đã bị khóa",
+        });
+      }
+
+      if (!user.googleId && payload.sub) {
+        user.googleId = payload.sub;
+        user.authProvider = "google";
+        await user.save();
+      }
+    }
+
+    const token = generateToken(user._id, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: "Đăng nhập bằng Google thành công",
+      token,
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    const isGoogleTokenError =
+      error?.message?.includes("Token used too late") ||
+      error?.message?.includes("Wrong recipient") ||
+      error?.message?.includes("Invalid token signature") ||
+      error?.message?.includes("No pem found");
+
+    res.status(isGoogleTokenError ? 401 : 500).json({
+      success: false,
+      message: isGoogleTokenError
+        ? "Token Google không hợp lệ hoặc đã hết hạn"
+        : error.message,
+    });
+  }
+};
+
 // Lấy thông tin cá nhân
 const profile = async (req, res) => {
 
@@ -125,5 +217,6 @@ const profile = async (req, res) => {
 module.exports = {
   register,
   login,
+  googleLogin,
   profile,
 };

@@ -11,7 +11,7 @@ function App() {
       {!isLoggedIn ? (
         <LoginNavigator onAuthenticated={() => setIsLoggedIn(true)} />
       ) : (
-        <TabNavigator />
+        <TabNavigator onLoggedOut={() => setIsLoggedIn(false)} />
       )}
     </QueryProvider>
   );

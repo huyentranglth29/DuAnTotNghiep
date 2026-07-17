@@ -5,6 +5,7 @@ const Booking = require("../models/Booking");
 const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const Movie = require("../models/Movie");
+const QuickBooking = require("../models/QuickBooking");
 
 const ok = (res, data, message = "OK", status = 200) =>
   res.status(status).json({ success: true, message, data });
@@ -58,11 +59,13 @@ const calcDiscount = (voucher, orderValue) => {
   return { ok: true, discount, message: "Áp dụng thành công" };
 };
 
-const getUsedCount = async (voucherId) =>
-  Booking.countDocuments({
-    voucher: voucherId,
-    status: { $ne: "cancelled" },
-  });
+const getUsedCount = async (voucherId) => {
+  const [bookings, quickBookings] = await Promise.all([
+    Booking.countDocuments({ voucher: voucherId, status: { $ne: "cancelled" } }),
+    QuickBooking.countDocuments({ voucher: voucherId, status: "paid" }),
+  ]);
+  return bookings + quickBookings;
+};
 
 /** GET /api/vouchers/active — danh sách voucher đang mở */
 const listActive = async (req, res) => {
@@ -359,7 +362,7 @@ const checkout = async (req, res) => {
       : [];
 
     let roomName = String(req.body.roomName || "").trim();
-    let cinemaName = String(req.body.cinemaName || "").trim() || "FilmGo Giải Phóng";
+    let cinemaName = String(req.body.cinemaName || "").trim() || "FilmGo Hà Trung (Thanh Hóa)";
 
     if (!roomName) {
       const populatedShowtime = await Showtime.findById(showtimeId).populate(

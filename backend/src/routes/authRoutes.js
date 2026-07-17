@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   register,
   login,
+  googleLogin,
   profile,
 } = require("../controllers/authController");
 
@@ -15,6 +16,9 @@ router.post("/register", register);
 
 // Đăng nhập
 router.post("/login", login);
+
+// Đăng nhập bằng Google
+router.post("/google", googleLogin);
 
 // Lấy thông tin cá nhân
 router.get("/profile", authMiddleware, profile);

@@ -9,6 +9,7 @@
     "seed:movies": "node src/scripts/seedMovies.js",
     "seed:showtimes": "node src/scripts/seedShowtimes.js",
     "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force",
+    "sync:seats": "node src/scripts/syncSeatLayout.js",
     "create-admin": "node src/scripts/createAdmin.js",
     "migrate:users": "node src/scripts/migrateUsersCollection.js",
     "migrate:collections:vi": "node src/scripts/migrateCollectionsToVietnamese.js",

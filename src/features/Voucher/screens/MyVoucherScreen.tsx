@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StatusBar,
@@ -15,6 +16,7 @@ import {FilmGoVoucher, formatVoucherValue} from '../types';
 import {
   getActiveVouchers,
   getMyVouchers,
+  claimVoucher,
   restoreAuthSession,
 } from '../../../services/voucherService';
 
@@ -31,6 +33,8 @@ function MyVoucherScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [guestMode, setGuestMode] = useState(false);
+  const [availableItems, setAvailableItems] = useState<FilmGoVoucher[]>([]);
+  const [claimingCode, setClaimingCode] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,15 +44,21 @@ function MyVoucherScreen({
       if (token) {
         setGuestMode(false);
         const mine = await getMyVouchers();
-        setItems(Array.isArray(mine) ? mine : []);
+        const mineList = Array.isArray(mine) ? mine : [];
+        setItems(mineList);
+        const active = await getActiveVouchers();
+        const ownedIds = new Set(mineList.map(item => String(item._id)));
+        setAvailableItems((Array.isArray(active) ? active : []).filter(item => !ownedIds.has(String(item._id)) && Number(item.remaining ?? 1) > 0));
       } else {
         setGuestMode(true);
         const active = await getActiveVouchers();
         setItems(Array.isArray(active) ? active : []);
+        setAvailableItems([]);
       }
     } catch (err) {
       setError((err as Error)?.message || 'Không tải được voucher');
       setItems([]);
+      setAvailableItems([]);
     } finally {
       setLoading(false);
     }
@@ -57,6 +67,19 @@ function MyVoucherScreen({
   useEffect(() => {
     load();
   }, [load]);
+
+  const receiveNow = async (code: string) => {
+    setClaimingCode(code);
+    try {
+      await claimVoucher(code);
+      Alert.alert('Nhận voucher thành công', `${code} đã được thêm vào kho của bạn.`);
+      await load();
+    } catch (err) {
+      Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
+    } finally {
+      setClaimingCode('');
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -84,9 +107,9 @@ function MyVoucherScreen({
         </Text>
       )}
 
-      {loading && items.length === 0 ? (
+      {loading && items.length === 0 && availableItems.length === 0 ? (
         <ActivityIndicator style={{marginTop: 40}} color={VOUCHER_BLUE} />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && availableItems.length === 0 ? (
         <View style={styles.empty}>
           <GiftIcon color="#dddddd" size={94} strokeWidth={5} />
           <Text style={styles.emptyTitle}>Kho chưa có voucher nào</Text>
@@ -103,6 +126,25 @@ function MyVoucherScreen({
           data={items}
           keyExtractor={item => item._id || item.code}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={availableItems.length ? (
+            <View style={styles.newSection}>
+              <Text style={styles.sectionTitle}>🎁 VOUCHER MỚI DÀNH CHO BẠN</Text>
+              <Text style={styles.sectionSubtitle}>Nhận ngay ưu đãi mới từ FilmGo, không cần nhập mã.</Text>
+              {availableItems.map(item => (
+                <View key={item._id || item.code} style={styles.newCard}>
+                  <View style={{flex: 1}}>
+                    <Text style={styles.code}>{item.code}</Text>
+                    <Text style={styles.desc} numberOfLines={2}>{item.description || 'Ưu đãi FilmGo'}</Text>
+                    <Text style={styles.value}>{formatVoucherValue(item)}</Text>
+                  </View>
+                  <TouchableOpacity disabled={claimingCode === item.code} style={styles.claimButton} onPress={() => receiveNow(item.code)}>
+                    <Text style={styles.claimText}>{claimingCode === item.code ? 'Đang nhận...' : 'Nhận ngay'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <Text style={styles.ownedTitle}>VOUCHER CỦA TÔI ({items.length})</Text>
+            </View>
+          ) : items.length ? <Text style={styles.ownedTitle}>VOUCHER CỦA TÔI ({items.length})</Text> : null}
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={load} />
           }
@@ -129,6 +171,13 @@ function MyVoucherScreen({
 }
 
 const styles = StyleSheet.create({
+  newSection: {marginBottom: 12},
+  sectionTitle: {fontSize: 17, fontWeight: '900', color: '#1f2937'},
+  sectionSubtitle: {fontSize: 13, color: '#64748b', marginTop: 4, marginBottom: 12},
+  newCard: {flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 14, marginBottom: 10, backgroundColor: '#fff7ed', borderWidth: 1, borderColor: '#fed7aa'},
+  claimButton: {paddingHorizontal: 13, paddingVertical: 11, borderRadius: 10, backgroundColor: '#e51978'},
+  claimText: {fontSize: 12, color: '#fff', fontWeight: '900'},
+  ownedTitle: {fontSize: 15, fontWeight: '900', color: VOUCHER_TEXT, marginTop: 12, marginBottom: 10},
   screen: {
     flex: 1,
     backgroundColor: '#ffffff',

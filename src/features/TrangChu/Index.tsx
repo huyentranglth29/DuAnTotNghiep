@@ -11,11 +11,13 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  Modal,
 } from 'react-native';
 import {useQuery} from '@tanstack/react-query';
 import {
   useMoviesDangChieu,
   useMoviesSapChieu,
+  useMovies,
   usePhimNoiBat,
   useTimKiemPhim,
 } from '../../hooks/useMovies';
@@ -23,12 +25,18 @@ import {
   getVouchers,
   getProducts,
   getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from '../../services/apiService';
 import TrangThaiTai from './components/TrangThaiTai';
 import {Phim} from '../../types/phim';
 import MovieNameDetail from '../Showtime/screen/MovieNameDetail';
 import DatVe from '../Showtime/components/DatVe';
 import DatVeDetail from '../Showtime/screen/DatVeDetail';
+import {
+  formatGio,
+  layDanhSachSuatChieu,
+} from '../../services/showtimeService';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -36,6 +44,7 @@ function TrangChu() {
   const phimNoiBat = usePhimNoiBat();
   const phimDangChieu = useMoviesDangChieu();
   const phimSapChieu = useMoviesSapChieu();
+  const quickMoviesQuery = useMovies({coSuatChieu: true});
 
   const vouchersQuery = useQuery({
     queryKey: ['vouchers'],
@@ -55,6 +64,8 @@ function TrangChu() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchQueryDebounced, setSearchQueryDebounced] = useState('');
+  const [selectedNews, setSelectedNews] = useState<any | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,6 +81,7 @@ function TrangChu() {
     phimNoiBat.isLoading ||
     phimDangChieu.isLoading ||
     phimSapChieu.isLoading ||
+    quickMoviesQuery.isLoading ||
     vouchersQuery.isLoading ||
     productsQuery.isLoading ||
     notificationsQuery.isLoading ||
@@ -79,6 +91,7 @@ function TrangChu() {
     phimNoiBat.error ??
     phimDangChieu.error ??
     phimSapChieu.error ??
+    quickMoviesQuery.error ??
     vouchersQuery.error ??
     productsQuery.error ??
     notificationsQuery.error;
@@ -87,6 +100,7 @@ function TrangChu() {
     phimNoiBat.refetch();
     phimDangChieu.refetch();
     phimSapChieu.refetch();
+    quickMoviesQuery.refetch();
     vouchersQuery.refetch();
     productsQuery.refetch();
     notificationsQuery.refetch();
@@ -94,6 +108,7 @@ function TrangChu() {
     phimNoiBat,
     phimDangChieu,
     phimSapChieu,
+    quickMoviesQuery,
     vouchersQuery,
     productsQuery,
     notificationsQuery,
@@ -102,9 +117,13 @@ function TrangChu() {
   const listPhimNoiBat = phimNoiBat.data ?? [];
   const listDangChieu = phimDangChieu.data ?? [];
   const listSapChieu = phimSapChieu.data ?? [];
+  const listQuickMovies = quickMoviesQuery.data ?? [];
   const listVouchers = (vouchersQuery.data as any) ?? [];
   const listProducts = (productsQuery.data as any) ?? [];
   const listNews = (notificationsQuery.data as any) ?? [];
+  const unreadNotifications = Array.isArray(listNews)
+    ? listNews.filter((item: any) => !item.isRead).length
+    : 0;
 
   // Gộp các phim nổi bật + phim đang chiếu hot lên Banner
   const listBannerPhim = [
@@ -114,9 +133,24 @@ function TrangChu() {
 
   // State cho Đặt Vé Nhanh
   const [selectedMovie, setSelectedMovie] = useState<Phim | null>(null);
-  const [selectedCinema, setSelectedCinema] = useState<string>('Cine Prestige Hà Trung');
+  const [selectedCinema, setSelectedCinema] = useState<string>('FilmGo Hà Trung');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showMovieDropdown, setShowMovieDropdown] = useState(false);
+  const [quickMovieSearch, setQuickMovieSearch] = useState('');
+  const filteredQuickMovies = listQuickMovies.filter(movie =>
+    movie.tieuDe.toLocaleLowerCase('vi-VN').includes(
+      quickMovieSearch.trim().toLocaleLowerCase('vi-VN'),
+    ),
+  );
+  const quickShowtimesQuery = useQuery({
+    queryKey: ['quick-showtimes', selectedMovie?.id],
+    queryFn: () =>
+      layDanhSachSuatChieu({
+        movieId: String(selectedMovie!.id),
+        bookable: true,
+      }),
+    enabled: Boolean(selectedMovie?.id),
+  });
 
   // State cho Chi tiết Phim
   const [selectedDetailMovie, setSelectedDetailMovie] = useState<Phim | null>(null);
@@ -129,10 +163,13 @@ function TrangChu() {
     totalPrice: number;
   } | null>(null);
   const [selectedShowtime, setSelectedShowtime] = useState<{
+    id: string;
     startTime: string;
+    endTime?: string;
     roomName: string;
     roomType: string;
     price: number;
+    cinemaName?: string;
   } | null>(null);
 
   // Cấu hình Auto-slide cho Banner
@@ -163,8 +200,6 @@ function TrangChu() {
     setActiveBannerIndex(index);
   };
 
-  const listTimes = ['09:30', '13:00', '16:15', '19:45', '22:30'];
-
   const handleQuickBook = () => {
     if (!selectedMovie) {
       Alert.alert('Thông báo', 'Vui lòng chọn phim muốn xem!');
@@ -179,18 +214,24 @@ function TrangChu() {
       return;
     }
 
-    const mockShowtime = {
-      id: 'quick-booking-' + selectedTime,
-      startTime: new Date().toISOString().split('T')[0] + 'T' + selectedTime + ':00.000Z',
-      endTime: new Date().toISOString().split('T')[0] + 'T' + (parseInt(selectedTime.split(':')[0]) + 2) + ':00:00.000Z',
-      price: 55000,
-      roomName: 'Phòng chiếu 07',
-      roomType: '2D Phụ đề',
+    const item = quickShowtimesQuery.data?.find(showtime => showtime._id === selectedTime);
+    if (!item) {
+      Alert.alert('Thông báo', 'Suất chiếu không còn khả dụng, vui lòng chọn lại!');
+      return;
+    }
+
+    const realShowtime = {
+      id: item._id,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      price: Number(item.price) || 0,
+      roomName: item.room?.name || 'Phòng chiếu',
+      roomType: item.room?.type || '2D',
       cinemaName: selectedCinema,
     };
 
     setSelectedDetailMovie(selectedMovie);
-    setSelectedShowtime(mockShowtime);
+    setSelectedShowtime(realShowtime);
     setShowBooking(true);
   };
 
@@ -309,15 +350,22 @@ function TrangChu() {
       <TouchableOpacity
         style={styles.newsCard}
         activeOpacity={0.9}
-        onPress={() => Alert.alert(item.title, item.content)}>
+        onPress={() => setSelectedNews(item)}>
         <Image source={{uri: item.image}} style={styles.newsImage} />
         <View style={styles.newsContent}>
-          <Text style={styles.newsTitle} numberOfLines={1}>
+          <View style={styles.newsMetaRow}>
+            <Text style={styles.newsBadge}>SỰ KIỆN</Text>
+            <Text style={styles.newsDate}>
+              {item.sentAt ? new Date(item.sentAt).toLocaleDateString('vi-VN') : 'FilmGo'}
+            </Text>
+          </View>
+          <Text style={styles.newsTitle} numberOfLines={2}>
             {item.title}
           </Text>
           <Text style={styles.newsDesc} numberOfLines={2}>
             {item.content}
           </Text>
+          <Text style={styles.newsReadMore}>Xem chi tiết  ›</Text>
         </View>
       </TouchableOpacity>
     );
@@ -401,7 +449,7 @@ function TrangChu() {
       price: 55000,
       roomName: 'Phòng chiếu 07',
       roomType: '2D Phụ đề',
-      cinemaName: 'Cine Prestige Hà Trung (Thanh Hóa)',
+      cinemaName: 'FilmGo Hà Trung (Thanh Hóa)',
     };
     return (
       <DatVe
@@ -428,10 +476,15 @@ function TrangChu() {
           genre: selectedDetailMovie.theLoai,
           poster: {uri: selectedDetailMovie.posterUrl},
           description: selectedDetailMovie.tomTat,
+          director: selectedDetailMovie.daoDien,
+          cast: selectedDetailMovie.danhSachDienVien?.map(item => item.ten),
+          releaseDate: selectedDetailMovie.ngayPhatHanh,
+          ageRating: selectedDetailMovie.nhanTuoi,
         } as any}
         onBack={() => setSelectedDetailMovie(null)}
-        onTimeSelect={(time) => {
-          setSelectedBookingTime(time);
+        onShowtimeSelect={(showtime) => {
+          setSelectedBookingTime(showtime.startTime);
+          setSelectedShowtime(showtime);
           setShowBooking(true);
         }}
       />
@@ -481,8 +534,13 @@ function TrangChu() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => Alert.alert('Thông báo', 'Không có thông báo mới nào.')}>
+              onPress={() => setShowNotifications(true)}>
               <Text style={styles.headerIcon}>🔔</Text>
+              {unreadNotifications > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>{Math.min(unreadNotifications, 99)}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconBtn}
@@ -492,6 +550,41 @@ function TrangChu() {
           </View>
         </View>
       )}
+
+      <Modal visible={showNotifications} animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+        <View style={styles.notificationScreen}>
+          <View style={styles.notificationHeader}>
+            <TouchableOpacity onPress={() => setShowNotifications(false)}><Text style={styles.notificationBack}>‹</Text></TouchableOpacity>
+            <Text style={styles.notificationTitle}>THÔNG BÁO</Text>
+            <TouchableOpacity onPress={async () => { try { await markAllNotificationsRead(); await notificationsQuery.refetch(); } catch (e) { Alert.alert('Thông báo', (e as Error).message); } }}>
+              <Text style={styles.notificationReadAll}>Đọc tất cả</Text>
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={Array.isArray(listNews) ? listNews : []}
+            keyExtractor={(item: any) => String(item._id)}
+            contentContainerStyle={styles.notificationList}
+            ListEmptyComponent={<Text style={styles.notificationEmpty}>Chưa có thông báo nào</Text>}
+            renderItem={({item}: any) => (
+              <TouchableOpacity style={[styles.notificationItem, item.isRead ? styles.notificationRead : styles.notificationUnread]} onPress={async () => {
+                try {
+                  if (!item.isRead) await markNotificationRead(item._id);
+                  await notificationsQuery.refetch();
+                } catch (error) {
+                  Alert.alert('Không thể đánh dấu đã đọc', (error as Error).message);
+                  return;
+                }
+                if (item.type === 'voucher') Alert.alert(item.title, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`);
+                else setSelectedNews(item);
+              }}>
+                <Text style={styles.notificationType}>{item.type === 'voucher' ? '🎟️' : item.type === 'phim' ? '🎬' : item.type === 'dat_ve' ? '🎫' : item.type === 'thanh_toan' ? '💳' : '🔔'}</Text>
+                <View style={{flex: 1}}><Text style={[styles.notificationItemTitle, item.isRead && styles.notificationReadTitle]}>{item.title}</Text><Text style={[styles.notificationContent, item.isRead && styles.notificationReadContent]} numberOfLines={3}>{item.content}</Text><Text style={styles.notificationTime}>{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</Text></View>
+                {!item.isRead && <View style={styles.unreadDot} />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
 
       <TrangThaiTai dangTai={dangTai} loi={loi} onThuLai={thuLai}>
         {isSearching ? (
@@ -555,42 +648,26 @@ function TrangChu() {
             <Text style={styles.quickBookHeader}>⚡ ĐẶT VÉ NHANH</Text>
 
             {/* Dropdown Phim */}
-            <View style={[styles.dropdownContainer, { zIndex: showMovieDropdown ? 99 : 1 }]}>
+            <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownLabel}>Chọn Phim</Text>
               <TouchableOpacity
                 style={styles.dropdownButton}
                 onPress={() => {
-                  setShowMovieDropdown(!showMovieDropdown);
+                  setQuickMovieSearch('');
+                  setShowMovieDropdown(true);
                 }}>
                 <Text style={styles.dropdownValue}>
                   {selectedMovie ? selectedMovie.tieuDe : '-- Chọn Phim --'}
                 </Text>
                 <Text style={styles.dropdownArrow}>▼</Text>
               </TouchableOpacity>
-              {showMovieDropdown && (
-                <View style={styles.dropdownList}>
-                  <ScrollView nestedScrollEnabled style={{maxHeight: 150}}>
-                    {listDangChieu.map(movie => (
-                      <TouchableOpacity
-                        key={movie.id}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setSelectedMovie(movie);
-                          setShowMovieDropdown(false);
-                        }}>
-                        <Text style={styles.dropdownItemText}>{movie.tieuDe}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
             </View>
 
             {/* Rạp chiếu mặc định duy nhất */}
             <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownLabel}>Rạp chiếu</Text>
               <View style={styles.fixedCinemaBox}>
-                <Text style={styles.fixedCinemaText}>📍 Cine Prestige Hà Trung (Thanh Hóa)</Text>
+                <Text style={styles.fixedCinemaText}>📍 FilmGo Hà Trung (Thanh Hóa)</Text>
               </View>
             </View>
 
@@ -598,23 +675,27 @@ function TrangChu() {
             <View style={styles.timeSelectContainer}>
               <Text style={styles.dropdownLabel}>Suất chiếu</Text>
               <View style={styles.timeButtonsRow}>
-                {listTimes.map(time => {
-                  const isSelected = selectedTime === time;
+                {(quickShowtimesQuery.data ?? []).map(showtime => {
+                  const isSelected = selectedTime === showtime._id;
                   return (
                     <TouchableOpacity
-                      key={time}
+                      key={showtime._id}
                       style={[styles.timeBtn, isSelected && styles.timeBtnSelected]}
-                      onPress={() => setSelectedTime(time)}>
+                      onPress={() => setSelectedTime(showtime._id)}>
                       <Text
                         style={[
                           styles.timeBtnText,
                           isSelected && styles.timeBtnTextSelected,
                         ]}>
-                        {time}
+                        {formatGio(showtime.startTime)}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
+                {selectedMovie && !quickShowtimesQuery.isLoading &&
+                (quickShowtimesQuery.data ?? []).length === 0 ? (
+                  <Text>Chưa có suất chiếu khả dụng</Text>
+                ) : null}
               </View>
             </View>
 
@@ -754,11 +835,164 @@ function TrangChu() {
         </ScrollView>
         )}
       </TrangThaiTai>
+
+      <Modal
+        transparent
+        visible={showMovieDropdown}
+        animationType="slide"
+        onRequestClose={() => setShowMovieDropdown(false)}>
+        <View style={styles.moviePickerOverlay}>
+          <View style={styles.moviePickerSheet}>
+            <View style={styles.moviePickerHandle} />
+            <View style={styles.moviePickerHeader}>
+              <View>
+                <Text style={styles.moviePickerTitle}>Chọn phim đặt vé nhanh</Text>
+                <Text style={styles.moviePickerSubtitle}>
+                  {listQuickMovies.length} phim đang có suất chiếu khả dụng
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.moviePickerClose}
+                onPress={() => setShowMovieDropdown(false)}>
+                <Text style={styles.moviePickerCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.moviePickerSearchBox}>
+              <Text style={styles.moviePickerSearchIcon}>⌕</Text>
+              <TextInput
+                value={quickMovieSearch}
+                onChangeText={setQuickMovieSearch}
+                placeholder="Tìm tên phim..."
+                placeholderTextColor="#999999"
+                style={styles.moviePickerSearchInput}
+              />
+              {!!quickMovieSearch && (
+                <TouchableOpacity onPress={() => setQuickMovieSearch('')}>
+                  <Text style={styles.moviePickerClear}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <FlatList
+              data={filteredQuickMovies}
+              keyExtractor={movie => String(movie.id)}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.moviePickerList}
+              renderItem={({item: movie}) => {
+                const selected = selectedMovie?.id === movie.id;
+                return (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={[styles.moviePickerItem, selected && styles.moviePickerItemSelected]}
+                    onPress={() => {
+                      setSelectedMovie(movie);
+                      setSelectedTime('');
+                      setShowMovieDropdown(false);
+                    }}>
+                    <Image source={{uri: movie.posterUrl}} style={styles.moviePickerPoster} />
+                    <View style={styles.moviePickerInfo}>
+                      <Text style={styles.moviePickerName} numberOfLines={2}>{movie.tieuDe}</Text>
+                      <Text style={styles.moviePickerMeta} numberOfLines={1}>
+                        {movie.theLoai || 'Đang có suất chiếu'}
+                      </Text>
+                      <Text style={styles.moviePickerAvailable}>● Có thể đặt vé</Text>
+                    </View>
+                    <View style={[styles.moviePickerRadio, selected && styles.moviePickerRadioSelected]}>
+                      {selected && <View style={styles.moviePickerRadioDot} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.moviePickerEmpty}>
+                  <Text style={styles.moviePickerEmptyIcon}>🎬</Text>
+                  <Text style={styles.moviePickerEmptyText}>
+                    {quickMovieSearch ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim nào có suất đặt được'}
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={Boolean(selectedNews)}
+        animationType="fade"
+        onRequestClose={() => setSelectedNews(null)}>
+        <View style={styles.newsModalOverlay}>
+          <View style={styles.newsModalCard}>
+            <View style={styles.newsModalImageWrap}>
+              <Image
+                source={{uri: selectedNews?.image}}
+                style={styles.newsModalImage}
+              />
+              <View style={styles.newsModalTopRow}>
+                <Text style={styles.newsModalBadge}>TIN TỨC & SỰ KIỆN</Text>
+                <TouchableOpacity
+                  style={styles.newsModalClose}
+                  onPress={() => setSelectedNews(null)}>
+                  <Text style={styles.newsModalCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView
+              style={styles.newsModalBody}
+              contentContainerStyle={styles.newsModalBodyContent}
+              showsVerticalScrollIndicator={false}>
+              <Text style={styles.newsModalDate}>
+                🗓 {selectedNews?.sentAt
+                  ? new Date(selectedNews.sentAt).toLocaleDateString('vi-VN')
+                  : 'FilmGo Hà Trung'}
+              </Text>
+              <Text style={styles.newsModalTitle}>{selectedNews?.title}</Text>
+              <View style={styles.newsModalDivider} />
+              <Text style={styles.newsModalContent}>{selectedNews?.content}</Text>
+              <View style={styles.newsModalNote}>
+                <Text style={styles.newsModalNoteIcon}>🎬</Text>
+                <Text style={styles.newsModalNoteText}>
+                  Theo dõi FilmGo thường xuyên để không bỏ lỡ những chương trình mới nhất.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.newsModalButton}
+              onPress={() => setSelectedNews(null)}>
+              <Text style={styles.newsModalButtonText}>Đã hiểu</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  notificationScreen: {flex: 1, backgroundColor: '#f5f7fa'},
+  notificationHeader: {height: 76, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', backgroundColor: '#006ba6'},
+  notificationBack: {fontSize: 44, lineHeight: 46, color: '#fff', paddingRight: 12},
+  notificationTitle: {flex: 1, color: '#fff', fontSize: 21, fontWeight: '900'},
+  notificationReadAll: {color: '#fff', fontWeight: '700', fontSize: 13},
+  notificationList: {padding: 14, paddingBottom: 40},
+  notificationItem: {flexDirection: 'row', gap: 12, padding: 15, marginBottom: 10, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb'},
+  notificationUnread: {backgroundColor: '#eef8ff', borderColor: '#9dd8f7'},
+  notificationRead: {backgroundColor: '#ffffff', borderColor: '#e5e7eb'},
+  notificationType: {fontSize: 25},
+  notificationItemTitle: {fontSize: 16, fontWeight: '800', color: '#1f2937'},
+  notificationReadTitle: {fontWeight: '700', color: '#667085'},
+  notificationContent: {fontSize: 13, lineHeight: 19, color: '#667085', marginTop: 4},
+  notificationReadContent: {color: '#98a2b3'},
+  notificationTime: {fontSize: 11, color: '#9ca3af', marginTop: 7},
+  notificationEmpty: {textAlign: 'center', color: '#9ca3af', marginTop: 90, fontSize: 16},
+  unreadDot: {width: 9, height: 9, borderRadius: 5, backgroundColor: '#e51937', marginTop: 6},
+  notificationBadge: {position: 'absolute', right: 3, top: 3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: '#e51937', alignItems: 'center', justifyContent: 'center'},
+  notificationBadgeText: {color: '#fff', fontSize: 10, fontWeight: '900'},
   container: {
     flex: 1,
     backgroundColor: '#f5f6f8',
@@ -927,6 +1161,92 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1a1a1a',
   },
+  moviePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  moviePickerSheet: {
+    height: '78%',
+    backgroundColor: '#f7f8fa',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 9,
+  },
+  moviePickerHandle: {
+    width: 46,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#d0d0d0',
+    alignSelf: 'center',
+  },
+  moviePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 15,
+    paddingBottom: 12,
+  },
+  moviePickerTitle: {fontSize: 19, color: '#1b1b1b', fontWeight: '900'},
+  moviePickerSubtitle: {fontSize: 11, color: '#888888', marginTop: 3},
+  moviePickerClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#e9eaec',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moviePickerCloseText: {fontSize: 15, color: '#444444', fontWeight: '700'},
+  moviePickerSearchBox: {
+    height: 46,
+    marginHorizontal: 18,
+    marginBottom: 12,
+    borderRadius: 13,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e1e2e5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+  },
+  moviePickerSearchIcon: {fontSize: 22, color: '#005f98', marginRight: 8},
+  moviePickerSearchInput: {flex: 1, color: '#222222', fontSize: 14, paddingVertical: 0},
+  moviePickerClear: {color: '#888888', fontSize: 13, padding: 6},
+  moviePickerList: {paddingHorizontal: 18, paddingBottom: 30},
+  moviePickerItem: {
+    minHeight: 102,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#e5e6e8',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  moviePickerItemSelected: {borderColor: '#e51937', backgroundColor: '#fff8f9'},
+  moviePickerPoster: {width: 58, height: 82, borderRadius: 8, backgroundColor: '#eeeeee'},
+  moviePickerInfo: {flex: 1, marginLeft: 12},
+  moviePickerName: {fontSize: 15, lineHeight: 20, color: '#222222', fontWeight: '800'},
+  moviePickerMeta: {fontSize: 11, color: '#777777', marginTop: 4},
+  moviePickerAvailable: {fontSize: 10, color: '#00a467', fontWeight: '700', marginTop: 6},
+  moviePickerRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#b5b5b5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  moviePickerRadioSelected: {borderColor: '#e51937'},
+  moviePickerRadioDot: {width: 12, height: 12, borderRadius: 6, backgroundColor: '#e51937'},
+  moviePickerEmpty: {alignItems: 'center', paddingTop: 70},
+  moviePickerEmptyIcon: {fontSize: 45},
+  moviePickerEmptyText: {fontSize: 13, color: '#888888', marginTop: 12},
   timeSelectContainer: {
     marginBottom: 16,
   },
@@ -1182,31 +1502,178 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   newsCard: {
-    width: 250,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
+    width: 270,
+    borderRadius: 14,
     marginRight: 12,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   newsImage: {
     width: '100%',
-    height: 120,
+    height: 145,
     resizeMode: 'cover',
   },
   newsContent: {
-    padding: 10,
+    padding: 12,
+  },
+  newsMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 7,
+  },
+  newsBadge: {
+    color: '#e51937',
+    backgroundColor: '#fff0f2',
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  newsDate: {
+    color: '#999999',
+    fontSize: 10,
   },
   newsTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
     color: '#1a1a1a',
+    minHeight: 40,
   },
   newsDesc: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#666666',
-    marginTop: 4,
+    lineHeight: 17,
+    marginTop: 6,
+  },
+  newsReadMore: {
+    color: '#e51937',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  newsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 40,
+  },
+  newsModalCard: {
+    maxHeight: '88%',
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  newsModalImageWrap: {
+    height: 220,
+    backgroundColor: '#e9eaec',
+  },
+  newsModalImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  newsModalTopRow: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  newsModalBadge: {
+    color: '#ffffff',
+    backgroundColor: '#e51937',
+    borderRadius: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  newsModalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.58)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newsModalCloseText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  newsModalBody: {
+    flexGrow: 0,
+  },
+  newsModalBodyContent: {
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 16,
+  },
+  newsModalDate: {
+    color: '#888888',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  newsModalTitle: {
+    color: '#1b1b1b',
+    fontSize: 23,
+    lineHeight: 30,
+    fontWeight: '900',
+  },
+  newsModalDivider: {
+    width: 52,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e51937',
+    marginTop: 14,
+    marginBottom: 16,
+  },
+  newsModalContent: {
+    color: '#4d4d4d',
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  newsModalNote: {
+    flexDirection: 'row',
+    backgroundColor: '#fff5f6',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 18,
+  },
+  newsModalNoteIcon: {
+    fontSize: 20,
+    marginRight: 9,
+  },
+  newsModalNoteText: {
+    flex: 1,
+    color: '#6b4146',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  newsModalButton: {
+    height: 52,
+    marginHorizontal: 20,
+    marginBottom: 18,
+    borderRadius: 13,
+    backgroundColor: '#e51937',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newsModalButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
   },
   backSearchBtn: {
     paddingRight: 12,

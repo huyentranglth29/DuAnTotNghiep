@@ -31,7 +31,7 @@ const bookingSchema = new mongoose.Schema(
     cinemaName: {
       type: String,
       trim: true,
-      default: "FilmGo Giải Phóng",
+      default: "FilmGo Hà Trung (Thanh Hóa)",
     },
     roomName: {
       type: String,

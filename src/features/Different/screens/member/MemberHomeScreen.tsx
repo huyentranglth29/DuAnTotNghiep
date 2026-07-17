@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {AUTH_USER_KEY} from '../../../../services/voucherService';
 import {
   Barcode,
   ConfirmDialog,
@@ -12,10 +14,23 @@ import { BLUE, memberRows, MemberScreenName } from './memberData';
 type MemberHomeScreenProps = {
   onBack: () => void;
   onOpen: (screen: MemberScreenName) => void;
+  onLogout: () => void;
 };
 
-function MemberHomeScreen({ onBack, onOpen }: MemberHomeScreenProps) {
+type CurrentUser = {_id?: string; id?: string; fullName?: string; email?: string; phone?: string};
+
+function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
   const [confirm, setConfirm] = useState<'logout' | 'delete' | null>(null);
+  const [user, setUser] = useState<CurrentUser>({});
+
+  useEffect(() => {
+    AsyncStorage.getItem(AUTH_USER_KEY)
+      .then(value => setUser(value ? JSON.parse(value) : {}))
+      .catch(() => setUser({}));
+  }, []);
+
+  const name = user.fullName || 'Thành viên FilmGo';
+  const memberId = String(user._id || user.id || '').replace(/\D/g, '').slice(-16).padStart(16, '0');
 
   return (
     <View style={styles.screen}>
@@ -23,12 +38,13 @@ function MemberHomeScreen({ onBack, onOpen }: MemberHomeScreenProps) {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>L</Text>
+            <Text style={styles.avatarText}>{name.trim().charAt(0).toUpperCase() || 'F'}</Text>
           </View>
-          <Text style={styles.name}>Lê Thị Ngọc Anh</Text>
+          <Text style={styles.name}>{name}</Text>
+          {!!user.email && <Text style={styles.profileEmail}>{user.email}</Text>}
           <View style={styles.codeRow}>
             <Text style={styles.codeLabel}>Thẻ thành viên</Text>
-            <Text style={styles.code}>9002000004094001</Text>
+            <Text style={styles.code}>{memberId}</Text>
           </View>
           <Barcode />
 
@@ -87,6 +103,10 @@ function MemberHomeScreen({ onBack, onOpen }: MemberHomeScreenProps) {
         cancelText="Huỷ bỏ"
         confirmText="Đăng xuất"
         onClose={() => setConfirm(null)}
+        onConfirm={() => {
+          setConfirm(null);
+          onLogout();
+        }}
       />
       <ConfirmDialog
         visible={confirm === 'delete'}
@@ -139,6 +159,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '900',
     marginTop: 10,
+  },
+  profileEmail: {
+    color: '#667085',
+    fontSize: 13,
+    marginTop: 4,
   },
   codeRow: {
     flexDirection: 'row',

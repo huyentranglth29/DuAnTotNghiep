@@ -12,9 +12,10 @@ import { MemberScreenName } from './member/memberData';
 
 type MemberScreenProps = {
   onBack: () => void;
+  onLogout: () => void;
 };
 
-function MemberScreen({ onBack }: MemberScreenProps) {
+function MemberScreen({ onBack, onLogout }: MemberScreenProps) {
   const [screen, setScreen] = useState<MemberScreenName>('home');
 
   if (screen === 'points') {
@@ -46,7 +47,7 @@ function MemberScreen({ onBack }: MemberScreenProps) {
     return <ChangePasswordScreen onBack={() => setScreen('home')} />;
   }
 
-  return <MemberHomeScreen onBack={onBack} onOpen={setScreen} />;
+  return <MemberHomeScreen onBack={onBack} onOpen={setScreen} onLogout={onLogout} />;
 }
 
 export default MemberScreen;

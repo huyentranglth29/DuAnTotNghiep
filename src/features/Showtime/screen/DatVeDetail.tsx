@@ -2,7 +2,6 @@ import React, {useEffect, useState} from 'react';
 import {
   Image,
   ImageSourcePropType,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +10,18 @@ import {
   Alert,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
-import {createQuickBooking} from '../../../services/apiService';
+import {useQuery} from '@tanstack/react-query';
+import MockPaymentScreen from './MockPaymentScreen';
+import {
+  cancelPayment,
+  completeMockPayment,
+  createMockPayment,
+  failMockPayment,
+  getPaymentStatus,
+  getProducts,
+} from '../../../services/apiService';
+import {getMyVouchers} from '../../../services/voucherService';
+import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
 
 const MOMO_PINK = '#d82d8b';
 const MOMO_DARK = '#a61f69';
@@ -29,6 +39,7 @@ type DatVeDetailProps = {
   seats: string[];
   totalPrice: number;
   showtime?: {
+    id: string;
     startTime: string;
     endTime?: string;
     roomName?: string;
@@ -65,38 +76,196 @@ function formatBookingDate(iso?: string) {
 
 function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState<{amount: number; expiresAt: string} | null>(null);
+  const [comboQuantities, setComboQuantities] = useState<Record<string, number>>({});
+  const [selectedVoucher, setSelectedVoucher] = useState<FilmGoVoucher | null>(null);
+  const productsQuery = useQuery({queryKey: ['payment-products'], queryFn: getProducts});
+  const vouchersQuery = useQuery({queryKey: ['payment-my-vouchers'], queryFn: getMyVouchers});
+  const products = (((productsQuery.data as any) ?? []) as any[]).filter(
+    item => item?.isActive && !String(item?.image || '').includes('example.com'),
+  );
+  const selectedCombos = products
+    .map(item => ({...item, quantity: comboQuantities[String(item._id)] || 0}))
+    .filter(item => item.quantity > 0);
+  const comboTotal = selectedCombos.reduce(
+    (sum, item) => sum + Number(item.price) * item.quantity,
+    0,
+  );
+  const subtotal = totalPrice + comboTotal;
+  const voucherDiscount = selectedVoucher
+    ? Math.min(
+        subtotal,
+        selectedVoucher.discountType === 'percent'
+          ? Math.min(Math.round(subtotal * selectedVoucher.discountValue / 100), selectedVoucher.maxDiscount ?? Number.MAX_SAFE_INTEGER)
+          : selectedVoucher.discountValue,
+      )
+    : 0;
+  const orderTotal = subtotal - voucherDiscount;
+  const myVouchers = (((vouchersQuery.data as any) ?? []) as FilmGoVoucher[]).filter(item => item.walletStatus === 'available');
   const genre = movie.genre ?? '2D Phụ đề';
   const roomName = showtime?.roomName ?? 'Phòng chiếu 07';
   const startTime = formatBookingTime(showtime?.startTime);
   const bookingDate = formatBookingDate(showtime?.startTime);
 
-  const handleConfirmPayment = async () => {
-    if (isProcessing) return;
-    setShowConfirm(false);
+  useEffect(() => {
+    if (selectedVoucher && subtotal < Number(selectedVoucher.minOrderValue || 0)) {
+      setSelectedVoucher(null);
+    }
+  }, [selectedVoucher, subtotal]);
+
+  const changeComboQuantity = (product: any, delta: number) => {
+    const id = String(product._id);
+    setComboQuantities(current => {
+      const next = Math.max(0, Math.min(10, Number(product.stock) || 0, (current[id] || 0) + delta));
+      return {...current, [id]: next};
+    });
+  };
+
+  useEffect(() => {
+    if (!paymentId) return;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const response = await getPaymentStatus(paymentId) as any;
+        const payment = response?.data ?? response;
+        if (stopped || !payment) return;
+        if (payment.status === 'da_thanh_toan') {
+          stopped = true;
+          setShowPaymentScreen(false);
+          setPaymentId(null);
+          setShowPaymentScreen(false);
+          Alert.alert(
+            '🎉 Thanh toán thành công!',
+            `Vé phim "${movie.title}" đã được phát hành.`,
+            [{text: 'Xong', onPress: onClose}],
+          );
+        } else if (['that_bai', 'het_han', 'da_huy'].includes(payment.status)) {
+          stopped = true;
+          setPaymentId(null);
+          setIsProcessing(false);
+          Alert.alert('Thanh toán chưa thành công', 'Giao dịch đã thất bại, hết hạn hoặc bị hủy. Ghế đã được mở lại.');
+        }
+      } catch {
+        // Giữ polling: mạng có thể tạm ngắt khi người dùng ở trang VNPAY.
+      }
+    };
+    check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [movie.title, onClose, paymentId]);
+
+  const runMockResult = async (
+    id: string,
+    action: 'success' | 'failed' | 'cancelled',
+    bankCode?: string,
+  ) => {
     setIsProcessing(true);
     try {
-      await createQuickBooking({
+      if (action === 'success') await completeMockPayment(id, bankCode);
+      if (action === 'failed') await failMockPayment(id);
+      if (action === 'cancelled') await cancelPayment(id);
+    } catch (error) {
+      setPaymentId(null);
+      setIsProcessing(false);
+      Alert.alert(
+        'Không thể cập nhật thanh toán',
+        (error as Error)?.message || 'Vui lòng kiểm tra kết nối và thử lại.',
+      );
+    }
+  };
+
+  const handleContinuePayment = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const response = await createMockPayment({
+        showtimeId: showtime?.id,
         movieTitle: movie.title,
         movieDuration: movie.duration,
         movieGenre: movie.genre,
         seats: seats,
         totalPrice: totalPrice,
-        cinema: 'Cine Prestige Hà Trung (Thanh Hóa)',
+        combos: selectedCombos.map(item => ({
+          productId: item._id,
+          quantity: item.quantity,
+        })),
+        voucherCode: selectedVoucher?.code,
+        cinema: 'FilmGo Hà Trung (Thanh Hóa)',
         bookingDate: new Date().toLocaleDateString('vi-VN'),
         bookingTime: startTime,
+      }) as any;
+      const payment = response?.data ?? response;
+      if (!payment?.paymentId) {
+        throw new Error('Backend không tạo được giao dịch mô phỏng');
+      }
+      setPaymentId(payment.paymentId);
+      setPaymentInfo({
+        amount: Number(payment.amount || orderTotal),
+        expiresAt: String(payment.expiresAt),
       });
-      Alert.alert(
-        '🎉 Đặt vé thành công!',
-        `Vé phim "${movie.title}" đã được đặt thành công!\nBạn có thể kiểm tra vé trong mục "Khác > Vé của tôi".`,
-        [{text: 'Xong', onPress: onClose}],
-      );
+      setShowPaymentScreen(true);
+      setIsProcessing(false);
     } catch (e) {
       console.log('❌ Lỗi lưu vé:', e);
-      Alert.alert('Lỗi', 'Đặt vé thất bại, vui lòng thử lại.');
+      Alert.alert('Không thể đặt ghế', (e as Error)?.message || 'Đặt vé thất bại, vui lòng thử lại.');
       setIsProcessing(false);
     }
   };
+
+  const handlePaymentBack = async () => {
+    const id = paymentId;
+    setPaymentId(null);
+    setShowPaymentScreen(false);
+    setPaymentInfo(null);
+    setIsProcessing(false);
+    if (id) {
+      try {
+        await cancelPayment(id);
+      } catch (error) {
+        Alert.alert('Không thể hủy giao dịch', (error as Error)?.message || 'Vui lòng thử lại.');
+      }
+    }
+  };
+
+  const handleBankConfirm = (bankCode: string) => {
+    if (!paymentId) return;
+    Alert.alert(
+      'Kiểm thử kết quả thanh toán',
+      'Chọn kết quả ngân hàng trả về. Khi chọn thành công, vé và ghế sẽ được lưu thật vào MongoDB.',
+      [
+        {text: 'Thất bại', style: 'destructive', onPress: () => runMockResult(paymentId, 'failed', bankCode)},
+        {text: 'Hủy', style: 'cancel', onPress: () => runMockResult(paymentId, 'cancelled', bankCode)},
+        {text: 'Thành công', onPress: () => runMockResult(paymentId, 'success', bankCode)},
+      ],
+      {cancelable: false},
+    );
+  };
+
+  if (showPaymentScreen && paymentInfo) {
+    return (
+      <MockPaymentScreen
+        movieTitle={movie.title}
+        showtime={`${bookingDate} - ${startTime}`}
+        cinema="FilmGo Hà Trung (Thanh Hóa)"
+        room={roomName}
+        seats={seats}
+        ticketTotal={totalPrice}
+        combos={selectedCombos}
+        totalAmount={paymentInfo.amount}
+        voucherCode={selectedVoucher?.code}
+        voucherDiscount={voucherDiscount}
+        expiresAt={paymentInfo.expiresAt}
+        isProcessing={isProcessing}
+        onBack={handlePaymentBack}
+        onConfirm={handleBankConfirm}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -137,7 +306,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           <View style={styles.movieInfoRow}>
             <Image source={movie.poster} style={styles.posterThumb} />
             <View style={styles.movieInfoText}>
-              <Text style={styles.cinemaName}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
+              <Text style={styles.cinemaName}>FilmGo Hà Trung (Thanh Hóa)</Text>
               <Text style={styles.movieTitle} numberOfLines={2}>{movie.title}</Text>
               <View style={styles.ageBadge}>
                 <Text style={styles.ageText}>16+</Text>
@@ -175,6 +344,78 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           </View>
         </View>
 
+        <View style={styles.comboHeaderRow}>
+          <View>
+            <Text style={styles.sectionLabel}>🍿 Chọn combo bắp nước</Text>
+            <Text style={styles.comboOptional}>Không bắt buộc · Có thể bỏ qua</Text>
+          </View>
+          {comboTotal > 0 && (
+            <Text style={styles.comboHeaderTotal}>+{comboTotal.toLocaleString('vi-VN')}đ</Text>
+          )}
+        </View>
+        {productsQuery.isLoading ? (
+          <Text style={styles.comboLoading}>Đang tải combo...</Text>
+        ) : (
+          <View style={styles.comboList}>
+            {products.map(product => {
+              const quantity = comboQuantities[String(product._id)] || 0;
+              return (
+                <View
+                  key={String(product._id)}
+                  style={[styles.comboCard, quantity > 0 && styles.comboCardSelected]}>
+                  <Image source={{uri: product.image}} style={styles.comboImage} />
+                  <View style={styles.comboInfo}>
+                    <Text style={styles.comboName} numberOfLines={2}>{product.name}</Text>
+                    <Text style={styles.comboDescription} numberOfLines={2}>{product.description}</Text>
+                    <View style={styles.comboBottomRow}>
+                      <View>
+                        <Text style={styles.comboPrice}>{Number(product.price).toLocaleString('vi-VN')}đ</Text>
+                        <Text style={styles.comboStock}>Còn {product.stock}</Text>
+                      </View>
+                      <View style={styles.quantityControl}>
+                        <TouchableOpacity
+                          style={[styles.quantityButton, quantity === 0 && styles.quantityButtonDisabled]}
+                          disabled={quantity === 0 || isProcessing}
+                          onPress={() => changeComboQuantity(product, -1)}>
+                          <Text style={styles.quantityButtonText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.quantityValue}>{quantity}</Text>
+                        <TouchableOpacity
+                          style={styles.quantityButton}
+                          disabled={quantity >= Math.min(10, Number(product.stock) || 0) || isProcessing}
+                          onPress={() => changeComboQuantity(product, 1)}>
+                          <Text style={styles.quantityButtonText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        <View style={styles.voucherHeaderRow}>
+          <View><Text style={styles.sectionLabel}>🎟️ Chọn voucher</Text><Text style={styles.comboOptional}>Không bắt buộc · Chỉ áp dụng một voucher</Text></View>
+          {selectedVoucher && <TouchableOpacity onPress={() => setSelectedVoucher(null)}><Text style={styles.removeVoucher}>Bỏ chọn</Text></TouchableOpacity>}
+        </View>
+        {vouchersQuery.isLoading ? <Text style={styles.comboLoading}>Đang tải voucher...</Text> : myVouchers.length === 0 ? (
+          <View style={styles.noVoucherCard}><Text style={styles.noVoucherText}>Bạn chưa có voucher khả dụng. Vào tab Voucher để nhận ưu đãi.</Text></View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.voucherList}>
+            {myVouchers.map(voucher => {
+              const eligible = subtotal >= Number(voucher.minOrderValue || 0);
+              const selected = selectedVoucher?._id === voucher._id;
+              return <TouchableOpacity key={voucher.walletId || voucher._id} disabled={!eligible || isProcessing} style={[styles.voucherCard, selected && styles.voucherCardSelected, !eligible && styles.voucherCardDisabled]} onPress={() => setSelectedVoucher(voucher)}>
+                <Text style={styles.voucherCode}>{voucher.code}</Text>
+                <Text style={styles.voucherValue}>{formatVoucherValue(voucher)}</Text>
+                <Text style={styles.voucherCondition}>{eligible ? `Đơn từ ${Number(voucher.minOrderValue || 0).toLocaleString('vi-VN')}đ` : `Chưa đủ đơn ${Number(voucher.minOrderValue || 0).toLocaleString('vi-VN')}đ`}</Text>
+                <Text style={[styles.voucherChoose, selected && styles.voucherChooseSelected]}>{selected ? '✓ Đã chọn' : eligible ? 'Áp dụng' : 'Chưa đủ điều kiện'}</Text>
+              </TouchableOpacity>;
+            })}
+          </ScrollView>
+        )}
+
         {/* === THÔNG TIN NGƯỜI NHẬN === */}
         <Text style={styles.sectionLabel}>Thông tin người nhận</Text>
         <View style={styles.cardRecipient}>
@@ -200,93 +441,60 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
           </TouchableOpacity>
         </View>
 
-        {/* Terms */}
-        <Text style={styles.terms}>
-          Bằng cách bấm Tiếp tục, bạn đồng ý với các{' '}
-          <Text style={styles.termsLink}>điều khoản này</Text>
-          {' '}của MoMo và chính sách của rạp
-        </Text>
-
         {/* Spacer for footer */}
-        <View style={{height: 100}} />
+        <View style={{height: 145}} />
       </ScrollView>
 
       {/* === STICKY FOOTER === */}
       <View style={styles.footer}>
+        <View style={styles.invoiceMiniRow}>
+          <Text style={styles.invoiceMiniLabel}>Vé xem phim</Text>
+          <Text style={styles.invoiceMiniValue}>{totalPrice.toLocaleString('vi-VN')}đ</Text>
+        </View>
+        {comboTotal > 0 && (
+          <View style={styles.invoiceMiniRow}>
+            <Text style={styles.invoiceMiniLabel}>Combo bắp nước</Text>
+            <Text style={styles.invoiceMiniValue}>{comboTotal.toLocaleString('vi-VN')}đ</Text>
+          </View>
+        )}
+        {voucherDiscount > 0 && (
+          <View style={styles.invoiceMiniRow}><Text style={styles.invoiceDiscountLabel}>Voucher {selectedVoucher?.code}</Text><Text style={styles.invoiceDiscountValue}>−{voucherDiscount.toLocaleString('vi-VN')}đ</Text></View>
+        )}
         <View style={styles.footerTotal}>
-          <Text style={styles.footerTamTinh}>Tạm tính</Text>
-          <Text style={styles.footerAmount}>{totalPrice.toLocaleString('vi-VN')}đ</Text>
+          <Text style={styles.footerTamTinh}>Tổng thanh toán</Text>
+          <Text style={styles.footerAmount}>{orderTotal.toLocaleString('vi-VN')}đ</Text>
         </View>
         <TouchableOpacity
           activeOpacity={0.85}
           style={[styles.footerBtn, isProcessing && styles.footerBtnDisabled]}
-          onPress={() => setShowConfirm(true)}
+          onPress={handleContinuePayment}
           disabled={isProcessing}>
           <Text style={styles.footerBtnText}>
-            {isProcessing ? 'Đang xử lý...' : 'Tiếp tục'}
+            {isProcessing ? 'Đang giữ ghế và combo...' : 'Tiếp tục thanh toán'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* === MODAL XÁC NHẬN === */}
-      <Modal
-        transparent
-        visible={showConfirm}
-        animationType="slide"
-        onRequestClose={() => setShowConfirm(false)}>
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowConfirm(false)}>
-          <View style={styles.confirmSheet}>
-            <TouchableOpacity
-              style={styles.closeX}
-              onPress={() => setShowConfirm(false)}>
-              <Text style={styles.closeXText}>✕</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.confirmTitle}>Xác nhận đặt vé</Text>
-            <Text style={styles.confirmSubtitle}>
-              Bạn đang đặt vé xem phim {movie.title}:
-            </Text>
-
-            <View style={styles.confirmRow}>
-              <Text style={styles.confirmRowIcon}>🎬</Text>
-              <View>
-                <Text style={styles.confirmRowTextPink}>Cine Prestige Hà Trung (Thanh Hóa)</Text>
-                <Text style={styles.confirmRowSub}>Thanh Hóa</Text>
-              </View>
-            </View>
-
-            <View style={styles.confirmRow}>
-              <Text style={styles.confirmRowIcon}>🕐</Text>
-              <Text style={styles.confirmRowTextPink}>{startTime}</Text>
-            </View>
-
-            <View style={styles.confirmRow}>
-              <Text style={styles.confirmRowIcon}>📅</Text>
-              <Text style={styles.confirmRowTextPink}>{bookingDate}</Text>
-            </View>
-
-            <View style={styles.confirmRow}>
-              <Text style={styles.confirmRowIcon}>💺</Text>
-              <Text style={styles.confirmRowText}>Ghế: <Text style={styles.confirmBold}>{seats.join(', ')}</Text></Text>
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={styles.confirmBtn}
-              onPress={handleConfirmPayment}>
-              <Text style={styles.confirmBtnText}>Xác nhận</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  voucherHeaderRow: {marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  removeVoucher: {color: '#e51978', fontSize: 12, fontWeight: '800'},
+  voucherList: {marginHorizontal: -2, marginBottom: 18},
+  voucherCard: {width: 210, minHeight: 128, marginHorizontal: 2, marginRight: 10, padding: 14, borderRadius: 15, borderWidth: 1.5, borderColor: '#f2b8d7', backgroundColor: '#fff8fc'},
+  voucherCardSelected: {borderColor: '#e51978', backgroundColor: '#fff0f8'},
+  voucherCardDisabled: {opacity: 0.48, borderColor: '#d1d5db', backgroundColor: '#f3f4f6'},
+  voucherCode: {fontSize: 16, color: '#e51978', fontWeight: '900'},
+  voucherValue: {fontSize: 14, color: '#1f2937', fontWeight: '800', marginTop: 6},
+  voucherCondition: {fontSize: 11, color: '#6b7280', marginTop: 5},
+  voucherChoose: {fontSize: 12, color: '#e51978', fontWeight: '800', marginTop: 9},
+  voucherChooseSelected: {color: '#0f9d58'},
+  noVoucherCard: {padding: 15, borderRadius: 13, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 18},
+  noVoucherText: {fontSize: 12, lineHeight: 18, color: '#7c8592'},
+  invoiceDiscountLabel: {fontSize: 12, color: '#0f9d58', fontWeight: '700'},
+  invoiceDiscountValue: {fontSize: 13, color: '#0f9d58', fontWeight: '900'},
   container: {
     flex: 1,
     backgroundColor: BG_GRAY,
@@ -433,6 +641,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  comboHeaderRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10},
+  comboOptional: {color: TEXT_MUTED, fontSize: 12, marginTop: -7},
+  comboHeaderTotal: {color: MOMO_PINK, fontSize: 15, fontWeight: '800'},
+  comboLoading: {color: TEXT_MUTED, paddingVertical: 20, textAlign: 'center'},
+  comboList: {gap: 10, marginBottom: 18},
+  comboCard: {
+    backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#e6e6e8',
+    borderRadius: 14, padding: 10, flexDirection: 'row',
+  },
+  comboCardSelected: {borderColor: MOMO_PINK, backgroundColor: '#fff8fc'},
+  comboImage: {width: 82, height: 92, borderRadius: 10, backgroundColor: '#eeeeee'},
+  comboInfo: {flex: 1, marginLeft: 11},
+  comboName: {color: TEXT_DARK, fontSize: 14, lineHeight: 18, fontWeight: '800'},
+  comboDescription: {color: TEXT_MUTED, fontSize: 11, lineHeight: 15, marginTop: 3},
+  comboBottomRow: {flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 7},
+  comboPrice: {color: MOMO_PINK, fontSize: 14, fontWeight: '800'},
+  comboStock: {color: '#999999', fontSize: 9, marginTop: 2},
+  quantityControl: {
+    flexDirection: 'row', alignItems: 'center', borderWidth: 1,
+    borderColor: '#ead3e0', borderRadius: 9, overflow: 'hidden',
+  },
+  quantityButton: {width: 32, height: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff0f8'},
+  quantityButtonDisabled: {backgroundColor: '#f3f3f3'},
+  quantityButtonText: {color: MOMO_PINK, fontSize: 20, lineHeight: 22, fontWeight: '700'},
+  quantityValue: {width: 34, textAlign: 'center', color: TEXT_DARK, fontSize: 14, fontWeight: '700'},
   cardRecipient: {
     backgroundColor: '#ffffff',
     borderRadius: 14,
@@ -474,6 +707,43 @@ const styles = StyleSheet.create({
     color: MOMO_PINK,
     fontWeight: '600',
   },
+  paymentMethodCard: {
+    minHeight: 76,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: MOMO_PINK,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  paymentMethodTitle: {
+    color: TEXT_DARK,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  paymentMethodDescription: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+  },
+  paymentRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 5,
+    borderColor: MOMO_PINK,
+    backgroundColor: '#ffffff',
+    marginLeft: 10,
+  },
+  sandboxNote: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    marginTop: 8,
+    marginBottom: 8,
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -497,6 +767,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  invoiceMiniRow: {flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4},
+  invoiceMiniLabel: {color: TEXT_MUTED, fontSize: 12},
+  invoiceMiniValue: {color: '#555555', fontSize: 12, fontWeight: '600'},
   footerTamTinh: {
     color: TEXT_MUTED,
     fontSize: 15,
@@ -534,6 +807,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 36,
     elevation: 20,
+    maxHeight: '92%',
   },
   closeX: {
     alignSelf: 'flex-end',
@@ -561,6 +835,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 20,
   },
+  confirmComboBox: {backgroundColor: '#fff5fa', borderRadius: 12, padding: 12, marginBottom: 14},
+  confirmComboTitle: {color: TEXT_DARK, fontSize: 14, fontWeight: '800', marginBottom: 8},
+  confirmComboRow: {flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5},
+  confirmComboName: {flex: 1, color: '#555555', fontSize: 12, marginRight: 8},
+  confirmComboPrice: {color: TEXT_DARK, fontSize: 12, fontWeight: '700'},
+  confirmComboTotalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1,
+    borderTopColor: '#efd8e5', paddingTop: 8, marginTop: 4,
+  },
+  confirmComboTotalLabel: {color: TEXT_DARK, fontSize: 13, fontWeight: '700'},
+  confirmComboTotalValue: {color: MOMO_PINK, fontSize: 14, fontWeight: '800'},
   confirmRow: {
     flexDirection: 'row',
     alignItems: 'center',

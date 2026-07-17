@@ -1,5 +1,7 @@
 const Showtime = require("../models/Showtime");
 const Movie = require("../models/Movie");
+const Seat = require("../models/Seat");
+const BookedSeat = require("../models/BookedSeat");
 
 const POPULATE = [
   { path: "movie", select: "title posterUrl duration ageRating genre status" },
@@ -91,6 +93,47 @@ const getShowtimeById = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: showtime,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getShowtimeSeats = async (req, res, next) => {
+  try {
+    const showtime = await Showtime.findById(req.params.id).populate(
+      "room",
+      "name type totalSeats status"
+    );
+    if (!showtime) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy suất chiếu" });
+    }
+
+    const [seats, soldLabels] = await Promise.all([
+      Seat.find({ room: showtime.room._id, status: "active" })
+        .sort({ row: 1, number: 1 })
+        .lean(),
+      BookedSeat.find({
+        showtimeId: String(showtime._id),
+        $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: new Date() } }],
+      }).distinct("seatLabel"),
+    ]);
+    const sold = new Set(soldLabels);
+
+    return res.json({
+      success: true,
+      data: {
+        showtimeId: String(showtime._id),
+        room: showtime.room,
+        seats: seats.map((seat) => ({
+          id: String(seat._id),
+          label: `${seat.row}${seat.number}`,
+          row: seat.row,
+          number: seat.number,
+          type: seat.type,
+          isBooked: sold.has(`${seat.row}${seat.number}`),
+        })),
+      },
     });
   } catch (error) {
     next(error);
@@ -208,6 +251,7 @@ const deleteShowtime = async (req, res, next) => {
 module.exports = {
   getShowtimes,
   getShowtimeById,
+  getShowtimeSeats,
   createShowtime,
   updateShowtime,
   deleteShowtime,

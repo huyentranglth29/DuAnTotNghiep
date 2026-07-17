@@ -47,6 +47,23 @@ export type LocSuatChieu = {
   bookable?: boolean;
 };
 
+export type GheSuatChieu = {
+  id: string;
+  label: string;
+  row: string;
+  number: number;
+  type: 'normal' | 'vip' | 'couple';
+  isBooked: boolean;
+};
+
+export async function layGheTheoSuatChieu(showtimeId: string): Promise<GheSuatChieu[]> {
+  const res = await apiClient.get(`/api/showtimes/${showtimeId}/seats`);
+  const payload = layPayload<{seats: GheSuatChieu[]}>(
+    res as {seats: GheSuatChieu[]} | {data: {seats: GheSuatChieu[]}},
+  );
+  return Array.isArray(payload?.seats) ? payload.seats : [];
+}
+
 /** GET /api/showtimes */
 export async function layDanhSachSuatChieu(
   loc?: LocSuatChieu,

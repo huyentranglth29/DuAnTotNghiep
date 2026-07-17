@@ -1,5 +1,7 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   ImageBackground,
   ImageSourcePropType,
   Modal,
@@ -11,7 +13,12 @@ import {
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
 import {SelectedShowtimeInfo} from './ChonGio';
-import {formatGio, formatNgayNgan} from '../../../services/showtimeService';
+import {
+  formatGio,
+  formatNgayNgan,
+  GheSuatChieu,
+  layGheTheoSuatChieu,
+} from '../../../services/showtimeService';
 
 const BLUE = '#005f98';
 const MOMO_PINK = '#d82d8b';
@@ -32,27 +39,8 @@ type DatVeProps = {
   onContinue: (summary: {seats: string[]; totalPrice: number}) => void;
 };
 
-const soldSeats = new Set([
-  'C6', 'C7', 'C8', 'C9', 'C10', 'C11',
-  'D6', 'D7', 'D8', 'D9', 'D10', 'D11',
-  'E6', 'E7', 'E8', 'E9', 'E10', 'E11',
-  'F6', 'F7', 'F8', 'F9', 'F10', 'F11',
-  'H8', 'H9',
-]);
-
 // Row definitions: [row key, seat labels, isVip]
-type RowDef = {key: string; seats: string[]; isVip: boolean};
-
-const seatRows: RowDef[] = [
-  {key: 'A', seats: ['A1','A2','A3','A4','A5','A6','A7','A8','A9','A10','A11','A12','A13','A14'], isVip: false},
-  {key: 'B', seats: ['B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12','B13','B14'], isVip: false},
-  {key: 'C', seats: ['C1','C2','C3','C4','C5','C6','C7','C8','C9','C10','C11','C12','C13','C14','C15'], isVip: false},
-  {key: 'D', seats: ['D1','D2','D3','D4','D5','D6','D7','D8','D9','D10','D11','D12','D13','D14','D15'], isVip: false},
-  {key: 'E', seats: ['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','E11','E12','E13','E14'], isVip: true},
-  {key: 'F', seats: ['F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12','F13','F14','F15'], isVip: true},
-  {key: 'G', seats: ['G1','G2','G3','G4','G5','G6','G7','G8','G9','G10','G11','G12','G13'], isVip: true},
-  {key: 'H', seats: ['H1','H2','H3','H4','H5','H6','H7','H8','H9','H10','H11','H12','H13'], isVip: true},
-];
+type RowDef = {key: string; seats: GheSuatChieu[]};
 
 // Seats in the "center zone" (bordered)
 const CENTER_ZONE = new Set([
@@ -64,19 +52,84 @@ const CENTER_ZONE = new Set([
 
 function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const [selectedSeats, setSelectedSeats] = useState(new Set<string>());
+  const [seatItems, setSeatItems] = useState<GheSuatChieu[]>([]);
+  const [soldSeats, setSoldSeats] = useState(new Set<string>());
+  const [isLoadingSeats, setIsLoadingSeats] = useState(true);
+  const [seatError, setSeatError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const selectedSeatsRef = useRef(new Set<string>());
   const duration = movie.duration ?? '109 phút';
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
   const unitPrice = showtime.price > 0 ? showtime.price : 55000;
   const totalPrice = selectedSeatList.reduce((total, seat) => {
-    const isVip = /^[E-H]/.test(seat);
+    const seatType = seatItems.find(item => item.label === seat)?.type;
+    const isVip = seatType === 'vip' || seatType === 'couple';
     return total + (isVip ? Math.round(unitPrice * 1.2) : unitPrice);
   }, 0);
   const hasSelectedSeats = selectedSeatList.length > 0;
   const showMeta = `${showtime.roomType} | ${formatNgayNgan(showtime.startTime)} ${formatGio(showtime.startTime)}`;
+  const seatRows = Array.from(
+    seatItems.reduce((rows, seat) => {
+      if (!rows.has(seat.row)) rows.set(seat.row, []);
+      rows.get(seat.row)!.push(seat);
+      return rows;
+    }, new Map<string, GheSuatChieu[]>()),
+  ).map(([key, seats]) => ({key, seats}));
+
+  useEffect(() => {
+    let cancelled = false;
+    let refreshing = false;
+    setIsLoadingSeats(true);
+    setSeatError('');
+    setSelectedSeats(new Set());
+    selectedSeatsRef.current = new Set();
+
+    const refreshSeats = async (initial = false) => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const seats = await layGheTheoSuatChieu(showtime.id);
+        if (cancelled) return;
+        const nextSold = new Set(seats.filter(seat => seat.isBooked).map(seat => seat.label));
+        const unavailableSelected = Array.from(selectedSeatsRef.current).filter(label => nextSold.has(label));
+
+        setSeatItems(seats);
+        setSoldSeats(nextSold);
+        if (unavailableSelected.length) {
+          const nextSelected = new Set(selectedSeatsRef.current);
+          unavailableSelected.forEach(label => nextSelected.delete(label));
+          selectedSeatsRef.current = nextSelected;
+          setSelectedSeats(nextSelected);
+          setShowConfirm(false);
+          Alert.alert(
+            'Ghế vừa được người khác chọn',
+            `Ghế ${unavailableSelected.join(', ')} không còn trống và đã được bỏ khỏi lựa chọn của bạn.`,
+          );
+        }
+        setSeatError('');
+      } catch (error) {
+        if (!cancelled && initial) {
+          setSoldSeats(new Set());
+          setSeatItems([]);
+          setSeatError((error as Error)?.message || 'Không tải được trạng thái ghế');
+        }
+      } finally {
+        refreshing = false;
+        if (!cancelled && initial) setIsLoadingSeats(false);
+      }
+    };
+
+    refreshSeats(true);
+    const timer = setInterval(() => refreshSeats(false), 4000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [showtime.id]);
 
   const handleSeatPress = (seat: string) => {
-    if (soldSeats.has(seat)) return;
+    if (isLoadingSeats || seatError || soldSeats.has(seat)) return;
     setSelectedSeats(current => {
       const next = new Set(current);
       if (next.has(seat)) {
@@ -84,6 +137,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       } else {
         next.add(seat);
       }
+      selectedSeatsRef.current = next;
       return next;
     });
   };
@@ -117,14 +171,25 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         </View>
 
         {/* Seat grid */}
+        {isLoadingSeats ? (
+          <View style={styles.seatStatus}>
+            <ActivityIndicator color="#ffffff" />
+            <Text style={styles.seatStatusText}>Đang kiểm tra ghế đã đặt...</Text>
+          </View>
+        ) : seatError ? (
+          <Text style={styles.seatError}>{seatError}. Vui lòng quay lại và thử lại.</Text>
+        ) : null}
         <View style={styles.seatPanel}>
           {seatRows.map(row => (
             <View key={row.key} style={styles.seatRow}>
-              {row.seats.map(seat => {
+              {row.seats.map(seatItem => {
+                const seat = seatItem.label;
                 const isSold = soldSeats.has(seat);
                 const isSelected = selectedSeats.has(seat);
                 const isCenter = CENTER_ZONE.has(seat);
-                let bgColor = row.isVip ? COLOR_VIP : COLOR_NORMAL;
+                let bgColor = seatItem.type === 'vip' || seatItem.type === 'couple'
+                  ? COLOR_VIP
+                  : COLOR_NORMAL;
                 if (isSold) bgColor = COLOR_SOLD;
                 if (isSelected) bgColor = COLOR_SELECTED;
 
@@ -132,6 +197,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
                   <TouchableOpacity
                     key={seat}
                     activeOpacity={isSold ? 1 : 0.7}
+                    disabled={isSold || isLoadingSeats || Boolean(seatError)}
                     onPress={() => handleSeatPress(seat)}
                     style={[
                       styles.seat,
@@ -202,7 +268,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
             <View style={styles.confirmInfoRow}>
               <Text style={styles.confirmIcon}>🎬</Text>
               <Text style={styles.confirmInfoText} numberOfLines={1}>
-                Cine Prestige Hà Trung
+                FilmGo Hà Trung (Thanh Hóa)
               </Text>
             </View>
             <View style={styles.confirmInfoRow}>
@@ -323,6 +389,22 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     paddingBottom: 12,
+  },
+  seatStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+  },
+  seatStatusText: {
+    color: '#ffffff',
+  },
+  seatError: {
+    color: '#ffaaaa',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   screenWrapper: {
     alignItems: 'center',
