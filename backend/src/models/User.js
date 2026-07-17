@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      default: null,
     },
     phone: {
       type: String,
@@ -32,6 +32,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "blocked"],
       default: "active",
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      trim: true,
+      sparse: true,
     },
   },
   {
@@ -48,6 +58,10 @@ userSchema.pre("save", async function hashPassword() {
 });
 
 userSchema.methods.comparePassword = function comparePassword(password) {
+  if (!this.password) {
+    return false;
+  }
+
   return bcrypt.compare(password, this.password);
 };
 
