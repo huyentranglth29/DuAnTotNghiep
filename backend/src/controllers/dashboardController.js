@@ -57,7 +57,18 @@ const seatCount = (value) => {
 
 const getAdminOverview = async (req, res) => {
   try {
-    const now = new Date();
+    const currentTime = new Date();
+    const requestedDate = String(req.query.date || "").trim();
+    let now = currentTime;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+      const [year, month, date] = requestedDate.split("-").map(Number);
+      const selectedNoon = new Date(
+        Date.UTC(year, month - 1, date, 12) - VN_OFFSET,
+      );
+      if (!Number.isNaN(selectedNoon.getTime()) && dayKey(selectedNoon) !== dayKey(currentTime)) {
+        now = selectedNoon;
+      }
+    }
     const todayStart = vietnamDayStart(now);
     const tomorrowStart = new Date(todayStart.getTime() + DAY);
     const yesterdayStart = new Date(todayStart.getTime() - DAY);
@@ -124,7 +135,7 @@ const getAdminOverview = async (req, res) => {
         .sort({ startTime: 1 })
         .lean(),
       Showtime.find({
-        startTime: { $gt: now },
+        startTime: { $gt: now, $lt: tomorrowStart },
         status: "scheduled",
       })
         .populate("movie", "title posterUrl poster duration status")

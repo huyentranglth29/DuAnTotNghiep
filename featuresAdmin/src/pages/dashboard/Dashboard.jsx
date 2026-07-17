@@ -1,8 +1,17 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Link} from 'react-router-dom';
 import dashboardApi from '../../api/dashboardApi';
+import {useAdminTheme} from '../../theme/AdminThemeContext';
 
 const money = value => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+const inputDate = (value = new Date()) => {
+  const date = new Date(value);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+};
 const time = value =>
   value
     ? new Date(value).toLocaleTimeString('vi-VN', {
@@ -54,7 +63,8 @@ function Dashboard() {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const today = new Date().toLocaleDateString('vi-VN');
+  const [selectedDate, setSelectedDate] = useState(inputDate);
+  const {darkMode, toggleDarkMode} = useAdminTheme();
   const admin = (() => {
     try {
       return JSON.parse(localStorage.getItem('filmgo_admin_user') || '{}');
@@ -64,12 +74,14 @@ function Dashboard() {
   })();
 
   useEffect(() => {
+    setLoading(true);
+    setError('');
     dashboardApi
-      .getOverview()
+      .getOverview({date: selectedDate})
       .then(response => setOverview(response?.data || response))
       .catch(err => setError(err.message || 'Không tải được dữ liệu tổng quan.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedDate]);
 
   const chart = useMemo(
     () => buildChart(overview?.revenueByDay || []),
@@ -159,13 +171,39 @@ function Dashboard() {
           <p>Theo dõi nhanh hoạt động vận hành rạp FilmGo</p>
         </div>
         <div className="overviewTopActions">
-          <button type="button">▦ {today}⌄</button>
-          <button className="overviewIconButton" type="button" aria-label="Thông báo">♢<i>3</i></button>
-          <button className="overviewIconButton" type="button" aria-label="Giao diện tối">◐</button>
-          <span className="overviewAdmin">
-            <strong>{String(admin.fullName || 'A').charAt(0).toUpperCase()}</strong>
-            {admin.fullName || 'Admin'}⌄
-          </span>
+          <label className="overviewDatePicker" title="Chọn ngày thống kê">
+            <span>▦</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={event => setSelectedDate(event.target.value)}
+            />
+          </label>
+          <Link
+            className="overviewIconButton"
+            to="/notifications"
+            aria-label="Mở thông báo"
+            title="Mở thông báo">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {notifications.length ? <i>{notifications.length}</i> : null}
+          </Link>
+          <button
+            className="overviewIconButton"
+            type="button"
+            aria-label={darkMode ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+            title={darkMode ? 'Giao diện sáng' : 'Giao diện tối'}
+            onClick={toggleDarkMode}>
+            {darkMode ? '☀' : '◐'}
+          </button>
         </div>
       </div>
 

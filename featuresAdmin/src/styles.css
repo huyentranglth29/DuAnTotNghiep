@@ -7,6 +7,7 @@ body {
   color: #17202a;
   font-family: Arial, sans-serif;
   background: #f6f8fb;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 a {
@@ -162,6 +163,24 @@ select {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.headerThemeButton {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  color: #334155;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.headerThemeButton:hover {
+  color: #2563eb;
+  border-color: #93c5fd;
+  background: #eff6ff;
 }
 
 .avatar {
@@ -3086,9 +3105,15 @@ th {
 }
 
 .overviewTopActions button,
+.overviewTopActions > a,
+.overviewDatePicker,
 .overviewRevenue .overviewSectionHeader button {
   position: relative;
+  display: inline-flex;
   height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 0 11px;
   border: 1px solid #e3e8ef;
   border-radius: 8px;
@@ -3097,10 +3122,36 @@ th {
   cursor: pointer;
 }
 
+.overviewDatePicker {
+  min-width: 142px;
+}
+
+.overviewDatePicker input {
+  width: 108px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.overviewDatePicker input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: .75;
+}
+
 .overviewIconButton {
   width: 36px;
   padding: 0 !important;
   font-size: 18px;
+}
+
+.overviewIconButton svg {
+  width: 18px;
+  height: 18px;
 }
 
 .overviewIconButton i {
@@ -3624,6 +3675,379 @@ th {
   color: #8b94a2;
   font-size: 10px;
   text-align: center;
+}
+
+.adminDarkMode {
+  color: #dce5f2;
+  background: #0d1522;
+}
+
+.adminDarkMode .header,
+.adminDarkMode .overviewMetric,
+.adminDarkMode .overviewPanel,
+.adminDarkMode .overviewTopActions button,
+.adminDarkMode .overviewTopActions > a,
+.adminDarkMode .overviewDatePicker,
+.adminDarkMode .overviewRevenue .overviewSectionHeader button {
+  color: #dce5f2;
+  border-color: #2b394d;
+  background: #172235;
+}
+
+.adminDarkMode .pageContent {
+  background: #0d1522;
+}
+
+.adminDarkMode .overviewPage {
+  color: #edf3fb;
+}
+
+.adminDarkMode .overviewMetric p,
+.adminDarkMode .overviewTopbar > div > p,
+.adminDarkMode .overviewTitleLine span,
+.adminDarkMode .overviewMovieCard p,
+.adminDarkMode .overviewMovieCard small,
+.adminDarkMode .overviewUpcoming p,
+.adminDarkMode .overviewUpcoming small,
+.adminDarkMode .overviewLegend span,
+.adminDarkMode .overviewEmpty {
+  color: #98a7bc;
+}
+
+.adminDarkMode .overviewDonut::after {
+  background: #172235;
+}
+
+.adminDarkMode .overviewDonut strong,
+.adminDarkMode .overviewLegend p {
+  color: #e5edf7;
+}
+
+.adminDarkMode .overviewLineChart line,
+.adminDarkMode .overviewMovieCard > div > div,
+.adminDarkMode .overviewRankList > div > i,
+.adminDarkMode .overviewRoomList p > i {
+  stroke: #2b394d;
+  background: #2b394d;
+}
+
+.adminDarkMode .overviewLineChart text {
+  fill: #8190a5;
+}
+
+.adminDarkMode .overviewLineChart circle {
+  fill: #172235;
+}
+
+.adminDarkMode .overviewDatePicker input {
+  color-scheme: dark;
+}
+
+/* Shared dark theme for every Admin route */
+.adminDarkMode {
+  --admin-bg: #0d1522;
+  --admin-surface: #172235;
+  --admin-surface-raised: #1d2a3e;
+  --admin-control: #111c2c;
+  --admin-text: #edf3fb;
+  --admin-muted: #98a7bc;
+  --admin-border: #2b394d;
+  --admin-hover: #22334b;
+  color: var(--admin-text);
+  background: var(--admin-bg);
+}
+
+.adminDarkMode .adminLayout,
+.adminDarkMode .adminLayout > main,
+.adminDarkMode .pageContent,
+.adminDarkMode .loginPage {
+  color: var(--admin-text);
+  background: var(--admin-bg);
+}
+
+.adminDarkMode .header {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: #111c2c;
+}
+
+.adminDarkMode .header span,
+.adminDarkMode .pageTitle p,
+.adminDarkMode .sectionHeader p,
+.adminDarkMode .metricCard span,
+.adminDarkMode .mutedText,
+.adminDarkMode .emptyCell,
+.adminDarkMode .tableFooter,
+.adminDarkMode .securityPanel p,
+.adminDarkMode .profileInfoItem small,
+.adminDarkMode .moviePreview span,
+.adminDarkMode .moviePreview small,
+.adminDarkMode .summaryGrid span,
+.adminDarkMode .occupancy span,
+.adminDarkMode .showtimeDetailHeader p,
+.adminDarkMode .showtimeDetailGrid span,
+.adminDarkMode .voucherEyebrow,
+.adminDarkMode .voucherFilter,
+.adminDarkMode .voucherChartHint,
+.adminDarkMode .voucherLoading,
+.adminDarkMode .voucherEmptyHint,
+.adminDarkMode .voucherBarCol,
+.adminDarkMode .bookingDetailHead span,
+.adminDarkMode .bookingDetailAside span,
+.adminDarkMode .bookingDetailItem span,
+.adminDarkMode .electronicTicketGrid small,
+.adminDarkMode .electronicTicketCode small,
+.adminDarkMode .electronicTicketQr p {
+  color: var(--admin-muted);
+}
+
+.adminDarkMode .statsGrid article,
+.adminDarkMode .metricCard,
+.adminDarkMode .panel,
+.adminDarkMode .placeholder,
+.adminDarkMode .tableWrap,
+.adminDarkMode .loginBox,
+.adminDarkMode .roleHero,
+.adminDarkMode .roleCard,
+.adminDarkMode .showtimeSearchBar,
+.adminDarkMode .showtimeFilters,
+.adminDarkMode .showtimeTableWrap,
+.adminDarkMode .profileCard,
+.adminDarkMode .accountPanel,
+.adminDarkMode .securityPanel,
+.adminDarkMode .voucherChartCard,
+.adminDarkMode .voucherUsageCard,
+.adminDarkMode .voucherListPanel,
+.adminDarkMode .electronicTicketCard {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: none;
+}
+
+.adminDarkMode table,
+.adminDarkMode th,
+.adminDarkMode td,
+.adminDarkMode .sectionHeader,
+.adminDarkMode .roleActions,
+.adminDarkMode .bookingDetailHead,
+.adminDarkMode .voucherTable th,
+.adminDarkMode .voucherTable td,
+.adminDarkMode .showtimeTable th,
+.adminDarkMode .showtimeTable td {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+}
+
+.adminDarkMode th,
+.adminDarkMode .showtimeTable th,
+.adminDarkMode .voucherTable th,
+.adminDarkMode .electronicTicketStatus {
+  color: var(--admin-muted);
+  background: var(--admin-control);
+}
+
+.adminDarkMode tbody tr:hover,
+.adminDarkMode .showtimeTable tbody tr:hover,
+.adminDarkMode .voucherTable tbody tr:hover {
+  background: var(--admin-hover);
+}
+
+.adminDarkMode input,
+.adminDarkMode textarea,
+.adminDarkMode select,
+.adminDarkMode .customSelectTrigger,
+.adminDarkMode .customSelectMenu,
+.adminDarkMode .voucherFilter select,
+.adminDarkMode .voucherDateRange input,
+.adminDarkMode .voucherSearch,
+.adminDarkMode .paymentFilters input,
+.adminDarkMode .paymentFilters select,
+.adminDarkMode .paymentHistoryFilters input,
+.adminDarkMode .paymentHistoryFilters select,
+.adminDarkMode .bookingFilters input,
+.adminDarkMode .bookingFilters select,
+.adminDarkMode .electronicTicketToolbar input,
+.adminDarkMode .electronicTicketToolbar select {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode input::placeholder,
+.adminDarkMode textarea::placeholder {
+  color: #728299;
+}
+
+.adminDarkMode input:disabled,
+.adminDarkMode textarea:disabled,
+.adminDarkMode select:disabled,
+.adminDarkMode .accountForm input:disabled {
+  color: #74849a;
+  background: #152033;
+}
+
+.adminDarkMode .formGrid label,
+.adminDarkMode .showtimeForm label,
+.adminDarkMode .accountForm label,
+.adminDarkMode .audienceGroup,
+.adminDarkMode .roleHero label,
+.adminDarkMode .selectAll,
+.adminDarkMode .customSelect,
+.adminDarkMode .showtimeFilters label,
+.adminDarkMode .barList p,
+.adminDarkMode .legend {
+  color: #cbd6e5;
+}
+
+.adminDarkMode .ghost,
+.adminDarkMode .filterActions .ghost,
+.adminDarkMode .formActions .ghost,
+.adminDarkMode .pageTitle .ghost,
+.adminDarkMode .showtimeDetailActions .ghost,
+.adminDarkMode .voucherGhostBtn {
+  color: #dce5f2 !important;
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface-raised) !important;
+}
+
+.adminDarkMode .actionGroup button,
+.adminDarkMode .iconAction,
+.adminDarkMode .pager button,
+.adminDarkMode .voucherRowActions button,
+.adminDarkMode .profileAvatarWrap button,
+.adminDarkMode .headerThemeButton {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-surface-raised);
+}
+
+.adminDarkMode .actionGroup button:hover,
+.adminDarkMode .iconAction:hover,
+.adminDarkMode .pager button:hover:not(:disabled),
+.adminDarkMode .voucherRowActions button:hover,
+.adminDarkMode .headerThemeButton:hover {
+  color: #8fc0ff;
+  border-color: #3d6fa8;
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .permissionItem,
+.adminDarkMode .summaryGrid p,
+.adminDarkMode .occupancy div,
+.adminDarkMode .showtimeDetailGrid p,
+.adminDarkMode .bookingDetailItem {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .permissionItem:hover,
+.adminDarkMode .summaryGrid p:hover,
+.adminDarkMode .showtimeDetailGrid p:hover {
+  border-color: #3d6fa8;
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .permissionItem strong,
+.adminDarkMode .profileInfoItem,
+.adminDarkMode .profileInfoItem strong,
+.adminDarkMode .accountForm label,
+.adminDarkMode .showtimeDetailGrid strong,
+.adminDarkMode .movieCell strong,
+.adminDarkMode .roomCell strong,
+.adminDarkMode .timeCell strong,
+.adminDarkMode .priceCell,
+.adminDarkMode .monoCell,
+.adminDarkMode .voucherPageHeader h1,
+.adminDarkMode .voucherChartCard h2,
+.adminDarkMode .voucherUsageCard h3,
+.adminDarkMode .voucherUsageCard p,
+.adminDarkMode .voucherDonutLegend,
+.adminDarkMode .bookingDetailItem strong,
+.adminDarkMode .bookingDetailAside p,
+.adminDarkMode .electronicTicketGrid strong {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .profileDivider,
+.adminDarkMode .seatBar,
+.adminDarkMode .voucherProgress,
+.adminDarkMode .voucherBarTrack {
+  background: var(--admin-border);
+}
+
+.adminDarkMode .customSelectOption {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .customSelectOption:hover {
+  color: #9fc8ff;
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .customSelectOption.active {
+  color: #fff;
+  background: #2563eb;
+}
+
+.adminDarkMode .modalBackdrop {
+  background: rgba(2, 6, 12, 0.72);
+}
+
+.adminDarkMode .modal,
+.adminDarkMode .modal header,
+.adminDarkMode .modal .formActions {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.adminDarkMode .loginCard {
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+}
+
+.adminDarkMode .loginOptions {
+  color: var(--admin-muted);
+}
+
+.adminDarkMode .voucherGridLine {
+  stroke: var(--admin-border);
+}
+
+.adminDarkMode .voucherDot {
+  fill: var(--admin-surface);
+}
+
+.adminDarkMode .voucherDonutCenter {
+  fill: var(--admin-text);
+}
+
+.adminDarkMode .electronicTicketCode {
+  background: var(--admin-control);
+}
+
+.adminDarkMode .electronicTicketCut {
+  border-color: var(--admin-border);
+}
+
+.adminDarkMode .qrBox {
+  color-scheme: light;
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.adminDarkMode .screenLine {
+  color: #bac6d6;
+  background: #2b394d;
+}
+
+.adminDarkMode .miniChart {
+  background:
+    linear-gradient(135deg, transparent 12%, rgba(96, 165, 250, 0.25) 12% 14%, transparent 14% 28%, rgba(96, 165, 250, 0.5) 28% 30%, transparent 30%),
+    repeating-linear-gradient(0deg, var(--admin-surface), var(--admin-surface) 38px, var(--admin-border) 39px);
 }
 
 @media (max-width: 1400px) {
