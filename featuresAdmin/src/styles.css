@@ -2983,3 +2983,690 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* Dashboard preview */
+.overviewPage {
+  --overview-green: #16a365;
+  --overview-blue: #246edb;
+  --overview-orange: #efad29;
+  --overview-red: #e43c45;
+  display: grid;
+  gap: 14px;
+  color: #172033;
+}
+
+.overviewState {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  color: #687385;
+  text-align: center;
+}
+
+.overviewState h2,
+.overviewState p {
+  margin: 0;
+}
+
+.overviewState button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 7px;
+  color: #ffffff;
+  background: #2563eb;
+  cursor: pointer;
+}
+
+.overviewSpinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #dce5f2;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: overviewSpin .8s linear infinite;
+}
+
+@keyframes overviewSpin {
+  to { transform: rotate(360deg); }
+}
+
+.overviewTopbar,
+.overviewTopActions,
+.overviewTitleLine,
+.overviewSectionHeader,
+.overviewMetric,
+.overviewAdmin {
+  display: flex;
+  align-items: center;
+}
+
+.overviewTopbar {
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.overviewTitleLine {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.overviewTitleLine h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.overviewTitleLine span,
+.overviewTopbar > div > p {
+  color: #7b8494;
+  font-size: 12px;
+}
+
+.overviewTitleLine b {
+  padding: 4px 7px;
+  border-radius: 999px;
+  color: #8a6110;
+  background: #fff4ce;
+  font-size: 9px;
+  letter-spacing: .06em;
+}
+
+.overviewTitleLine b.live {
+  color: #087a47;
+  background: #dcfce7;
+}
+
+.overviewTopbar > div > p {
+  margin: 5px 0 0;
+}
+
+.overviewTopActions {
+  gap: 8px;
+}
+
+.overviewTopActions button,
+.overviewRevenue .overviewSectionHeader button {
+  position: relative;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  color: #566174;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.overviewIconButton {
+  width: 36px;
+  padding: 0 !important;
+  font-size: 18px;
+}
+
+.overviewIconButton i {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #ef4444;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.overviewAdmin {
+  gap: 8px;
+  min-width: 92px;
+  padding-left: 6px;
+  font-size: 12px;
+}
+
+.overviewAdmin strong {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.overviewMetrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overviewMetric,
+.overviewPanel {
+  border: 1px solid #e7ebf1;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(29, 44, 72, .055);
+}
+
+.overviewMetric {
+  min-width: 0;
+  gap: 11px;
+  padding: 14px;
+}
+
+.overviewMetricIcon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.overviewMetricIcon.green { color: #079b5a; background: #dff8eb; }
+.overviewMetricIcon.purple { color: #7048d8; background: #eee8ff; }
+.overviewMetricIcon.blue { color: #2874d8; background: #e2efff; }
+.overviewMetricIcon.orange { color: #d88216; background: #fff0d9; }
+.overviewMetricIcon.cyan { color: #0d99a7; background: #dff7f8; }
+
+.overviewMetric p,
+.overviewMetric strong,
+.overviewMetric small {
+  display: block;
+  margin: 0;
+}
+
+.overviewMetric p {
+  overflow: hidden;
+  color: #6c7585;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.overviewMetric strong {
+  margin: 4px 0;
+  font-size: 17px;
+}
+
+.overviewMetric small {
+  color: #17a367;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.overviewMetric small.down {
+  color: #dc3545;
+}
+
+.overviewCharts,
+.overviewShowtimes,
+.overviewDetails,
+.overviewBottom {
+  display: grid;
+  gap: 12px;
+}
+
+.overviewCharts { grid-template-columns: minmax(0, 1.45fr) minmax(330px, .85fr); }
+.overviewShowtimes { grid-template-columns: 1fr 1fr; }
+.overviewDetails { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.overviewBottom { grid-template-columns: 1.6fr 1fr 1fr; }
+
+.overviewPanel {
+  min-width: 0;
+  padding: 13px;
+  overflow: hidden;
+}
+
+.overviewSectionHeader {
+  min-height: 25px;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.overviewSectionHeader h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.overviewSectionHeader a {
+  color: #3784d8;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.overviewSectionHeader small {
+  color: #7b8494;
+  font-size: 9px;
+}
+
+.overviewSectionHeader small i {
+  display: inline-block;
+  width: 15px;
+  height: 2px;
+  margin-right: 5px;
+  background: #347ee8;
+  vertical-align: middle;
+}
+
+.overviewLineChart {
+  display: block;
+  width: 100%;
+  height: 225px;
+}
+
+.overviewLineChart line {
+  stroke: #edf0f5;
+  stroke-width: 1;
+}
+
+.overviewLineChart text {
+  fill: #9099a8;
+  font-size: 9px;
+}
+
+.overviewLineChart polyline {
+  fill: none;
+  stroke: #347ee8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.overviewLineChart circle {
+  fill: #ffffff;
+  stroke: #347ee8;
+  stroke-width: 2;
+}
+
+.overviewLineChart .overviewArea {
+  fill: rgba(52, 126, 232, .1);
+}
+
+.overviewDonutWrap {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+.overviewDonut {
+  position: relative;
+  display: grid;
+  width: 145px;
+  height: 145px;
+  flex: 0 0 145px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edf4;
+}
+
+.overviewDonut::after {
+  position: absolute;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #ffffff;
+  content: '';
+}
+
+.overviewDonut span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  color: #7b8494;
+  font-size: 10px;
+  text-align: center;
+}
+
+.overviewDonut strong {
+  color: #172033;
+  font-size: 22px;
+}
+
+.overviewLegend {
+  display: grid;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.overviewLegend p {
+  display: grid;
+  grid-template-columns: 10px 65px 1fr;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  color: #535e70;
+  font-size: 9px;
+}
+
+.overviewLegend p > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.overviewLegend .green { background: #16a365; }
+.overviewLegend .blue { background: #246edb; }
+.overviewLegend .orange { background: #efad29; }
+.overviewLegend .red { background: #e43c45; }
+.overviewLegend span { color: #8b94a2; }
+
+.overviewPlayingList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.overviewMovieCard {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+}
+
+.overviewMovieCard img,
+.overviewUpcoming img {
+  width: 100%;
+  height: 94px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.overviewPosterFallback {
+  display: grid;
+  width: 64px;
+  height: 94px;
+  place-items: center;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #334155;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.overviewPosterFallback.small {
+  width: 44px;
+  height: 60px;
+}
+
+.overviewMovieCard > div {
+  min-width: 0;
+}
+
+.overviewMovieCard span {
+  display: inline-block;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #128a54;
+  background: #e0f8ea;
+  font-size: 8px;
+}
+
+.overviewMovieCard h4,
+.overviewUpcoming h4 {
+  overflow: hidden;
+  margin: 4px 0;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.overviewMovieCard p,
+.overviewMovieCard small,
+.overviewUpcoming p,
+.overviewUpcoming small {
+  display: block;
+  margin: 3px 0;
+  color: #7b8494;
+  font-size: 8px;
+}
+
+.overviewMovieCard > div > div {
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #e8edf4;
+}
+
+.overviewMovieCard > div > div i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2c72dc;
+}
+
+.overviewUpcomingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 12px;
+}
+
+.overviewUpcoming {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.overviewUpcoming img {
+  height: 60px;
+}
+
+.overviewUpcoming b {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: #cc7a15;
+  background: #fff5e4;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.overviewRankList,
+.overviewSimpleList,
+.overviewRoomList,
+.overviewOrderList,
+.overviewActivity,
+.overviewNotices,
+.overviewSchedule {
+  display: grid;
+  gap: 9px;
+}
+
+.overviewRankList > div {
+  display: grid;
+  grid-template-columns: 18px minmax(80px, 1fr) minmax(45px, .8fr) auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 8px;
+}
+
+.overviewRankList > div > b,
+.overviewSimpleList b {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 50%;
+  color: #2563eb;
+  background: #e8f0ff;
+  font-size: 8px;
+}
+
+.overviewRankList > div > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.overviewRankList > div > i,
+.overviewRoomList p > i {
+  height: 4px;
+  border-radius: 3px;
+  background: #e8edf4;
+}
+
+.overviewRankList em,
+.overviewRoomList em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #347ee8;
+}
+
+.overviewRankList strong {
+  font-size: 8px;
+}
+
+.overviewSimpleList p,
+.overviewRoomList p,
+.overviewOrderList p,
+.overviewNotices p,
+.overviewSchedule p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 8px;
+}
+
+.overviewSimpleList span {
+  flex: 1;
+}
+
+.overviewSimpleList strong {
+  font-size: 9px;
+}
+
+.overviewRoomList p > span {
+  width: 52px;
+}
+
+.overviewRoomList p > i {
+  flex: 1;
+}
+
+.overviewRoomList p:nth-child(2) em,
+.overviewRoomList p:nth-child(5) em { background: #e5a32c; }
+.overviewRoomList p:nth-child(4) em { background: #15a364; }
+.overviewRoomList p:nth-child(5) em { background: #df4c55; }
+
+.overviewOrderList p {
+  display: grid;
+  grid-template-columns: 32px minmax(80px, 1fr) minmax(55px, .7fr) auto;
+  gap: 5px;
+}
+
+.overviewOrderList time,
+.overviewActivity time,
+.overviewSchedule time {
+  color: #6f7b8d;
+}
+
+.overviewOrderList span,
+.overviewOrderList b {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.overviewActivity p {
+  display: grid;
+  grid-template-columns: 34px 7px 1fr;
+  gap: 7px;
+  align-items: center;
+  margin: 0;
+  font-size: 8px;
+}
+
+.overviewActivity i,
+.overviewSchedule i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #347ee8;
+}
+
+.overviewNotices i {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.overviewNotices .warning { color: #a96609; background: #fff0c6; }
+.overviewNotices .danger { color: #c52e3b; background: #ffe3e5; }
+.overviewNotices .info { color: #2563eb; background: #e3edff; }
+.overviewNotices .success { color: #128a54; background: #ddf7e8; }
+
+.overviewSchedule p {
+  display: grid;
+  grid-template-columns: 30px 6px 1fr;
+}
+
+.overviewEmpty {
+  grid-column: 1 / -1;
+  margin: 8px 0;
+  color: #8b94a2;
+  font-size: 10px;
+  text-align: center;
+}
+
+@media (max-width: 1400px) {
+  .overviewMetrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .overviewDetails {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1150px) {
+  .overviewCharts,
+  .overviewShowtimes,
+  .overviewBottom {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .overviewTopbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .overviewTopActions {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .overviewMetrics,
+  .overviewDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewPlayingList,
+  .overviewUpcomingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewDonutWrap {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

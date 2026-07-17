@@ -2,6 +2,7 @@ import axiosClient from './axiosClient';
 
 const dashboardApi = {
   getStats: () => axiosClient.get('/admin/dashboard'),
+  getOverview: () => axiosClient.get('/admin/dashboard/overview'),
   getRevenueByDay: params => axiosClient.get('/admin/reports/revenue-by-day', {params}),
   getRevenueByMovie: params => axiosClient.get('/admin/reports/revenue-by-movie', {params}),
   getRevenueByRoom: params => axiosClient.get('/admin/reports/revenue-by-room', {params}),

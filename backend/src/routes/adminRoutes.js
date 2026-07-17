@@ -1,6 +1,9 @@
 const express = require("express");
 const createAdminCrudController = require("../controllers/adminCrudController");
-const { getDashboard } = require("../controllers/dashboardController");
+const {
+  getDashboard,
+  getAdminOverview,
+} = require("../controllers/dashboardController");
 const reports = require("../controllers/reportController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
@@ -23,6 +26,7 @@ const router = express.Router();
 router.use(authMiddleware, adminMiddleware);
 
 router.get("/dashboard", getDashboard);
+router.get("/dashboard/overview", getAdminOverview);
 router.get("/reports/revenue-by-day", reports.revenueByDay);
 router.get("/reports/revenue-by-movie", reports.revenueByMovie);
 router.get("/reports/revenue-by-room", reports.revenueByRoom);
