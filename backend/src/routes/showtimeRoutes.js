@@ -5,6 +5,8 @@ const {
   getShowtimes,
   getShowtimeById,
   getShowtimeSeats,
+  getRoomSuggestion,
+  checkShowtimeConflicts,
   createShowtime,
   updateShowtime,
   deleteShowtime,
@@ -13,6 +15,13 @@ const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
 router.get("/", getShowtimes);
+router.get("/suggest", authMiddleware, adminMiddleware, getRoomSuggestion);
+router.post(
+  "/check-conflict",
+  authMiddleware,
+  adminMiddleware,
+  checkShowtimeConflicts,
+);
 router.get("/:id/seats", getShowtimeSeats);
 router.get("/:id", getShowtimeById);
 router.post("/", authMiddleware, adminMiddleware, createShowtime);

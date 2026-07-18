@@ -1,7 +1,9 @@
+export const CLEANUP_MINUTES = 15;
+
 export const STATUS_LABELS = {
   scheduled: 'Sắp chiếu',
   cancelled: 'Đã hủy',
-  completed: 'Đã chiếu',
+  completed: 'Đã kết thúc',
 };
 
 export function formatVnd(value) {
@@ -48,7 +50,7 @@ export function getDisplayStatus(showtime) {
   }
 
   if (showtime.status === 'completed') {
-    return {key: 'completed', label: 'Đã chiếu', tone: 'ended'};
+    return {key: 'completed', label: 'Đã kết thúc', tone: 'ended'};
   }
 
   const now = Date.now();
@@ -63,7 +65,7 @@ export function getDisplayStatus(showtime) {
     return {key: 'showing', label: 'Đang chiếu', tone: 'showing'};
   }
 
-  return {key: 'completed', label: 'Đã chiếu', tone: 'ended'};
+  return {key: 'completed', label: 'Đã kết thúc', tone: 'ended'};
 }
 
 export function toDateInputValue(value) {
@@ -107,13 +109,46 @@ export function getDurationMinutes(duration) {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 120;
 }
 
+/** Giờ kết thúc = bắt đầu + thời lượng (không cộng phút vệ sinh). */
 export function buildEndTimeIso(startTime, duration) {
   const endTime = new Date(startTime);
-  endTime.setMinutes(endTime.getMinutes() + getDurationMinutes(duration) + 15);
+  endTime.setMinutes(endTime.getMinutes() + getDurationMinutes(duration));
   return endTime.toISOString();
+}
+
+export function addCleanupMinutes(endTime, minutes = CLEANUP_MINUTES) {
+  const next = new Date(endTime);
+  next.setMinutes(next.getMinutes() + minutes);
+  return next;
 }
 
 export function shortCode(id = '') {
   const text = String(id);
   return `SC-${text.slice(-4).toUpperCase()}`;
+}
+
+export function groupShowtimesByRoom(showtimes) {
+  const map = new Map();
+  showtimes.forEach(item => {
+    const room = item.room || {};
+    const key = String(room._id || room.id || item.room || 'unknown');
+    if (!map.has(key)) {
+      map.set(key, {
+        roomId: key,
+        name: room.name || 'Phòng',
+        type: room.type || '',
+        showtimes: [],
+      });
+    }
+    map.get(key).showtimes.push(item);
+  });
+
+  return Array.from(map.values())
+    .map(group => ({
+      ...group,
+      showtimes: [...group.showtimes].sort(
+        (a, b) => new Date(a.startTime) - new Date(b.startTime),
+      ),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
 }

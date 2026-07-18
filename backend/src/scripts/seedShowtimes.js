@@ -44,7 +44,7 @@ function isBookableStatus(movieStatus) {
 
 function makeSlot(startTime, durationMin) {
   const endTime = new Date(startTime);
-  endTime.setMinutes(endTime.getMinutes() + durationMin + 15);
+  endTime.setMinutes(endTime.getMinutes() + durationMin);
   return { startTime, endTime };
 }
 
@@ -133,7 +133,7 @@ async function seedRoomsAndShowtimes() {
   for (const movie of showingMovies) {
     const durationMin = parseDurationMinutes(movie.duration);
     const start = new Date(now.getTime() - 40 * 60 * 1000);
-    const end = new Date(start.getTime() + (durationMin + 15) * 60 * 1000);
+    const end = new Date(start.getTime() + durationMin * 60 * 1000);
     samples.push({
       movie: movie._id,
       room: rooms[index % rooms.length]._id,

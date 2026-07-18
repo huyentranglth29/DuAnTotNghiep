@@ -6,7 +6,7 @@ function Header() {
 
   return (
     <header className="header">
-      <div>
+      <div className="headerTitle">
         <strong>Admin Dashboard</strong>
         <span>Quản lý rạp chiếu phim FilmGo</span>
       </div>
@@ -19,8 +19,14 @@ function Header() {
           title={darkMode ? 'Giao diện sáng' : 'Giao diện tối'}>
           {darkMode ? '☀' : '◐'}
         </button>
-        <Link className="avatar" to="/personal-information" aria-label="Thông tin tài khoản">
-          A
+        <Link className="headerAdminProfile" to="/personal-information" aria-label="Thông tin tài khoản Admin">
+          <span className="avatar" aria-hidden="true">
+            A
+          </span>
+          <span className="headerAdminMeta">
+            <strong>Admin</strong>
+            <small>Tài khoản</small>
+          </span>
         </Link>
       </div>
     </header>

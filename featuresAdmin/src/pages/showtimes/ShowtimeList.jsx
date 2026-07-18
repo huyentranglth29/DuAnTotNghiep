@@ -11,7 +11,9 @@ import {
   formatTime,
   formatVnd,
   getDisplayStatus,
+  groupShowtimesByRoom,
   shortCode,
+  toDateInputValue,
 } from '../../utils/showtimeHelpers';
 
 const PAGE_SIZE = 8;
@@ -20,10 +22,12 @@ function ShowtimeList() {
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [occupancy, setOccupancy] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState('list');
   const [viewing, setViewing] = useState(null);
   const [filters, setFilters] = useState({
     movie: '',
@@ -31,21 +35,27 @@ function ShowtimeList() {
     date: '',
     status: '',
   });
+  const [timelineDate, setTimelineDate] = useState(toDateInputValue(new Date()));
 
   const loadData = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const [showtimeData, movieData, roomData] = await Promise.all([
-        showtimeApi.getAll({limit: 500, page: 1, sort: 'startTime'}),
-        movieApi.getAll({limit: 500, page: 1}),
-        roomApi.getAll({limit: 500, page: 1}),
-      ]);
+      const [showtimeData, movieData, roomData, occupancyData] =
+        await Promise.all([
+          showtimeApi.getAll({limit: 500, page: 1, sort: 'startTime'}),
+          movieApi.getAll({limit: 500, page: 1}),
+          roomApi.getAll({limit: 500, page: 1}),
+          showtimeApi.getOccupancy().catch(() => ({data: {}})),
+        ]);
 
-      setShowtimes(Array.isArray(showtimeData) ? showtimeData : showtimeData?.data || []);
+      setShowtimes(
+        Array.isArray(showtimeData) ? showtimeData : showtimeData?.data || [],
+      );
       setMovies(Array.isArray(movieData) ? movieData : movieData?.data || []);
       setRooms(Array.isArray(roomData) ? roomData : roomData?.data || []);
+      setOccupancy(occupancyData?.data || occupancyData || {});
       setPage(1);
     } catch (err) {
       setError(err.message || 'Không tải được suất chiếu. Hãy chạy backend.');
@@ -79,10 +89,7 @@ function ShowtimeList() {
         if (!start || Number.isNaN(start.getTime())) {
           return false;
         }
-        const y = start.getFullYear();
-        const m = `${start.getMonth() + 1}`.padStart(2, '0');
-        const d = `${start.getDate()}`.padStart(2, '0');
-        if (`${y}-${m}-${d}` !== filters.date) {
+        if (toDateInputValue(start) !== filters.date) {
           return false;
         }
       }
@@ -90,23 +97,21 @@ function ShowtimeList() {
       const display = getDisplayStatus(item);
 
       if (filters.status) {
-        if (filters.status === 'scheduled') {
-          // Sắp chiếu = chưa tới giờ (không gồm đang chiếu)
-          if (display.key !== 'scheduled') {
-            return false;
-          }
-        } else if (filters.status === 'showing') {
-          if (display.key !== 'showing') {
-            return false;
-          }
-        } else if (filters.status === 'completed') {
-          if (display.key !== 'completed') {
-            return false;
-          }
-        } else if (filters.status === 'cancelled') {
-          if (item.status !== 'cancelled' && display.key !== 'cancelled') {
-            return false;
-          }
+        if (filters.status === 'scheduled' && display.key !== 'scheduled') {
+          return false;
+        }
+        if (filters.status === 'showing' && display.key !== 'showing') {
+          return false;
+        }
+        if (filters.status === 'completed' && display.key !== 'completed') {
+          return false;
+        }
+        if (
+          filters.status === 'cancelled' &&
+          item.status !== 'cancelled' &&
+          display.key !== 'cancelled'
+        ) {
+          return false;
         }
       }
 
@@ -131,6 +136,35 @@ function ShowtimeList() {
       return haystack.includes(keyword);
     });
   }, [showtimes, filters, search]);
+
+  const timelineGroups = useMemo(() => {
+    const dayRows = showtimes.filter(item => {
+      if (!item.startTime) {
+        return false;
+      }
+      return toDateInputValue(item.startTime) === timelineDate;
+    });
+    return groupShowtimesByRoom(dayRows);
+  }, [showtimes, timelineDate]);
+
+  const timelineBounds = useMemo(() => {
+    const all = timelineGroups.flatMap(group => group.showtimes);
+    if (!all.length) {
+      return {startHour: 8, endHour: 24};
+    }
+    let min = 24;
+    let max = 0;
+    all.forEach(item => {
+      const start = new Date(item.startTime);
+      const end = new Date(item.endTime);
+      min = Math.min(min, start.getHours() + start.getMinutes() / 60);
+      max = Math.max(max, end.getHours() + end.getMinutes() / 60);
+    });
+    return {
+      startHour: Math.max(0, Math.floor(min) - 1),
+      endHour: Math.min(24, Math.ceil(max) + 1),
+    };
+  }, [timelineGroups]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -159,19 +193,47 @@ function ShowtimeList() {
     setPage(1);
   };
 
-  const handleDelete = async id => {
+  const handleDelete = async showtimeId => {
     const ok = window.confirm('Bạn có chắc muốn xóa suất chiếu này?');
     if (!ok) {
       return;
     }
 
     try {
-      await showtimeApi.remove(id);
-      setShowtimes(current => current.filter(item => item._id !== id));
+      await showtimeApi.remove(showtimeId);
+      setShowtimes(current => current.filter(item => item._id !== showtimeId));
     } catch (err) {
       window.alert(err.message || 'Xóa suất chiếu thất bại');
     }
   };
+
+  const seatStats = item => {
+    const totalSeats = Number(item.room?.totalSeats || 0);
+    const sold = Number(occupancy[String(item._id)] || 0);
+    const available = Math.max(totalSeats - sold, 0);
+    const percent =
+      totalSeats > 0 ? Math.min(100, Math.round((sold / totalSeats) * 100)) : 0;
+    return {totalSeats, sold, available, percent};
+  };
+
+  const blockStyle = item => {
+    const span = Math.max(timelineBounds.endHour - timelineBounds.startHour, 1);
+    const start = new Date(item.startTime);
+    const end = new Date(item.endTime);
+    const startPos =
+      (start.getHours() + start.getMinutes() / 60 - timelineBounds.startHour) /
+      span;
+    const endPos =
+      (end.getHours() + end.getMinutes() / 60 - timelineBounds.startHour) / span;
+    const left = Math.max(0, startPos) * 100;
+    const width = Math.max(2, (endPos - startPos) * 100);
+    return {left: `${left}%`, width: `${width}%`};
+  };
+
+  const hourMarks = [];
+  for (let hour = timelineBounds.startHour; hour <= timelineBounds.endHour; hour += 1) {
+    hourMarks.push(hour);
+  }
 
   return (
     <section className="showtimePage">
@@ -185,79 +247,116 @@ function ShowtimeList() {
         </Link>
       </div>
 
-      <form className="showtimeSearchBar" onSubmit={handleSearch}>
-        <input
-          type="search"
-          value={search}
-          onChange={event => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Tìm theo tên phim, phòng, mã suất, trạng thái..."
-        />
-        <button type="submit">Tìm kiếm</button>
-      </form>
+      <div className="showtimeViewTabs" role="tablist">
+        <button
+          type="button"
+          className={viewMode === 'list' ? 'active' : ''}
+          onClick={() => setViewMode('list')}>
+          Danh sách
+        </button>
+        <button
+          type="button"
+          className={viewMode === 'timeline' ? 'active' : ''}
+          onClick={() => setViewMode('timeline')}>
+          Lịch chiếu
+        </button>
+      </div>
 
-      <form className="showtimeFilters" onSubmit={applyFilters}>
-        <SelectDropdown
-          label="Chọn Phim"
-          value={filters.movie}
-          placeholder="Tất cả phim"
-          onChange={value => updateFilter('movie', value)}
-          options={[
-            {value: '', label: 'Tất cả phim'},
-            ...movies.map(movie => ({
-              value: movie.id || movie._id,
-              label: movie.title,
-            })),
-          ]}
-        />
-        <SelectDropdown
-          label="Phòng chiếu"
-          value={filters.room}
-          placeholder="Tất cả phòng"
-          onChange={value => updateFilter('room', value)}
-          options={[
-            {value: '', label: 'Tất cả phòng'},
-            ...rooms.map(room => ({
-              value: room._id,
-              label: room.name,
-            })),
-          ]}
-        />
-        <label>
-          Ngày chiếu
-          <input
-            type="date"
-            value={filters.date}
-            onChange={event => updateFilter('date', event.target.value)}
-          />
-        </label>
-        <SelectDropdown
-          label="Trạng thái"
-          value={filters.status}
-          placeholder="Tất cả trạng thái"
-          onChange={value => updateFilter('status', value)}
-          options={[
-            {value: '', label: 'Tất cả trạng thái'},
-            {value: 'scheduled', label: 'Sắp chiếu'},
-            {value: 'showing', label: 'Đang chiếu'},
-            {value: 'completed', label: 'Đã chiếu'},
-            {value: 'cancelled', label: 'Đã hủy'},
-          ]}
-        />
-        <div className="filterActions">
-          <button type="submit">Lọc</button>
-          <button className="ghost" type="button" onClick={clearFilters}>
-            Xóa bộ lọc
-          </button>
+      {viewMode === 'list' && (
+        <>
+          <form className="showtimeSearchBar" onSubmit={handleSearch}>
+            <input
+              type="search"
+              value={search}
+              onChange={event => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Tìm theo tên phim, phòng, mã suất, trạng thái..."
+            />
+            <button type="submit">Tìm kiếm</button>
+          </form>
+
+          <form className="showtimeFilters" onSubmit={applyFilters}>
+            <SelectDropdown
+              label="Chọn Phim"
+              value={filters.movie}
+              placeholder="Tất cả phim"
+              onChange={value => updateFilter('movie', value)}
+              options={[
+                {value: '', label: 'Tất cả phim'},
+                ...movies.map(movie => ({
+                  value: movie.id || movie._id,
+                  label: movie.title,
+                })),
+              ]}
+            />
+            <SelectDropdown
+              label="Phòng chiếu"
+              value={filters.room}
+              placeholder="Tất cả phòng"
+              onChange={value => updateFilter('room', value)}
+              options={[
+                {value: '', label: 'Tất cả phòng'},
+                ...rooms.map(room => ({
+                  value: room._id,
+                  label: room.name,
+                })),
+              ]}
+            />
+            <label>
+              Ngày chiếu
+              <input
+                type="date"
+                value={filters.date}
+                onChange={event => updateFilter('date', event.target.value)}
+              />
+            </label>
+            <SelectDropdown
+              label="Trạng thái"
+              value={filters.status}
+              placeholder="Tất cả trạng thái"
+              onChange={value => updateFilter('status', value)}
+              options={[
+                {value: '', label: 'Tất cả trạng thái'},
+                {value: 'scheduled', label: 'Sắp chiếu'},
+                {value: 'showing', label: 'Đang chiếu'},
+                {value: 'completed', label: 'Đã kết thúc'},
+                {value: 'cancelled', label: 'Đã hủy'},
+              ]}
+            />
+            <div className="filterActions">
+              <button type="submit">Lọc</button>
+              <button className="ghost" type="button" onClick={clearFilters}>
+                Xóa bộ lọc
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+
+      {viewMode === 'timeline' && (
+        <div className="showtimeTimelineToolbar">
+          <label>
+            Ngày lịch chiếu
+            <input
+              type="date"
+              value={timelineDate}
+              onChange={event => setTimelineDate(event.target.value)}
+            />
+          </label>
+          <p>
+            Timeline theo từng phòng · khoảng{' '}
+            {String(timelineBounds.startHour).padStart(2, '0')}:00 –{' '}
+            {String(timelineBounds.endHour).padStart(2, '0')}:00
+          </p>
         </div>
-      </form>
+      )}
 
       {error && <p className="inlineError">{error}</p>}
       {loading ? (
         <p className="mutedText">Đang tải suất chiếu...</p>
-      ) : (
+      ) : viewMode === 'list' ? (
         <div className="panel showtimeTableWrap">
           <table className="showtimeTable">
             <thead>
@@ -267,7 +366,7 @@ function ShowtimeList() {
                 <th>Phòng chiếu</th>
                 <th>Suất chiếu</th>
                 <th>Giá vé</th>
-                <th>Ghế trống</th>
+                <th>Ghế</th>
                 <th>Trạng thái</th>
                 <th>Hành động</th>
               </tr>
@@ -284,13 +383,7 @@ function ShowtimeList() {
                   const movie = item.movie || {};
                   const room = item.room || {};
                   const status = getDisplayStatus(item);
-                  const totalSeats = room.totalSeats || 0;
-                  const soldEstimate = 0;
-                  const available = Math.max(totalSeats - soldEstimate, 0);
-                  const percent =
-                    totalSeats > 0
-                      ? Math.round((soldEstimate / totalSeats) * 100)
-                      : 0;
+                  const seats = seatStats(item);
 
                   return (
                     <tr key={item._id}>
@@ -332,11 +425,11 @@ function ShowtimeList() {
                       <td>
                         <div className="seatCell">
                           <div className="seatBar">
-                            <span style={{width: `${percent}%`}} />
+                            <span style={{width: `${seats.percent}%`}} />
                           </div>
                           <small>
-                            {soldEstimate}/{totalSeats || '--'} · trống{' '}
-                            {available || '--'}
+                            Đã bán {seats.sold}/{seats.totalSeats || '--'} · trống{' '}
+                            {seats.available || '--'}
                           </small>
                         </div>
                       </td>
@@ -406,6 +499,54 @@ function ShowtimeList() {
             </div>
           </div>
         </div>
+      ) : (
+        <div className="panel showtimeTimelinePanel">
+          {!timelineGroups.length ? (
+            <p className="mutedText">
+              Không có suất chiếu nào trong ngày {formatDate(`${timelineDate}T12:00:00`)}.
+            </p>
+          ) : (
+            <>
+              <div className="showtimeTimelineHours">
+                <div className="showtimeTimelineRoomLabel" />
+                <div className="showtimeTimelineTrack">
+                  {hourMarks.map(hour => (
+                    <span key={hour}>
+                      {String(hour).padStart(2, '0')}:00
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {timelineGroups.map(group => (
+                <div className="showtimeTimelineRow" key={group.roomId}>
+                  <div className="showtimeTimelineRoomLabel">
+                    <strong>{group.name}</strong>
+                    {group.type ? <span>{group.type}</span> : null}
+                  </div>
+                  <div className="showtimeTimelineTrack">
+                    {group.showtimes.map(item => {
+                      const status = getDisplayStatus(item);
+                      return (
+                        <button
+                          key={item._id}
+                          type="button"
+                          className={`showtimeTimelineBlock ${status.tone}`}
+                          style={blockStyle(item)}
+                          title={`${item.movie?.title || 'Phim'} · ${formatTime(item.startTime)}-${formatTime(item.endTime)}`}
+                          onClick={() => setViewing(item)}>
+                          <strong>
+                            {formatTime(item.startTime)} - {formatTime(item.endTime)}
+                          </strong>
+                          <span>{item.movie?.title || 'Phim'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       )}
 
       <Modal
@@ -428,6 +569,7 @@ function ShowtimeList() {
                     ? ` • ${viewing.movie.ageRating}`
                     : ''}
                   {viewing.movie?.genre ? ` • ${viewing.movie.genre}` : ''}
+                  {viewing.room?.type ? ` • ${viewing.room.type}` : ''}
                 </p>
                 <span className={`statusPill ${getDisplayStatus(viewing).tone}`}>
                   {getDisplayStatus(viewing).label}
@@ -462,16 +604,18 @@ function ShowtimeList() {
                 <strong>{formatVnd(viewing.price)}</strong>
               </p>
               <p>
-                <span>Tổng ghế</span>
-                <strong>{viewing.room?.totalSeats || 0}</strong>
+                <span>Ghế đã bán</span>
+                <strong>
+                  {seatStats(viewing).sold}/{seatStats(viewing).totalSeats}
+                </strong>
+              </p>
+              <p>
+                <span>Ghế trống</span>
+                <strong>{seatStats(viewing).available}</strong>
               </p>
               <p>
                 <span>Trạng thái DB</span>
                 <strong>{viewing.status || 'scheduled'}</strong>
-              </p>
-              <p>
-                <span>ID đầy đủ</span>
-                <strong className="monoCell">{viewing._id}</strong>
               </p>
             </div>
 
@@ -482,7 +626,10 @@ function ShowtimeList() {
                 onClick={() => setViewing(null)}>
                 Sửa suất chiếu
               </Link>
-              <button type="button" className="ghost" onClick={() => setViewing(null)}>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setViewing(null)}>
                 Đóng
               </button>
             </div>
