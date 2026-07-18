@@ -28,6 +28,9 @@ type Props = {
   voucherDiscount?: number;
   expiresAt: string;
   isProcessing: boolean;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   onBack: () => void;
   onConfirm: (bankCode: string) => void;
 };
@@ -187,9 +190,9 @@ function MockPaymentScreen(props: Props) {
                 ))}
                 {comboTotal > 0 && <InvoiceRow label="Tổng combo" value={money(comboTotal)} />}
                 {!!props.voucherDiscount && <InvoiceRow label={`Voucher ${props.voucherCode}`} value={`−${money(props.voucherDiscount)}`} accent />}
-                <InvoiceRow label="Người đặt" value="Người dùng FilmGo" />
-                <InvoiceRow label="Số điện thoại" value="0394584627" />
-                <InvoiceRow label="Email" value="demo@filmgo.vn" />
+                <InvoiceRow label="Người đặt" value={props.customerName || 'Người dùng FilmGo'} />
+                <InvoiceRow label="Số điện thoại" value={props.customerPhone || 'Chưa có SĐT'} />
+                <InvoiceRow label="Email" value={props.customerEmail || 'Chưa có email'} />
                 <View style={styles.invoiceTotalRow}>
                   <Text style={styles.invoiceTotalLabel}>Tổng thanh toán</Text>
                   <Text style={styles.invoiceTotalValue}>{money(props.totalAmount)}</Text>

@@ -40,7 +40,22 @@ export async function saveAuthSession({token, user}) {
 }
 
 export async function clearAuthSession() {
-  await AsyncStorage.multiRemove([AUTH_TOKEN_KEY, AUTH_USER_KEY]);
+  try {
+    const {GoogleSignin} = require('@react-native-google-signin/google-signin');
+    await GoogleSignin.signOut();
+  } catch {
+    // Không đăng nhập Google / native chưa sẵn sàng — bỏ qua
+  }
+
+  // AsyncStorage v3: multiRemove → removeMany
+  if (typeof AsyncStorage.removeMany === 'function') {
+    await AsyncStorage.removeMany([AUTH_TOKEN_KEY, AUTH_USER_KEY]);
+  } else {
+    await Promise.all([
+      AsyncStorage.removeItem(AUTH_TOKEN_KEY),
+      AsyncStorage.removeItem(AUTH_USER_KEY),
+    ]);
+  }
   setAuthToken(null);
 }
 
