@@ -34,7 +34,8 @@ function ShowtimeStatus() {
   const updateStatus = async (id, status) => {
     setSavingId(id);
     try {
-      const updated = await showtimeApi.update(id, {status});
+      const response = await showtimeApi.update(id, {status});
+      const updated = response?.data || response;
       setShowtimes(current =>
         current.map(item => (item._id === id ? updated : item)),
       );
@@ -104,7 +105,7 @@ function ShowtimeStatus() {
                             updateStatus(item._id, event.target.value)
                           }>
                           <option value="scheduled">Lên lịch</option>
-                          <option value="completed">Đã chiếu</option>
+                          <option value="completed">Đã kết thúc</option>
                           <option value="cancelled">Đã hủy</option>
                         </select>
                       </td>

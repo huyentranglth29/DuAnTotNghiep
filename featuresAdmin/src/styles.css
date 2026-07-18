@@ -149,29 +149,31 @@ select {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.header div {
+.headerTitle {
   display: grid;
   gap: 2px;
 }
 
-.header span {
+.headerTitle span {
   color: #687385;
   font-size: 13px;
 }
 
 .headerUser {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .headerThemeButton {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   place-items: center;
   border: 1px solid #d7dee8;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #334155;
   background: #f8fafc;
   cursor: pointer;
@@ -183,18 +185,56 @@ select {
   background: #eff6ff;
 }
 
-.avatar {
-  display: inline-grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
+.headerAdminProfile {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid #e5e7eb;
   border-radius: 999px;
-  color: #ffffff !important;
-  background: #111827;
+  color: inherit !important;
+  background: #f8fafc;
+  text-decoration: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.avatar:hover {
-  background: #dc2626;
+.headerAdminProfile:hover {
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
+.avatar {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  color: #ffffff !important;
+  background: linear-gradient(145deg, #dc2626 0%, #991b1b 100%);
+  box-shadow: 0 0 0 1px #fecaca;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.headerAdminMeta {
+  display: grid;
+  gap: 0;
+  line-height: 1.2;
+  padding-right: 4px;
+}
+
+.headerAdminMeta strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.headerAdminMeta small {
+  font-size: 11px;
+  color: #687385;
 }
 
 .pageContent {
@@ -1878,20 +1918,314 @@ th {
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
 }
 
-.statusPill.showing {
+/* 🟢 Sắp chiếu · 🔵 Đang chiếu · ⚫ Đã kết thúc · 🔴 Đã hủy */
+.statusPill.upcoming {
   color: #166534;
   background: #dcfce7;
 }
 
-.statusPill.upcoming {
-  color: #a16207;
-  background: #fef3c7;
+.statusPill.showing {
+  color: #1d4ed8;
+  background: #dbeafe;
 }
 
-.statusPill.ended,
-.statusPill.cancelled {
-  color: #475569;
+.statusPill.ended {
+  color: #334155;
   background: #e2e8f0;
+}
+
+.statusPill.cancelled {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.showtimeViewTabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.showtimeViewTabs button {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid #d5deea;
+  border-radius: 8px;
+  color: #475569;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.showtimeViewTabs button.active {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.showtimeConflictBanner {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+.showtimeConflictBanner strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}
+
+.showtimeConflictBanner p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.showtimeConflictBanner ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.showtimeSuggestBox {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.showtimeSuggestBox p {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.showtimeSuggestBox button {
+  width: fit-content;
+}
+
+.showtimeRoomSchedule {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.showtimeRoomSchedule h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.showtimeScheduleBlock {
+  display: grid;
+  gap: 6px;
+}
+
+.showtimeScheduleBlock strong {
+  color: #334155;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.showtimeScheduleBlock ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.showtimeScheduleBlock li {
+  margin: 2px 0;
+}
+
+.showtimeConflictBanner button {
+  margin-top: 10px;
+}
+
+.adminDarkMode .showtimeRoomSchedule {
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .showtimeRoomSchedule h4,
+.adminDarkMode .showtimeScheduleBlock li {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .showtimeScheduleBlock strong {
+  color: var(--admin-muted);
+}
+
+.showtimeTimelineToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.showtimeTimelineToolbar label {
+  display: grid;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.showtimeTimelineToolbar input {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.showtimeTimelineToolbar p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.showtimeTimelinePanel {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+}
+
+.showtimeTimelineHours,
+.showtimeTimelineRow {
+  display: grid;
+  grid-template-columns: 140px minmax(640px, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.showtimeTimelineRoomLabel {
+  display: grid;
+  gap: 4px;
+}
+
+.showtimeTimelineRoomLabel strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.showtimeTimelineRoomLabel span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.showtimeTimelineTrack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent calc(100% / 8 - 1px),
+      #eef2f7 calc(100% / 8 - 1px),
+      #eef2f7 calc(100% / 8)
+    ),
+    #f8fafc;
+}
+
+.showtimeTimelineHours .showtimeTimelineTrack {
+  min-height: 28px;
+  justify-content: space-between;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.showtimeTimelineBlock {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  overflow: hidden;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.showtimeTimelineBlock strong,
+.showtimeTimelineBlock span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.showtimeTimelineBlock.upcoming {
+  background: #bbf7d0;
+}
+
+.showtimeTimelineBlock.showing {
+  background: #93c5fd;
+}
+
+.showtimeTimelineBlock.ended {
+  background: #cbd5e1;
+}
+
+.showtimeTimelineBlock.cancelled {
+  background: #fecaca;
+}
+
+.adminDarkMode .showtimeViewTabs button,
+.adminDarkMode .showtimeTimelineToolbar input,
+.adminDarkMode .showtimeTimelineTrack {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .showtimeViewTabs button.active {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.adminDarkMode .showtimeSuggestBox {
+  border-color: #1e3a5f;
+  background: #15263d;
+}
+
+.adminDarkMode .showtimeSuggestBox p {
+  color: #bfdbfe;
+}
+
+.adminDarkMode .showtimeConflictBanner {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #3f1d1d;
+}
+
+.adminDarkMode .showtimeTimelineRoomLabel strong,
+.adminDarkMode .showtimeTimelineBlock {
+  color: var(--admin-text);
 }
 
 .rowActions {
@@ -3771,7 +4105,8 @@ th {
   background: #111c2c;
 }
 
-.adminDarkMode .header span,
+.adminDarkMode .headerTitle span,
+.adminDarkMode .headerAdminMeta small,
 .adminDarkMode .pageTitle p,
 .adminDarkMode .sectionHeader p,
 .adminDarkMode .metricCard span,
@@ -3930,6 +4265,25 @@ th {
   color: #8fc0ff;
   border-color: #3d6fa8;
   background: var(--admin-hover);
+}
+
+.adminDarkMode .headerAdminProfile {
+  border-color: var(--admin-border);
+  background: var(--admin-surface-raised);
+}
+
+.adminDarkMode .headerAdminProfile:hover {
+  border-color: #7f1d1d;
+  background: #1f1520;
+}
+
+.adminDarkMode .headerAdminMeta strong {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .avatar {
+  border-color: #1f2937;
+  box-shadow: 0 0 0 1px #7f1d1d;
 }
 
 .adminDarkMode .permissionItem,

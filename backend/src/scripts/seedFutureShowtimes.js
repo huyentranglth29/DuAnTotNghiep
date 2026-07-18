@@ -83,9 +83,9 @@ async function seedFutureShowtimes() {
           continue;
         }
 
-        const endTime = new Date(
-          startTime.getTime() + (durationMinutes(movie.duration) + 15) * 60 * 1000,
-        );
+      const endTime = new Date(
+        startTime.getTime() + durationMinutes(movie.duration) * 60 * 1000,
+      );
         const duplicate = await Showtime.exists({
           movie: movie._id,
           startTime,

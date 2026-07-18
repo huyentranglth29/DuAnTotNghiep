@@ -4,6 +4,14 @@ const {
   getDashboard,
   getAdminOverview,
 } = require("../controllers/dashboardController");
+const {
+  createShowtime,
+  updateShowtime,
+  deleteShowtime,
+  getRoomSuggestion,
+  checkShowtimeConflicts,
+  getShowtimeOccupancy,
+} = require("../controllers/showtimeController");
 const reports = require("../controllers/reportController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
@@ -51,13 +59,6 @@ const resources = {
     populate: "room",
     keywordFields: ["row", "type", "status"],
   }),
-  showtimes: createAdminCrudController(Showtime, {
-    populate: [
-      { path: "movie", select: "title posterUrl duration status" },
-      { path: "room", select: "name type totalSeats status" },
-    ],
-    keywordFields: ["status"],
-  }),
   vouchers: createAdminCrudController(Voucher, {
     keywordFields: ["code", "description", "status"],
     afterCreate: voucher => createNotification({
@@ -88,6 +89,24 @@ const resources = {
     keywordFields: ["title", "content", "target"],
   }),
 };
+
+const showtimeCrud = createAdminCrudController(Showtime, {
+  populate: [
+    { path: "movie", select: "title posterUrl duration ageRating genre status" },
+    { path: "room", select: "name type totalSeats status" },
+  ],
+  keywordFields: ["status"],
+});
+
+// Suất chiếu: list/detail dùng CRUD; create/update có kiểm tra trùng + gap 15'
+router.get("/showtimes/suggest", getRoomSuggestion);
+router.get("/showtimes/occupancy", getShowtimeOccupancy);
+router.post("/showtimes/check-conflict", checkShowtimeConflicts);
+router.get("/showtimes", showtimeCrud.getAll);
+router.get("/showtimes/:id", showtimeCrud.getById);
+router.post("/showtimes", createShowtime);
+router.put("/showtimes/:id", updateShowtime);
+router.delete("/showtimes/:id", deleteShowtime);
 
 Object.entries(resources).forEach(([resource, controller]) => {
   router.get(`/${resource}`, controller.getAll);
