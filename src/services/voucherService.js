@@ -58,6 +58,18 @@ export async function loginWithApi({email, password}) {
   return response;
 }
 
+/** Đăng nhập bằng tài khoản Google thật — chỉ gửi idToken, lưu JWT (không lưu idToken) */
+export async function loginWithGoogleApi(idToken) {
+  const response = await apiClient.post('/api/auth/google-login', {idToken});
+
+  if (!response?.token) {
+    throw new Error(response?.message || 'Đăng nhập Google thất bại');
+  }
+
+  await saveAuthSession({token: response.token, user: response.user});
+  return response;
+}
+
 export async function registerWithApi({fullName, email, password, phone}) {
   return apiClient.post('/api/auth/register', {
     fullName,
@@ -120,5 +132,6 @@ export default {
   checkoutBooking,
   getMyBookings,
   loginWithApi,
+  loginWithGoogleApi,
   registerWithApi,
 };
