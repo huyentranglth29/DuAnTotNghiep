@@ -4,6 +4,7 @@ import movieApi from '../../api/movieApi';
 import roomApi from '../../api/roomApi';
 import showtimeApi from '../../api/showtimeApi';
 import SelectDropdown from '../../components/SelectDropdown';
+import StartTimePicker from '../../components/StartTimePicker';
 import {
   CLEANUP_MINUTES,
   buildEndTimeIso,
@@ -372,14 +373,15 @@ function CreateShowtime() {
                 onChange={event => updateField('date', event.target.value)}
               />
             </label>
-            <label>
-              Giờ bắt đầu
-              <input
-                type="time"
-                value={form.time}
-                onChange={event => updateField('time', event.target.value)}
-              />
-            </label>
+            <StartTimePicker
+              label="Giờ bắt đầu"
+              value={form.time}
+              date={form.date}
+              duration={selectedMovie?.duration}
+              showtimes={existingShowtimes}
+              freeGaps={schedule ? freeGaps : null}
+              onChange={value => updateField('time', value)}
+            />
             <label>
               Giờ kết thúc (tự động)
               <input

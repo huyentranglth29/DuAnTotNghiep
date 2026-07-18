@@ -54,7 +54,11 @@ function SectionHeader({title, to}) {
   return (
     <div className="overviewSectionHeader">
       <h3>{title}</h3>
-      {to ? <Link to={to}>Xem tất cả</Link> : null}
+      {to ? (
+        <Link className="overviewSeeAll" to={to}>
+          Xem tất cả
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -110,11 +114,46 @@ function Dashboard() {
   }
 
   const metricConfig = [
-    {key: 'revenue', label: 'Doanh thu hôm nay', icon: '$', tone: 'green', format: money},
-    {key: 'tickets', label: 'Vé đã bán', icon: '▣', tone: 'purple', format: value => value},
-    {key: 'showtimes', label: 'Suất chiếu hôm nay', icon: '▦', tone: 'blue', format: value => value},
-    {key: 'movies', label: 'Phim đang chiếu', icon: '●', tone: 'orange', format: value => value},
-    {key: 'users', label: 'Người dùng mới', icon: '◎', tone: 'cyan', format: value => value},
+    {
+      key: 'revenue',
+      label: 'Doanh thu hôm nay',
+      icon: '$',
+      tone: 'green',
+      format: money,
+      to: '/reports/revenue',
+    },
+    {
+      key: 'tickets',
+      label: 'Vé đã bán',
+      icon: '▣',
+      tone: 'purple',
+      format: value => value,
+      to: '/tickets',
+    },
+    {
+      key: 'showtimes',
+      label: 'Suất chiếu hôm nay',
+      icon: '▦',
+      tone: 'blue',
+      format: value => value,
+      to: '/showtimes',
+    },
+    {
+      key: 'movies',
+      label: 'Phim đang chiếu',
+      icon: '●',
+      tone: 'orange',
+      format: value => value,
+      to: '/movies',
+    },
+    {
+      key: 'users',
+      label: 'Người dùng mới',
+      icon: '◎',
+      tone: 'cyan',
+      format: value => value,
+      to: '/users',
+    },
   ];
   const metrics = metricConfig.map(item => {
     const metric = overview.metrics?.[item.key] || {value: 0, change: 0};
@@ -209,7 +248,11 @@ function Dashboard() {
 
       <div className="overviewMetrics">
         {metrics.map(item => (
-          <article className="overviewMetric" key={item.label}>
+          <Link
+            className={`overviewMetric overviewClickable tone-${item.tone}`}
+            to={item.to}
+            key={item.label}
+            title={`Xem ${item.label}`}>
             <span className={`overviewMetricIcon ${item.tone}`}>{item.icon}</span>
             <div>
               <p>{item.label}</p>
@@ -218,49 +261,97 @@ function Dashboard() {
                 {item.direction === 'down' ? '↓' : '↑'} {item.changeText}
               </small>
             </div>
-          </article>
+          </Link>
         ))}
       </div>
 
       <div className="overviewCharts">
-        <article className="overviewPanel overviewRevenue">
+        <Link
+          className="overviewPanel overviewRevenue overviewClickable"
+          to="/reports/revenue"
+          title="Xem báo cáo doanh thu">
           <div className="overviewSectionHeader">
-            <div><h3>Doanh thu 30 ngày qua</h3><small><i /> Doanh thu (triệu đồng)</small></div>
-            <button type="button">30 ngày⌄</button>
+            <div>
+              <h3>Doanh thu 30 ngày qua</h3>
+              <small>
+                <i /> Doanh thu (triệu đồng)
+              </small>
+            </div>
+            <span className="overviewChip">30 ngày</span>
           </div>
-          <svg className="overviewLineChart" viewBox="0 0 760 225" role="img" aria-label="Biểu đồ doanh thu thật 30 ngày">
-            {[35, 75, 115, 155, 195].map(y => <line key={y} x1="38" y1={y} x2="742" y2={y} />)}
-            <text x="2" y="40">{Math.round(chart.max / 1000000)}tr</text>
-            <text x="2" y="80">{Math.round(chart.max * .75 / 1000000)}tr</text>
-            <text x="2" y="120">{Math.round(chart.max * .5 / 1000000)}tr</text>
-            <text x="2" y="160">{Math.round(chart.max * .25 / 1000000)}tr</text>
-            <text x="14" y="200">0</text>
+          <svg
+            className="overviewLineChart"
+            viewBox="0 0 760 225"
+            role="img"
+            aria-label="Biểu đồ doanh thu thật 30 ngày">
+            {[35, 75, 115, 155, 195].map(y => (
+              <line key={y} x1="38" y1={y} x2="742" y2={y} />
+            ))}
+            <text x="2" y="40">
+              {Math.round(chart.max / 1000000)}tr
+            </text>
+            <text x="2" y="80">
+              {Math.round((chart.max * 0.75) / 1000000)}tr
+            </text>
+            <text x="2" y="120">
+              {Math.round((chart.max * 0.5) / 1000000)}tr
+            </text>
+            <text x="2" y="160">
+              {Math.round((chart.max * 0.25) / 1000000)}tr
+            </text>
+            <text x="14" y="200">
+              0
+            </text>
             {chart.area ? <path className="overviewArea" d={chart.area} /> : null}
             <polyline points={chart.polyline} />
-            {chart.points.map(point => <circle key={point.date} cx={point.x} cy={point.y} r="3.5" />)}
-            {chart.points.filter((_, index) => index % 7 === 0 || index === chart.points.length - 1).map(point => (
-              <text key={`label-${point.date}`} x={point.x} y="218" textAnchor="middle">{point.label}</text>
+            {chart.points.map(point => (
+              <circle key={point.date} cx={point.x} cy={point.y} r="3.5" />
             ))}
+            {chart.points
+              .filter(
+                (_, index) =>
+                  index % 7 === 0 || index === chart.points.length - 1,
+              )
+              .map(point => (
+                <text
+                  key={`label-${point.date}`}
+                  x={point.x}
+                  y="218"
+                  textAnchor="middle">
+                  {point.label}
+                </text>
+              ))}
           </svg>
-        </article>
+        </Link>
         <article className="overviewPanel overviewOccupancy">
-          <SectionHeader title="Tỷ lệ lấp đầy ghế (Trung bình)" />
-          <div className="overviewDonutWrap">
+          <SectionHeader title="Tỷ lệ lấp đầy ghế (Trung bình)" to="/rooms" />
+          <Link
+            className="overviewDonutWrap overviewClickable"
+            to="/rooms"
+            title="Xem phòng chiếu">
             <div
               className="overviewDonut"
-              style={{background: donutStops.parts.length ? `conic-gradient(${donutStops.parts.join(', ')})` : undefined}}>
-              <span><strong>{averageOccupancy}%</strong>Trung bình</span>
+              style={{
+                background: donutStops.parts.length
+                  ? `conic-gradient(${donutStops.parts.join(', ')})`
+                  : undefined,
+              }}>
+              <span>
+                <strong>{averageOccupancy}%</strong>Trung bình
+              </span>
             </div>
             <div className="overviewLegend">
               {distribution.map(item => (
                 <p key={item.label}>
                   <i className={item.tone} />
                   {item.label}
-                  <span>{item.count} phòng ({item.percentage}%)</span>
+                  <span>
+                    {item.count} phòng ({item.percentage}%)
+                  </span>
                 </p>
               ))}
             </div>
-          </div>
+          </Link>
         </article>
       </div>
 
@@ -269,36 +360,66 @@ function Dashboard() {
           <SectionHeader title="Suất đang chiếu" to="/showtimes" />
           <div className="overviewPlayingList">
             {playingMovies.map(movie => (
-              <div className="overviewMovieCard" key={movie.id}>
-                {movie.poster ? <img src={movie.poster} alt="" /> : <div className="overviewPosterFallback">FG</div>}
+              <Link
+                className="overviewMovieCard overviewClickable"
+                to={`/showtimes/${movie.id}/edit`}
+                key={movie.id}
+                title="Xem / sửa suất chiếu">
+                {movie.poster ? (
+                  <img src={movie.poster} alt="" />
+                ) : (
+                  <div className="overviewPosterFallback">FG</div>
+                )}
                 <div>
                   <span>Đang chiếu</span>
                   <h4>{movie.movieTitle}</h4>
                   <p>{movie.room}</p>
-                  <p>{time(movie.startTime)} - {time(movie.endTime)}</p>
-                  <small>{movie.soldSeats} / {movie.totalSeats} ghế</small>
-                  <div><i style={{width: `${movie.occupancyRate}%`}} /></div>
+                  <p>
+                    {time(movie.startTime)} - {time(movie.endTime)}
+                  </p>
+                  <small>
+                    {movie.soldSeats} / {movie.totalSeats} ghế
+                  </small>
+                  <div>
+                    <i style={{width: `${movie.occupancyRate}%`}} />
+                  </div>
                 </div>
-              </div>
+              </Link>
             ))}
-            {!playingMovies.length ? <p className="overviewEmpty">Hiện không có suất đang chiếu.</p> : null}
+            {!playingMovies.length ? (
+              <p className="overviewEmpty">Hiện không có suất đang chiếu.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Suất sắp chiếu" to="/showtimes" />
           <div className="overviewUpcomingGrid">
             {upcomingMovies.map(movie => (
-              <div className="overviewUpcoming" key={movie.id}>
-                {movie.poster ? <img src={movie.poster} alt="" /> : <div className="overviewPosterFallback small">FG</div>}
+              <Link
+                className="overviewUpcoming overviewClickable"
+                to={`/showtimes/${movie.id}/edit`}
+                key={movie.id}
+                title="Xem / sửa suất chiếu">
+                {movie.poster ? (
+                  <img src={movie.poster} alt="" />
+                ) : (
+                  <div className="overviewPosterFallback small">FG</div>
+                )}
                 <div>
                   <h4>{movie.movieTitle}</h4>
-                  <p>{time(movie.startTime)} · {movie.room}</p>
-                  <small>{movie.soldSeats} / {movie.totalSeats} ghế</small>
+                  <p>
+                    {time(movie.startTime)} · {movie.room}
+                  </p>
+                  <small>
+                    {movie.soldSeats} / {movie.totalSeats} ghế
+                  </small>
                 </div>
                 <b>{countdown(movie.startTime)}</b>
-              </div>
+              </Link>
             ))}
-            {!upcomingMovies.length ? <p className="overviewEmpty">Hôm nay không còn suất sắp chiếu.</p> : null}
+            {!upcomingMovies.length ? (
+              <p className="overviewEmpty">Hôm nay không còn suất sắp chiếu.</p>
+            ) : null}
           </div>
         </article>
       </div>
@@ -308,76 +429,154 @@ function Dashboard() {
           <SectionHeader title="Top phim doanh thu" to="/reports/revenue" />
           <div className="overviewRankList">
             {topMovies.map((movie, index) => (
-              <div key={movie.title}>
-                <b>{index + 1}</b><span>{movie.title}</span>
-                <i><em style={{width: `${(Number(movie.revenue || 0) / maxMovieRevenue) * 100}%`}} /></i>
+              <Link
+                className="overviewClickable"
+                to="/reports/revenue"
+                key={movie.title}
+                title="Xem báo cáo doanh thu">
+                <b>{index + 1}</b>
+                <span>{movie.title}</span>
+                <i>
+                  <em
+                    style={{
+                      width: `${(Number(movie.revenue || 0) / maxMovieRevenue) * 100}%`,
+                    }}
+                  />
+                </i>
                 <strong>{money(movie.revenue)}</strong>
-              </div>
+              </Link>
             ))}
-            {!topMovies.length ? <p className="overviewEmpty">Chưa có doanh thu trong 30 ngày.</p> : null}
+            {!topMovies.length ? (
+              <p className="overviewEmpty">Chưa có doanh thu trong 30 ngày.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Combo bán chạy" to="/products" />
           <div className="overviewSimpleList">
-            {combos.map((combo, index) => <p key={combo.name}><b>{index + 1}</b><span>{combo.name}</span><strong>{combo.quantity}</strong></p>)}
-            {!combos.length ? <p className="overviewEmpty">Chưa có combo được mua.</p> : null}
+            {combos.map((combo, index) => (
+              <Link
+                className="overviewClickable"
+                to="/products"
+                key={combo.name}
+                title="Xem sản phẩm / combo">
+                <b>{index + 1}</b>
+                <span>{combo.name}</span>
+                <strong>{combo.quantity}</strong>
+              </Link>
+            ))}
+            {!combos.length ? (
+              <p className="overviewEmpty">Chưa có combo được mua.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Lấp đầy phòng chiếu" to="/rooms" />
           <div className="overviewRoomList">
-            {rooms.map(room => <p key={room.name}><span>{room.name}</span><i><em style={{width: `${room.occupancyRate}%`}} /></i><strong>{room.occupancyRate}%</strong></p>)}
-            {!rooms.length ? <p className="overviewEmpty">Hôm nay chưa có dữ liệu phòng.</p> : null}
+            {rooms.map(room => (
+              <Link
+                className="overviewClickable"
+                to="/rooms"
+                key={room.name}
+                title="Xem phòng chiếu">
+                <span>{room.name}</span>
+                <i>
+                  <em style={{width: `${room.occupancyRate}%`}} />
+                </i>
+                <strong>{room.occupancyRate}%</strong>
+              </Link>
+            ))}
+            {!rooms.length ? (
+              <p className="overviewEmpty">Hôm nay chưa có dữ liệu phòng.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Đơn đặt vé mới" to="/bookings" />
           <div className="overviewOrderList">
-            {recentOrders.map(order => <p key={order.id}><time>{time(order.createdAt)}</time><span>{order.customer}</span><b>{order.movieTitle}</b><strong>{order.ticketCount} vé</strong></p>)}
-            {!recentOrders.length ? <p className="overviewEmpty">Chưa có đơn đặt vé.</p> : null}
+            {recentOrders.map(order => (
+              <Link
+                className="overviewClickable"
+                to="/bookings"
+                key={order.id}
+                title="Xem đơn đặt vé">
+                <time>{time(order.createdAt)}</time>
+                <span>{order.customer}</span>
+                <b>{order.movieTitle}</b>
+                <strong>{order.ticketCount} vé</strong>
+              </Link>
+            ))}
+            {!recentOrders.length ? (
+              <p className="overviewEmpty">Chưa có đơn đặt vé.</p>
+            ) : null}
           </div>
         </article>
       </div>
 
       <div className="overviewBottom">
         <article className="overviewPanel">
-          <SectionHeader title="Hoạt động gần đây" />
+          <SectionHeader title="Hoạt động gần đây" to="/bookings" />
           <div className="overviewActivity">
-            {activity.map(item => <p key={item.id}><time>{time(item.createdAt)}</time><i /><span>{item.text}</span></p>)}
-            {!activity.length ? <p className="overviewEmpty">Chưa có hoạt động mới.</p> : null}
+            {activity.map(item => (
+              <Link
+                className="overviewClickable"
+                to="/bookings"
+                key={item.id}
+                title="Xem đơn đặt vé">
+                <time>{time(item.createdAt)}</time>
+                <i />
+                <span>{item.text}</span>
+              </Link>
+            ))}
+            {!activity.length ? (
+              <p className="overviewEmpty">Chưa có hoạt động mới.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Thông báo" to="/notifications" />
           <div className="overviewNotices">
             {notifications.map(item => (
-              <p key={item.id}>
-                <i className={
-                  item.type === 'thanh_toan'
-                    ? 'warning'
-                    : item.type === 'dat_ve'
-                      ? 'success'
-                      : 'info'
-                }>
+              <Link
+                className="overviewClickable"
+                to="/notifications"
+                key={item.id}
+                title="Xem thông báo">
+                <i
+                  className={
+                    item.type === 'thanh_toan'
+                      ? 'warning'
+                      : item.type === 'dat_ve'
+                        ? 'success'
+                        : 'info'
+                  }>
                   {item.type === 'dat_ve' ? '✓' : 'i'}
                 </i>
                 {item.title || item.content}
-              </p>
+              </Link>
             ))}
-            {!notifications.length ? <p className="overviewEmpty">Chưa có thông báo.</p> : null}
+            {!notifications.length ? (
+              <p className="overviewEmpty">Chưa có thông báo.</p>
+            ) : null}
           </div>
         </article>
         <article className="overviewPanel">
           <SectionHeader title="Lịch chiếu hôm nay" to="/showtimes" />
           <div className="overviewSchedule">
             {schedule.slice(0, 6).map(item => (
-              <p key={item.id}>
-                <time>{time(item.startTime)}</time><i />
+              <Link
+                className="overviewClickable"
+                to={`/showtimes/${item.id}/edit`}
+                key={item.id}
+                title="Xem / sửa suất chiếu">
+                <time>{time(item.startTime)}</time>
+                <i />
                 {item.movieTitle} – {item.room}
-              </p>
+              </Link>
             ))}
-            {!schedule.length ? <p className="overviewEmpty">Hôm nay chưa có lịch chiếu.</p> : null}
+            {!schedule.length ? (
+              <p className="overviewEmpty">Hôm nay chưa có lịch chiếu.</p>
+            ) : null}
           </div>
         </article>
       </div>
