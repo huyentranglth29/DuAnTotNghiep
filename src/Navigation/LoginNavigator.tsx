@@ -6,9 +6,15 @@ import Register from '../features/Login/component/Register';
 import {
   clearAuthSession,
   loginWithApi,
+  loginWithGoogleApi,
   registerWithApi,
   restoreAuthSession,
 } from '../services/voucherService';
+import {
+  configureGoogleSignIn,
+  getGoogleIdToken,
+  mapGoogleSignInError,
+} from '../services/googleAuth';
 
 type LoginScreen = 'login' | 'porgotPass' | 'register';
 type RegisteredUser = {
@@ -55,6 +61,7 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
   );
 
   useEffect(() => {
+    configureGoogleSignIn();
     loadRegisteredUser();
     restoreAuthSession().catch(() => undefined);
   }, []);
@@ -122,6 +129,20 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
     <Login
       onForgotPasswordPress={() => setActiveScreen('porgotPass')}
       onRegisterPress={() => setActiveScreen('register')}
+      onGoogleLoginPress={async () => {
+        try {
+          const idToken = await getGoogleIdToken();
+          await loginWithGoogleApi(idToken);
+          onAuthenticated?.();
+          return true;
+        } catch (error) {
+          const message = mapGoogleSignInError(error);
+          if (message.includes('hủy đăng nhập')) {
+            return false;
+          }
+          throw new Error(message);
+        }
+      }}
       onLoginPress={async ({email, password}) => {
         const apiEmail = resolveLoginEmail(email);
         const apiPassword =

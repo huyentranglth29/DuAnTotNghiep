@@ -24,13 +24,20 @@ type LoginProps = {
     email: string;
     password: string;
   }) => boolean | Promise<boolean>;
+  onGoogleLoginPress?: () => boolean | Promise<boolean>;
 };
 
-function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProps) {
+function Login({
+  onForgotPasswordPress,
+  onRegisterPress,
+  onLoginPress,
+  onGoogleLoginPress,
+}: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -61,6 +68,29 @@ function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProp
       );
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!onGoogleLoginPress || isGoogleLoggingIn || isLoggingIn) {
+      return;
+    }
+
+    setIsGoogleLoggingIn(true);
+    try {
+      const isSuccess = await onGoogleLoginPress();
+      if (isSuccess) {
+        Alert.alert('Thành công', 'Đăng nhập Google thành công.');
+      }
+    } catch (error) {
+      Alert.alert(
+        'Đăng nhập Google thất bại',
+        error instanceof Error
+          ? error.message
+          : 'Không thể đăng nhập bằng Google.',
+      );
+    } finally {
+      setIsGoogleLoggingIn(false);
     }
   };
 
@@ -121,9 +151,20 @@ function Login({onForgotPasswordPress, onRegisterPress, onLoginPress}: LoginProp
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.85} style={styles.googleButton}>
+        <TouchableOpacity
+          activeOpacity={isGoogleLoggingIn ? 1 : 0.85}
+          disabled={isGoogleLoggingIn || isLoggingIn}
+          style={[
+            styles.googleButton,
+            isGoogleLoggingIn && styles.loginButtonDisabled,
+          ]}
+          onPress={handleGoogleLogin}>
           <GoogleIcon />
-          <Text style={styles.googleButtonText}>ĐĂNG NHẬP BẰNG GOOGLE</Text>
+          <Text style={styles.googleButtonText}>
+            {isGoogleLoggingIn
+              ? 'ĐANG ĐĂNG NHẬP GOOGLE...'
+              : 'Tiếp tục với Google'}
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>

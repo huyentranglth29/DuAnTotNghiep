@@ -101,7 +101,7 @@ const login = async (req, res) => {
   }
 };
 
-// Đăng nhập / đăng ký bằng Google
+// Đăng nhập / đăng ký bằng Google (verify idToken phía server)
 const googleLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -137,8 +137,17 @@ const googleLogin = async (req, res) => {
       });
     }
 
+    if (payload.email_verified === false) {
+      return res.status(401).json({
+        success: false,
+        message: "Email Google chưa được xác minh",
+      });
+    }
+
     const email = payload.email.toLowerCase();
     const fullName = payload.name || payload.given_name || email.split("@")[0];
+    const googleId = payload.sub;
+    const avatar = payload.picture || "";
 
     let user = await User.findOne({ email });
 
@@ -150,7 +159,8 @@ const googleLogin = async (req, res) => {
         role: "user",
         status: "active",
         authProvider: "google",
-        googleId: payload.sub,
+        googleId,
+        avatar,
       });
     } else {
       if (user.status !== "active") {
@@ -160,9 +170,25 @@ const googleLogin = async (req, res) => {
         });
       }
 
-      if (!user.googleId && payload.sub) {
-        user.googleId = payload.sub;
+      // Email đã tồn tại (local hoặc google) → không tạo user mới, chỉ gắn Google
+      let changed = false;
+      if (googleId && user.googleId !== googleId) {
+        user.googleId = googleId;
+        changed = true;
+      }
+      if (user.authProvider !== "google") {
         user.authProvider = "google";
+        changed = true;
+      }
+      if (avatar && user.avatar !== avatar) {
+        user.avatar = avatar;
+        changed = true;
+      }
+      if (fullName && !user.fullName) {
+        user.fullName = fullName;
+        changed = true;
+      }
+      if (changed) {
         await user.save();
       }
     }

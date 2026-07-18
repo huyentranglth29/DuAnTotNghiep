@@ -19,6 +19,7 @@ router.post("/login", login);
 
 // Đăng nhập bằng Google
 router.post("/google", googleLogin);
+router.post("/google-login", googleLogin);
 
 // Lấy thông tin cá nhân
 router.get("/profile", authMiddleware, profile);
