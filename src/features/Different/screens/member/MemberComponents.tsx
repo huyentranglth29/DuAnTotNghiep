@@ -225,11 +225,15 @@ export function ConfirmDialog({
           <Text style={styles.confirmMessage}>{message}</Text>
           <View style={styles.confirmDivider} />
           <View style={styles.confirmActions}>
-            <TouchableOpacity style={styles.confirmAction} onPress={onConfirm || onClose}>
+            <TouchableOpacity style={styles.confirmAction} onPress={onClose}>
               <Text style={styles.confirmCancel}>{cancelText}</Text>
             </TouchableOpacity>
             <View style={styles.confirmActionDivider} />
-            <TouchableOpacity style={styles.confirmAction} onPress={onClose}>
+            <TouchableOpacity
+              style={styles.confirmAction}
+              onPress={() => {
+                onConfirm?.();
+              }}>
               <Text style={styles.confirmOk}>{confirmText}</Text>
             </TouchableOpacity>
           </View>

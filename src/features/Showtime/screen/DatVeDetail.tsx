@@ -2,9 +2,11 @@ import React, {useEffect, useState} from 'react';
 import {
   Image,
   ImageSourcePropType,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
   Alert,
@@ -20,7 +22,8 @@ import {
   getPaymentStatus,
   getProducts,
 } from '../../../services/apiService';
-import {getMyVouchers} from '../../../services/voucherService';
+import {getMyVouchers, AUTH_USER_KEY} from '../../../services/voucherService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
 
 const MOMO_PINK = '#d82d8b';
@@ -81,10 +84,85 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
   const [paymentInfo, setPaymentInfo] = useState<{amount: number; expiresAt: string} | null>(null);
   const [comboQuantities, setComboQuantities] = useState<Record<string, number>>({});
   const [selectedVoucher, setSelectedVoucher] = useState<FilmGoVoucher | null>(null);
+  const [recipient, setRecipient] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+  });
+  const [editVisible, setEditVisible] = useState(false);
+  const [editFullName, setEditFullName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const productsQuery = useQuery({queryKey: ['payment-products'], queryFn: getProducts});
   const vouchersQuery = useQuery({queryKey: ['payment-my-vouchers'], queryFn: getMyVouchers});
-  const products = (((productsQuery.data as any) ?? []) as any[]).filter(
-    item => item?.isActive && !String(item?.image || '').includes('example.com'),
+
+  useEffect(() => {
+    AsyncStorage.getItem(AUTH_USER_KEY)
+      .then(value => {
+        if (!value) {
+          return;
+        }
+        const user = JSON.parse(value);
+        setRecipient({
+          fullName: String(user.fullName || '').trim(),
+          email: String(user.email || '').trim(),
+          phone: String(user.phone || '').trim(),
+        });
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const recipientName = recipient.fullName || 'Người dùng FilmGo';
+  const recipientContact = [
+    recipient.phone || 'Chưa có SĐT',
+    recipient.email || 'Chưa có email',
+  ].join(' - ');
+
+  const openEditRecipient = () => {
+    setEditFullName(recipient.fullName);
+    setEditPhone(recipient.phone);
+    setEditVisible(true);
+  };
+
+  const saveRecipient = async () => {
+    const fullName = editFullName.trim();
+    const phone = editPhone.trim().replace(/\s+/g, '');
+
+    if (!fullName) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập họ tên người nhận.');
+      return;
+    }
+
+    if (phone && !/^(0|\+84)\d{8,10}$/.test(phone)) {
+      Alert.alert('SĐT không hợp lệ', 'Vui lòng nhập số điện thoại Việt Nam hợp lệ.');
+      return;
+    }
+
+    const next = {...recipient, fullName, phone};
+    setRecipient(next);
+    setEditVisible(false);
+
+    try {
+      const raw = await AsyncStorage.getItem(AUTH_USER_KEY);
+      if (!raw) {
+        return;
+      }
+      const user = JSON.parse(raw);
+      await AsyncStorage.setItem(
+        AUTH_USER_KEY,
+        JSON.stringify({...user, fullName, phone}),
+      );
+    } catch {
+      // Chỉ cập nhật UI đặt vé nếu lưu local thất bại
+    }
+  };
+
+  const productList = Array.isArray(productsQuery.data)
+    ? productsQuery.data
+    : Array.isArray((productsQuery.data as any)?.data)
+      ? (productsQuery.data as any).data
+      : [];
+  const products = productList.filter(
+    (item: any) => item?.isActive && !String(item?.image || '').includes('example.com'),
   );
   const selectedCombos = products
     .map(item => ({...item, quantity: comboQuantities[String(item._id)] || 0}))
@@ -103,7 +181,14 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
       )
     : 0;
   const orderTotal = subtotal - voucherDiscount;
-  const myVouchers = (((vouchersQuery.data as any) ?? []) as FilmGoVoucher[]).filter(item => item.walletStatus === 'available');
+  const voucherList = Array.isArray(vouchersQuery.data)
+    ? vouchersQuery.data
+    : Array.isArray((vouchersQuery.data as any)?.data)
+      ? (vouchersQuery.data as any).data
+      : [];
+  const myVouchers = (voucherList as FilmGoVoucher[]).filter(
+    item => item.walletStatus === 'available',
+  );
   const genre = movie.genre ?? '2D Phụ đề';
   const roomName = showtime?.roomName ?? 'Phòng chiếu 07';
   const startTime = formatBookingTime(showtime?.startTime);
@@ -261,6 +346,9 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
         voucherDiscount={voucherDiscount}
         expiresAt={paymentInfo.expiresAt}
         isProcessing={isProcessing}
+        customerName={recipientName}
+        customerPhone={recipient.phone || 'Chưa có SĐT'}
+        customerEmail={recipient.email || 'Chưa có email'}
         onBack={handlePaymentBack}
         onConfirm={handleBankConfirm}
       />
@@ -420,10 +508,10 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
         <Text style={styles.sectionLabel}>Thông tin người nhận</Text>
         <View style={styles.cardRecipient}>
           <View style={styles.recipientInfo}>
-            <Text style={styles.recipientName}>Người dùng FilmGo</Text>
-            <Text style={styles.recipientContact}>0394584627 - demo@filmgo.vn</Text>
+            <Text style={styles.recipientName}>{recipientName}</Text>
+            <Text style={styles.recipientContact}>{recipientContact}</Text>
           </View>
-          <TouchableOpacity style={styles.editBtn}>
+          <TouchableOpacity style={styles.editBtn} onPress={openEditRecipient}>
             <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
               <Path
                 d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
@@ -440,6 +528,64 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
             </Svg>
           </TouchableOpacity>
         </View>
+
+        <Modal
+          visible={editVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setEditVisible(false)}>
+          <View style={styles.editModalOverlay}>
+            <View style={styles.editModalCard}>
+              <Text style={styles.editModalTitle}>Sửa thông tin người nhận</Text>
+              <Text style={styles.editModalHint}>
+                Chỉ chỉnh họ tên và SĐT để liên hệ / nhận vé. Email gắn với tài khoản nên không đổi tại đây.
+              </Text>
+
+              <Text style={styles.editFieldLabel}>Họ và tên</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editFullName}
+                onChangeText={setEditFullName}
+                placeholder="Nhập họ tên"
+                placeholderTextColor="#aaaaaa"
+                autoCapitalize="words"
+              />
+
+              <Text style={styles.editFieldLabel}>Số điện thoại</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editPhone}
+                onChangeText={setEditPhone}
+                placeholder="Nhập số điện thoại"
+                placeholderTextColor="#aaaaaa"
+                keyboardType="phone-pad"
+                maxLength={12}
+              />
+
+              <Text style={styles.editFieldLabel}>Email</Text>
+              <View style={styles.editEmailBox}>
+                <Text style={styles.editEmailText}>
+                  {recipient.email || 'Chưa có email'}
+                </Text>
+              </View>
+
+              <View style={styles.editActions}>
+                <TouchableOpacity
+                  style={styles.editCancelBtn}
+                  onPress={() => setEditVisible(false)}>
+                  <Text style={styles.editCancelText}>Hủy</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.editSaveBtn}
+                  onPress={() => {
+                    void saveRecipient();
+                  }}>
+                  <Text style={styles.editSaveText}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* Spacer for footer */}
         <View style={{height: 145}} />
@@ -695,6 +841,85 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     padding: 6,
+  },
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  editModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+  },
+  editModalTitle: {
+    color: TEXT_DARK,
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  editModalHint: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  editFieldLabel: {
+    color: TEXT_DARK,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: TEXT_DARK,
+    marginBottom: 12,
+  },
+  editEmailBox: {
+    borderWidth: 1,
+    borderColor: '#ececf0',
+    backgroundColor: '#f7f7f9',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 18,
+  },
+  editEmailText: {
+    color: TEXT_MUTED,
+    fontSize: 14,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  editCancelBtn: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#dddddd',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  editCancelText: {
+    color: TEXT_DARK,
+    fontWeight: '600',
+  },
+  editSaveBtn: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: MOMO_PINK,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  editSaveText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
   terms: {
     color: TEXT_MUTED,
