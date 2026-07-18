@@ -122,6 +122,63 @@ export function addCleanupMinutes(endTime, minutes = CLEANUP_MINUTES) {
   return next;
 }
 
+/** Hai suất xung đột nếu khoảng bận (end + 15') chồng lên nhau. */
+export function rangesConflict(startA, endA, startB, endB) {
+  const busyA = addCleanupMinutes(endA).getTime();
+  const busyB = addCleanupMinutes(endB).getTime();
+  return (
+    new Date(startA).getTime() < busyB && new Date(startB).getTime() < busyA
+  );
+}
+
+/**
+ * Giờ bắt đầu có chọn được không (dựa freeGaps từ API, hoặc tự check chồng lịch).
+ * freeGaps === null: chưa có lịch phòng → chưa khóa giờ.
+ * freeGaps === []: đã tải lịch nhưng không còn khoảng trống đủ → khóa hết.
+ */
+export function isStartTimeAvailable({
+  date,
+  time,
+  duration,
+  showtimes = [],
+  freeGaps = null,
+}) {
+  if (!date || !time) {
+    return true;
+  }
+
+  const startIso = buildStartTimeIso(date, time);
+  const startMs = new Date(startIso).getTime();
+
+  if (Array.isArray(freeGaps)) {
+    return freeGaps.some(gap => {
+      if (!gap.canFit || !gap.latestStart) {
+        return false;
+      }
+      const gapStart = new Date(gap.start).getTime();
+      const latest = new Date(gap.latestStart).getTime();
+      return startMs >= gapStart && startMs <= latest;
+    });
+  }
+
+  if (!duration || !showtimes.length) {
+    return true;
+  }
+
+  const endIso = buildEndTimeIso(startIso, duration);
+  return !showtimes.some(item =>
+    rangesConflict(startIso, endIso, item.startTime, item.endTime),
+  );
+}
+
+export function padTimePart(value) {
+  return `${Number(value)}`.padStart(2, '0');
+}
+
+export function buildTimeValue(hour, minute) {
+  return `${padTimePart(hour)}:${padTimePart(minute)}`;
+}
+
 export function shortCode(id = '') {
   const text = String(id);
   return `SC-${text.slice(-4).toUpperCase()}`;

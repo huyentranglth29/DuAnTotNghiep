@@ -1225,7 +1225,9 @@ th {
 }
 
 .showtimeEditPage .customSelect:focus-within,
-.showtimeEditPage .customSelect:has(.customSelectTrigger.open) {
+.showtimeEditPage .customSelect:has(.customSelectTrigger.open),
+.showtimeEditPage .startTimePicker:focus-within,
+.showtimeEditPage .startTimePicker:has(.customSelectTrigger.open) {
   z-index: 20;
 }
 
@@ -1657,6 +1659,118 @@ th {
   color: #fff;
   background: #1d4ed8;
   transform: scale(1.04);
+}
+
+.startTimePicker {
+  position: relative;
+}
+
+.startTimeTrigger.conflict {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.startTimeHint {
+  margin-top: -2px;
+  color: #687385;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.startTimeHint.conflict {
+  color: #dc2626;
+}
+
+.startTimeMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: min(280px, 100%);
+  overflow: hidden;
+  border: 1px solid #d7dee8;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.startTimeColumn {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  border-right: 1px solid #e5e7eb;
+}
+
+.startTimeColumn:last-child {
+  border-right: 0;
+}
+
+.startTimeColumnLabel {
+  padding: 10px 12px 6px;
+  color: #687385;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #f8fafc;
+}
+
+.startTimeColumn ul {
+  max-height: 220px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.startTimeOption {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: #111827;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.startTimeOption:hover:not(:disabled) {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.startTimeOption.active {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.startTimeOption.active:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.startTimeOption.muted,
+.startTimeOption:disabled {
+  color: #c0c7d2;
+  background: transparent;
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.startTimeOption.muted.active,
+.startTimeOption:disabled.active {
+  color: #ffffff;
+  background: #94a3b8;
+  opacity: 0.85;
+  text-decoration: none;
 }
 
 .showtimeFilters label {
@@ -3534,6 +3648,77 @@ th {
   box-shadow: 0 3px 12px rgba(29, 44, 72, .055);
 }
 
+a.overviewPanel {
+  display: block;
+}
+
+a.overviewClickable,
+a.overviewSeeAll {
+  text-decoration: none !important;
+  color: inherit;
+  cursor: pointer;
+}
+
+.overviewClickable {
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+a.overviewMetric.overviewClickable {
+  display: flex;
+  align-items: center;
+}
+
+.overviewMetric.overviewClickable:hover,
+.overviewPanel.overviewClickable:hover {
+  z-index: 1;
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  background: #f8fbff;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.14);
+}
+
+.overviewTopActions button:hover,
+.overviewTopActions > a:hover,
+.overviewDatePicker:hover {
+  border-color: #93c5fd;
+  color: #2563eb;
+  background: #eff6ff;
+  transform: translateY(-1px);
+}
+
+.overviewSeeAll {
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #3784d8 !important;
+  background: #eef5ff;
+  font-size: 9px;
+  font-weight: 700;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.overviewSeeAll:hover {
+  color: #1d4ed8 !important;
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.overviewChip {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  color: #566174;
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .overviewMetric {
   min-width: 0;
   gap: 11px;
@@ -3622,6 +3807,10 @@ th {
   color: #3784d8;
   font-size: 9px;
   font-weight: 700;
+}
+
+.overviewSectionHeader .overviewSeeAll {
+  font-size: 9px;
 }
 
 .overviewSectionHeader small {
@@ -3753,6 +3942,17 @@ th {
   grid-template-columns: 64px minmax(0, 1fr);
   gap: 9px;
   min-width: 0;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.overviewMovieCard.overviewClickable:hover,
+.overviewUpcoming.overviewClickable:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.1);
+  transform: translateY(-1px);
 }
 
 .overviewMovieCard img,
@@ -3838,6 +4038,9 @@ th {
   grid-template-columns: 44px minmax(0, 1fr);
   gap: 8px;
   min-width: 0;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
 }
 
 .overviewUpcoming img {
@@ -3867,15 +4070,19 @@ th {
   gap: 9px;
 }
 
-.overviewRankList > div {
+.overviewRankList > div,
+.overviewRankList > a {
   display: grid;
   grid-template-columns: 18px minmax(80px, 1fr) minmax(45px, .8fr) auto;
   gap: 6px;
   align-items: center;
+  padding: 6px 7px;
+  border-radius: 8px;
   font-size: 8px;
 }
 
 .overviewRankList > div > b,
+.overviewRankList > a > b,
 .overviewSimpleList b {
   display: grid;
   width: 16px;
@@ -3887,14 +4094,17 @@ th {
   font-size: 8px;
 }
 
-.overviewRankList > div > span {
+.overviewRankList > div > span,
+.overviewRankList > a > span {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .overviewRankList > div > i,
-.overviewRoomList p > i {
+.overviewRankList > a > i,
+.overviewRoomList p > i,
+.overviewRoomList a > i {
   height: 4px;
   border-radius: 3px;
   background: #e8edf4;
@@ -3913,14 +4123,21 @@ th {
 }
 
 .overviewSimpleList p,
+.overviewSimpleList a,
 .overviewRoomList p,
+.overviewRoomList a,
 .overviewOrderList p,
+.overviewOrderList a,
 .overviewNotices p,
-.overviewSchedule p {
+.overviewNotices a,
+.overviewSchedule p,
+.overviewSchedule a {
   display: flex;
   align-items: center;
   gap: 7px;
   margin: 0;
+  padding: 6px 7px;
+  border-radius: 8px;
   font-size: 8px;
 }
 
@@ -3932,20 +4149,23 @@ th {
   font-size: 9px;
 }
 
-.overviewRoomList p > span {
+.overviewRoomList p > span,
+.overviewRoomList a > span {
   width: 52px;
 }
 
-.overviewRoomList p > i {
+.overviewRoomList p > i,
+.overviewRoomList a > i {
   flex: 1;
 }
 
-.overviewRoomList p:nth-child(2) em,
-.overviewRoomList p:nth-child(5) em { background: #e5a32c; }
-.overviewRoomList p:nth-child(4) em { background: #15a364; }
-.overviewRoomList p:nth-child(5) em { background: #df4c55; }
+.overviewRoomList > :nth-child(2) em,
+.overviewRoomList > :nth-child(5) em { background: #e5a32c; }
+.overviewRoomList > :nth-child(4) em { background: #15a364; }
+.overviewRoomList > :nth-child(5) em { background: #df4c55; }
 
-.overviewOrderList p {
+.overviewOrderList p,
+.overviewOrderList a {
   display: grid;
   grid-template-columns: 32px minmax(80px, 1fr) minmax(55px, .7fr) auto;
   gap: 5px;
@@ -3965,13 +4185,71 @@ th {
   text-overflow: ellipsis;
 }
 
-.overviewActivity p {
+.overviewActivity p,
+.overviewActivity a {
   display: grid;
   grid-template-columns: 34px 7px 1fr;
   gap: 7px;
   align-items: center;
   margin: 0;
+  padding: 6px 7px;
+  border-radius: 8px;
   font-size: 8px;
+}
+
+.overviewRankList > a.overviewClickable:hover,
+.overviewSimpleList > a.overviewClickable:hover,
+.overviewRoomList > a.overviewClickable:hover,
+.overviewOrderList > a.overviewClickable:hover,
+.overviewActivity > a.overviewClickable:hover,
+.overviewNotices > a.overviewClickable:hover,
+.overviewSchedule > a.overviewClickable:hover,
+.overviewDonutWrap.overviewClickable:hover {
+  background: #f5f9ff;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
+  transform: translateX(2px);
+}
+
+.overviewDonutWrap.overviewClickable {
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.adminDarkMode .overviewMetric.overviewClickable:hover,
+.adminDarkMode .overviewPanel.overviewClickable:hover,
+.adminDarkMode .overviewMovieCard.overviewClickable:hover,
+.adminDarkMode .overviewUpcoming.overviewClickable:hover {
+  border-color: #3d6fa8;
+  background: #1a2740;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.adminDarkMode .overviewRankList > a.overviewClickable:hover,
+.adminDarkMode .overviewSimpleList > a.overviewClickable:hover,
+.adminDarkMode .overviewRoomList > a.overviewClickable:hover,
+.adminDarkMode .overviewOrderList > a.overviewClickable:hover,
+.adminDarkMode .overviewActivity > a.overviewClickable:hover,
+.adminDarkMode .overviewNotices > a.overviewClickable:hover,
+.adminDarkMode .overviewSchedule > a.overviewClickable:hover,
+.adminDarkMode .overviewDonutWrap.overviewClickable:hover {
+  background: #1a2740;
+  box-shadow: inset 0 0 0 1px #3d6fa8;
+}
+
+.adminDarkMode .overviewSeeAll {
+  color: #8fc0ff !important;
+  background: #1d2a3e;
+}
+
+.adminDarkMode .overviewSeeAll:hover {
+  color: #dbeafe !important;
+  background: #243552;
+}
+
+.adminDarkMode .overviewChip {
+  border-color: #2b394d;
+  color: #dce5f2;
+  background: #1d2a3e;
 }
 
 .overviewActivity i,
@@ -4343,6 +4621,49 @@ th {
 .adminDarkMode .customSelectOption.active {
   color: #fff;
   background: #2563eb;
+}
+
+.adminDarkMode .startTimeMenu {
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.adminDarkMode .startTimeColumn {
+  border-color: var(--admin-border);
+}
+
+.adminDarkMode .startTimeColumnLabel {
+  color: var(--admin-muted);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .startTimeOption {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .startTimeOption:hover:not(:disabled) {
+  color: #9fc8ff;
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .startTimeOption.muted,
+.adminDarkMode .startTimeOption:disabled {
+  color: #5b677a;
+}
+
+.adminDarkMode .startTimeTrigger.conflict {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #2a1518;
+}
+
+.adminDarkMode .startTimeHint {
+  color: var(--admin-muted);
+}
+
+.adminDarkMode .startTimeHint.conflict {
+  color: #fca5a5;
 }
 
 .adminDarkMode .modalBackdrop {
