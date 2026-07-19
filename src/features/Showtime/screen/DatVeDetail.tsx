@@ -41,6 +41,7 @@ type DatVeDetailProps = {
   };
   seats: string[];
   totalPrice: number;
+  holdToken?: string;
   showtime?: {
     id: string;
     startTime: string;
@@ -91,7 +92,7 @@ function formatBookingDate(iso?: string) {
   }
 }
 
-function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailProps) {
+function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: DatVeDetailProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
@@ -288,6 +289,7 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
         movieDuration: movie.duration,
         movieGenre: movie.genre,
         seats: seats,
+        holdToken,
         totalPrice: totalPrice,
         combos: selectedCombos.map(item => ({
           productId: item._id,

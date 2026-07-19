@@ -213,6 +213,16 @@ export const cancelPayment = async (paymentId) => {
   return apiClient.post(`/api/payments/${paymentId}/cancel`);
 };
 
+export const holdSeats = async (payload) => {
+  return apiClient.post('/api/seat-holds', payload);
+};
+
+export const releaseSeats = async ({holdToken, showtimeId}) => {
+  return apiClient.delete(`/api/seat-holds/${encodeURIComponent(holdToken)}`, {
+    params: showtimeId ? {showtimeId} : undefined,
+  });
+};
+
 /**
  * Lấy danh sách vé đã đặt từ MongoDB Atlas
  * GET /api/quick-bookings/mine

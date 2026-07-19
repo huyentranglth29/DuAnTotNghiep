@@ -21,6 +21,19 @@ const bookedSeatSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    holdToken: {
+      type: String,
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["held", "booked"],
+      default: "booked",
+    },
     expiresAt: Date,
   },
   { timestamps: true }

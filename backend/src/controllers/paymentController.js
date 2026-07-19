@@ -28,6 +28,33 @@ const normalizeSeats = (seats) =>
 const normalizeGenre = (genre) =>
   Array.isArray(genre) ? genre.filter(Boolean).join(", ") : String(genre || "").trim();
 
+async function reservePaymentSeats({showtimeId, seats, paymentId, expiresAt, userId, holdToken}) {
+  await BookedSeat.init();
+  const now = new Date();
+  await BookedSeat.deleteMany({showtimeId, seatLabel: {$in: seats}, expiresAt: {$lte: now}});
+  const held = holdToken && userId
+    ? await BookedSeat.find({
+      showtimeId, seatLabel: {$in: seats}, user: userId, holdToken, status: "held",
+      expiresAt: {$gt: now},
+    }).distinct("seatLabel")
+    : [];
+  if (held.length) {
+    await BookedSeat.updateMany(
+      {showtimeId, seatLabel: {$in: held}, user: userId, holdToken, status: "held"},
+      {$set: {payment: paymentId}, $unset: {user: 1, holdToken: 1}},
+    );
+  }
+  const missing = seats.filter(seat => !held.includes(seat));
+  if (missing.length) {
+    await BookedSeat.insertMany(
+      missing.map(seatLabel => ({
+        showtimeId, seatLabel, payment: paymentId, expiresAt, status: "held",
+      })),
+      {ordered: true},
+    );
+  }
+}
+
 const notifyPendingPayment = payment => payment.user && createNotification({
   user: payment.user, type: "thanh_toan", entityId: payment._id,
   action: "mo_thanh_toan", title: "Đang chờ thanh toán",
@@ -257,7 +284,7 @@ async function completePayment(payment, query) {
 
     await BookedSeat.updateMany(
       { payment: claimed._id },
-      { $set: { booking: booking._id }, $unset: { payment: 1, expiresAt: 1 } }
+      { $set: { booking: booking._id, status: "booked" }, $unset: { payment: 1, expiresAt: 1, user: 1, holdToken: 1 } }
     );
     claimed.booking = booking._id;
     if (claimed.inventoryStatus === "reserved") claimed.inventoryStatus = "committed";
@@ -369,21 +396,10 @@ const createVnpayPayment = async (req, res, next) => {
     });
 
     try {
-      await BookedSeat.init();
-      await BookedSeat.deleteMany({
-        showtimeId,
-        seatLabel: { $in: seats },
-        expiresAt: { $lte: now },
+      await reservePaymentSeats({
+        showtimeId, seats, paymentId: payment._id, expiresAt,
+        userId: req.user?._id, holdToken: req.body.holdToken,
       });
-      await BookedSeat.insertMany(
-        seats.map((seatLabel) => ({
-          showtimeId,
-          seatLabel,
-          payment: payment._id,
-          expiresAt,
-        })),
-        { ordered: true }
-      );
       await reserveComboStock(payment);
       await reserveVoucher(payment);
     } catch (error) {
@@ -500,16 +516,10 @@ const createMockPayment = async (req, res, next) => {
     });
 
     try {
-      await BookedSeat.init();
-      await BookedSeat.deleteMany({
-        showtimeId,
-        seatLabel: { $in: seats },
-        expiresAt: { $lte: now },
+      await reservePaymentSeats({
+        showtimeId, seats, paymentId: payment._id, expiresAt,
+        userId: req.user?._id, holdToken: req.body.holdToken,
       });
-      await BookedSeat.insertMany(
-        seats.map((seatLabel) => ({ showtimeId, seatLabel, payment: payment._id, expiresAt })),
-        { ordered: true }
-      );
       await reserveComboStock(payment);
       await reserveVoucher(payment);
     } catch (error) {

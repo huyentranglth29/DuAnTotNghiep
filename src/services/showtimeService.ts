@@ -54,10 +54,14 @@ export type GheSuatChieu = {
   number: number;
   type: 'normal' | 'vip' | 'couple';
   isBooked: boolean;
+  isHeld?: boolean;
+  heldByMe?: boolean;
 };
 
-export async function layGheTheoSuatChieu(showtimeId: string): Promise<GheSuatChieu[]> {
-  const res = await apiClient.get(`/api/showtimes/${showtimeId}/seats`);
+export async function layGheTheoSuatChieu(showtimeId: string, holdToken?: string): Promise<GheSuatChieu[]> {
+  const res = await apiClient.get(`/api/showtimes/${showtimeId}/seats`, {
+    params: holdToken ? {holdToken} : undefined,
+  });
   const payload = layPayload<{seats: GheSuatChieu[]}>(
     res as {seats: GheSuatChieu[]} | {data: {seats: GheSuatChieu[]}},
   );
