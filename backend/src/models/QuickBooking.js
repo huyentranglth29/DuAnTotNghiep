@@ -63,8 +63,30 @@ const quickBookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "cancelled"],
+      enum: ["pending", "paid", "cancelled", "refunded"],
       default: "paid",
+    },
+    checkedIn: {
+      type: Boolean,
+      default: false,
+    },
+    checkedInAt: {
+      type: Date,
+      default: null,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    cancelReason: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
     },
   },
   {

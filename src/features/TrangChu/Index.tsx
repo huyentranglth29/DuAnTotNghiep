@@ -534,7 +534,10 @@ function TrangChu() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => setShowNotifications(true)}>
+              onPress={() => {
+                setShowNotifications(true);
+                void notificationsQuery.refetch();
+              }}>
               <Text style={styles.headerIcon}>🔔</Text>
               {unreadNotifications > 0 && (
                 <View style={styles.notificationBadge}>

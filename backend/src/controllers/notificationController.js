@@ -7,7 +7,15 @@ const serialize = (item, userId) => ({
 
 exports.getAll = async (req, res, next) => {
   try {
-    const filter = req.user ? { $or: [{ user: null }, { user: req.user._id }] } : { user: null };
+    const filter = req.user
+      ? {
+          $or: [
+            { user: null },
+            { user: { $exists: false } },
+            { user: req.user._id },
+          ],
+        }
+      : { $or: [{ user: null }, { user: { $exists: false } }] };
     const rows = await Notification.find(filter).sort({ createdAt: -1 }).limit(100).lean();
     res.json({ success: true, data: rows.map(row => serialize(row, req.user?._id)) });
   } catch (error) { next(error); }

@@ -4769,3 +4769,610 @@ a.overviewMetric.overviewClickable {
     flex-direction: column;
   }
 }
+
+/* ===== Qu?n lý don d?t vé (Order Manage) ===== */
+.orderManagePage {
+  --order-bg: #111827;
+  --order-panel: #0f172a;
+  --order-card: #0f172a;
+  --order-border: #1f2937;
+  --order-text: #f8fafc;
+  --order-muted: #94a3b8;
+  --order-hover: #1e293b;
+  --order-red: #ef4444;
+  --order-green: #22c55e;
+  --order-yellow: #eab308;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-height: calc(100vh - 120px);
+  color: var(--order-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.orderManagePage.has-panel {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.orderManageMain {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.orderManageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orderManageHeader h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.orderManageHeader p {
+  margin: 6px 0 0;
+  color: var(--order-muted);
+  font-size: 14px;
+}
+
+.orderManageActions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.orderFilterBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(4, minmax(120px, 0.8fr));
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--order-border);
+  border-radius: 12px;
+  background: var(--order-card);
+}
+
+.orderSearch,
+.orderDate {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.orderSearch svg,
+.orderDate svg {
+  position: absolute;
+  left: 12px;
+  color: var(--order-muted);
+  pointer-events: none;
+}
+
+.orderFilterBar input,
+.orderFilterBar select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--order-border);
+  border-radius: 10px;
+  color: var(--order-text);
+  background: #111827;
+}
+
+.orderSearch input {
+  padding-left: 36px;
+}
+
+.orderDate input {
+  padding-left: 36px;
+}
+
+.orderBtnGhost,
+.orderBtnPrimary,
+.orderBtnPrint,
+.orderBtnRefund,
+.orderBtnCancel,
+.orderIconBtn,
+.orderPagination button,
+.orderMoreMenu button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--order-border);
+  color: var(--order-text);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.orderBtnGhost:hover,
+.orderIconBtn:hover {
+  background: var(--order-hover);
+}
+
+.orderBtnPrimary {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.orderBtnPrimary:hover {
+  background: #b91c1c;
+}
+
+.orderError {
+  margin: 0;
+  color: #fca5a5;
+}
+
+.orderTableCard {
+  overflow: hidden;
+  border: 1px solid var(--order-border);
+  border-radius: 12px;
+  background: var(--order-card);
+}
+
+.orderTableWrap {
+  overflow: auto;
+  max-height: calc(100vh - 320px);
+}
+
+.orderTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1100px;
+}
+
+.orderTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--order-border);
+  color: var(--order-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #0b1220;
+  white-space: nowrap;
+}
+
+.orderTable tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.orderTable tbody tr:hover {
+  background: rgba(30, 41, 59, 0.65);
+}
+
+.orderTable tbody tr.is-active {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.orderCode {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.orderCustomerCell {
+  display: grid;
+  gap: 2px;
+}
+
+.orderCustomerCell span {
+  color: var(--order-muted);
+  font-size: 12px;
+}
+
+.orderEmpty {
+  padding: 40px 16px !important;
+  color: var(--order-muted);
+  text-align: center;
+}
+
+.orderBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.orderBadge--success {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.orderBadge--warning {
+  color: #fde68a;
+  background: rgba(234, 179, 8, 0.16);
+}
+
+.orderBadge--danger {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.orderBadge--muted {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.orderRowActions {
+  display: flex;
+  gap: 6px;
+}
+
+.orderIconBtn {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.orderMoreWrap {
+  position: relative;
+}
+
+.orderMoreMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid var(--order-border);
+  border-radius: 10px;
+  background: #111827;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.orderMoreMenu button {
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.orderMoreMenu button:hover {
+  background: var(--order-hover);
+}
+
+.orderMoreMenu button.is-danger {
+  color: #fca5a5;
+}
+
+.orderMoreMenu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.orderPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--order-border);
+  color: var(--order-muted);
+  font-size: 13px;
+}
+
+.orderPagination > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orderPagination button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.orderPagination button.is-active {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.orderDetailPanel {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--order-border);
+  border-radius: 12px;
+  background: var(--order-panel);
+}
+
+.orderDetailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderDetailHead h3 {
+  margin: 0;
+  color: var(--order-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.orderDetailHead strong {
+  display: block;
+  margin-top: 4px;
+  color: #f87171;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.orderDetailBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.orderDetailSections {
+  display: grid;
+  gap: 12px;
+}
+
+.orderDetailSections > div {
+  display: grid;
+  gap: 3px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+}
+
+.orderDetailSections span {
+  color: var(--order-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.orderDetailSections strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.orderDetailSections small {
+  color: var(--order-muted);
+  font-size: 12px;
+}
+
+.orderQrBox {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed var(--order-border);
+  border-radius: 12px;
+}
+
+.orderQrBox span,
+.orderQrBox small {
+  color: var(--order-muted);
+  font-size: 12px;
+}
+
+.orderTimelineWrap h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.orderTimeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0;
+}
+
+.orderTimeline li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  min-height: 52px;
+  color: var(--order-muted);
+}
+
+.orderTimeline li.is-done {
+  color: var(--order-text);
+}
+
+.orderTimeline li.is-done strong {
+  color: #86efac;
+}
+
+.orderTimelineMark {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.orderTimelineMark i {
+  width: 2px;
+  flex: 1;
+  min-height: 28px;
+  margin-top: 2px;
+  background: #334155;
+}
+
+.orderTimeline li.is-done .orderTimelineMark i {
+  background: #22c55e;
+}
+
+.orderTimeline strong,
+.orderTimeline span {
+  display: block;
+}
+
+.orderTimeline span {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--order-muted);
+}
+
+.orderDetailFooter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.orderBtnPrint {
+  border-color: #2563eb;
+  color: #93c5fd;
+}
+
+.orderBtnRefund {
+  border-color: #ea580c;
+  color: #fdba74;
+}
+
+.orderBtnCancel {
+  border-color: #dc2626;
+  color: #fca5a5;
+}
+
+.orderBtnPrint:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.orderBtnRefund:hover {
+  background: rgba(234, 88, 12, 0.12);
+}
+
+.orderBtnCancel:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.orderDetailFooter button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1280px) {
+  .orderManagePage.has-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .orderDetailPanel {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+
+  .orderFilterBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #order-print-area,
+  #order-print-area * {
+    visibility: visible;
+  }
+
+  #order-print-area {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    background: #fff;
+    color: #111;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+.orderConfirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.orderConfirmModal {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.orderConfirmModal h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.orderConfirmModal p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.orderConfirmModal label {
+  display: grid;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.orderConfirmModal textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  color: #f8fafc;
+  background: #111827;
+  resize: vertical;
+}
+
+.orderConfirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

@@ -24,6 +24,8 @@ type Ticket = {
   cinema: string;
   code: string;
   createdAt: string;
+  status?: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  cancelReason?: string;
   combos?: Array<{
     name: string;
     quantity: number;
@@ -91,12 +93,28 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
     );
   };
 
+  const getStatusMeta = (status?: Ticket['status']) => {
+    if (status === 'cancelled') {
+      return {label: '✕ ĐÃ HỦY', style: styles.statusBadgeCancelled};
+    }
+    if (status === 'refunded') {
+      return {label: '↩ ĐÃ HOÀN TIỀN', style: styles.statusBadgeRefunded};
+    }
+    if (status === 'pending') {
+      return {label: '… CHỜ THANH TOÁN', style: styles.statusBadgePending};
+    }
+    return {label: '✓ ĐÃ THANH TOÁN', style: styles.statusBadgePaid};
+  };
+
   const renderTicketItem = ({ item }: { item: Ticket }) => {
+    const statusMeta = getStatusMeta(item.status);
+    const isInactive = item.status === 'cancelled' || item.status === 'refunded';
+
     return (
-      <View style={styles.ticketCard}>
+      <View style={[styles.ticketCard, isInactive && styles.ticketCardInactive]}>
         {/* Badge trạng thái */}
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>✓ ĐÃ THANH TOÁN</Text>
+        <View style={[styles.statusBadge, statusMeta.style]}>
+          <Text style={styles.statusText}>{statusMeta.label}</Text>
         </View>
 
         {/* Phần trên của vé */}
@@ -143,12 +161,25 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
             </Text>
           ) : null}
 
+          {item.cancelReason ? (
+            <View style={styles.cancelReasonBox}>
+              <Text style={styles.cancelReasonLabel}>
+                {item.status === 'refunded' ? 'LÝ DO HOÀN TIỀN' : 'LÝ DO HỦY'}
+              </Text>
+              <Text style={styles.cancelReasonText}>{item.cancelReason}</Text>
+            </View>
+          ) : null}
+
           {!!item.combos?.length && (
             <View style={styles.comboTicketBox}>
               <View style={styles.comboTicketHeader}>
                 <Text style={styles.comboTicketTitle}>🍿 COMBO BẮP NƯỚC</Text>
                 <Text style={styles.comboTicketStatus}>
-                  {item.comboStatus === 'da_nhan' ? 'ĐÃ NHẬN' : 'CHỜ NHẬN'}
+                  {isInactive
+                    ? 'ĐÃ HỦY'
+                    : item.comboStatus === 'da_nhan'
+                      ? 'ĐÃ NHẬN'
+                      : 'CHỜ NHẬN'}
                 </Text>
               </View>
               {item.combos.map((combo, index) => (
@@ -159,10 +190,12 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
                   </Text>
                 </View>
               ))}
-              <View style={styles.comboPickupRow}>
-                <Text style={styles.comboPickupLabel}>MÃ NHẬN COMBO</Text>
-                <Text style={styles.comboPickupCode}>{item.comboPickupCode || '—'}</Text>
-              </View>
+              {!isInactive ? (
+                <View style={styles.comboPickupRow}>
+                  <Text style={styles.comboPickupLabel}>MÃ NHẬN COMBO</Text>
+                  <Text style={styles.comboPickupCode}>{item.comboPickupCode || '—'}</Text>
+                </View>
+              ) : null}
             </View>
           )}
         </View>
@@ -177,9 +210,15 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
         {/* Phần dưới của vé (cuống vé / mã nhận vé) */}
         <View style={styles.ticketBottom}>
           <Text style={styles.codeLabel}>MÃ NHẬN VÉ</Text>
-          <Text style={styles.codeVal}>{item.code}</Text>
-          {renderBarcode()}
-          <Text style={styles.ticketNote}>Xuất trình mã này tại quầy</Text>
+          <Text style={[styles.codeVal, isInactive && styles.codeValInactive]}>{item.code}</Text>
+          {!isInactive ? renderBarcode() : null}
+          <Text style={styles.ticketNote}>
+            {isInactive
+              ? item.status === 'refunded'
+                ? 'Vé này đã được hoàn tiền, không còn hiệu lực'
+                : 'Vé này đã bị hủy, không còn hiệu lực'
+              : 'Xuất trình mã này tại quầy'}
+          </Text>
         </View>
       </View>
     );
@@ -295,16 +334,53 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     overflow: 'hidden',
   },
+  ticketCardInactive: {
+    opacity: 0.88,
+  },
   statusBadge: {
-    backgroundColor: '#00b96b',
     paddingVertical: 6,
     alignItems: 'center',
+  },
+  statusBadgePaid: {
+    backgroundColor: '#00b96b',
+  },
+  statusBadgeCancelled: {
+    backgroundColor: '#e51937',
+  },
+  statusBadgeRefunded: {
+    backgroundColor: '#ea580c',
+  },
+  statusBadgePending: {
+    backgroundColor: '#ca8a04',
   },
   statusText: {
     color: '#ffffff',
     fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  cancelReasonBox: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+  },
+  cancelReasonLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#be123c',
+    marginBottom: 4,
+  },
+  cancelReasonText: {
+    fontSize: 13,
+    color: '#881337',
+    lineHeight: 18,
+  },
+  codeValInactive: {
+    textDecorationLine: 'line-through',
+    color: '#9ca3af',
   },
   ticketTop: {
     padding: 20,

@@ -16,7 +16,6 @@ const reports = require("../controllers/reportController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
-const Booking = require("../models/Booking");
 const Movie = require("../models/Movie");
 const Notification = require("../models/Notification");
 const Product = require("../models/Product");
@@ -28,6 +27,7 @@ const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const Voucher = require("../models/Voucher");
 const { createNotification } = require("../services/notificationService");
+const adminBooking = require("../controllers/adminBookingController");
 
 const router = express.Router();
 
@@ -42,6 +42,12 @@ router.get("/reports/tickets-by-day", reports.ticketsByDay);
 router.get("/reports/seat-occupancy", reports.seatOccupancy);
 router.get("/reports/top-movies", reports.topMovies);
 router.get("/reports/voucher-stats", reports.voucherStats);
+
+// Đơn đặt vé từ User app (QuickBooking)
+router.get("/bookings/movies", adminBooking.getOrderMovies);
+router.get("/bookings", adminBooking.listOrders);
+router.get("/bookings/:id", adminBooking.getOrderById);
+router.put("/bookings/:id", adminBooking.updateOrder);
 
 const resources = {
   movies: createAdminCrudController(Movie, {
@@ -76,10 +82,6 @@ const resources = {
   tickets: createAdminCrudController(Ticket, {
     populate: "booking showtime seat",
     keywordFields: ["code", "status"],
-  }),
-  bookings: createAdminCrudController(Booking, {
-    populate: "user showtime seats voucher",
-    keywordFields: ["status", "paymentMethod", "paymentStatus"],
   }),
   reviews: createAdminCrudController(Review, {
     populate: "movie user",
