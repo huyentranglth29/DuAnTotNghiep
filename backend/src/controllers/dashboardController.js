@@ -486,7 +486,9 @@ const getDashboard = async (req, res) => {
       totalProducts,
       totalVouchers,
       paidBookings,
+      paidQuickBookings,
       paidTickets,
+      quickTicketRows,
       recentBookings,
       recentUsers,
       recentMovies,
@@ -503,9 +505,24 @@ const getDashboard = async (req, res) => {
         { $match: { $or: [{ paymentStatus: "paid" }, { status: "paid" }] } },
         { $group: { _id: null, total: { $sum: "$totalPrice" } } },
       ]),
+      QuickBooking.aggregate([
+        { $match: { status: "paid" } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$totalPrice" },
+            bookings: { $sum: 1 },
+          },
+        },
+      ]),
       Ticket.aggregate([
         { $match: { status: { $in: ["valid", "used"] } } },
         { $group: { _id: null, total: { $sum: "$price" } } },
+      ]),
+      QuickBooking.aggregate([
+        { $match: { status: "paid" } },
+        { $project: { ticketCount: { $size: { $ifNull: ["$seats", []] } } } },
+        { $group: { _id: null, total: { $sum: "$ticketCount" } } },
       ]),
       Booking.find()
         .populate("user", "fullName email role status")
@@ -517,7 +534,10 @@ const getDashboard = async (req, res) => {
     ]);
 
     const bookingRevenue = paidBookings[0]?.total || 0;
+    const quickBookingRevenue = paidQuickBookings[0]?.total || 0;
+    const quickBookingCount = paidQuickBookings[0]?.bookings || 0;
     const ticketRevenue = paidTickets[0]?.total || 0;
+    const quickTicketCount = quickTicketRows[0]?.total || 0;
 
     return res.json({
       success: true,
@@ -526,11 +546,11 @@ const getDashboard = async (req, res) => {
         totalUsers,
         totalRooms,
         totalShowtimes,
-        totalTickets,
-        totalBookings,
+        totalTickets: totalTickets + quickTicketCount,
+        totalBookings: totalBookings + quickBookingCount,
         totalProducts,
         totalVouchers,
-        totalRevenue: bookingRevenue || ticketRevenue,
+        totalRevenue: bookingRevenue + quickBookingRevenue || ticketRevenue,
         recentBookings,
         recentUsers,
         recentMovies,

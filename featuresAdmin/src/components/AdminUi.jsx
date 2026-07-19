@@ -26,10 +26,15 @@ export function DataBars({items = [], labelKey = 'label', valueKey = 'value', fo
       {items.map(item => {
         const value = Number(item[valueKey] || 0);
         return (
-          <p key={item[labelKey]}>
-            <span style={{width: `${Math.max((value / max) * 100, 6)}%`}} />
-            {item[labelKey]} - {formatValue(value)}
-          </p>
+          <div className="barItem" key={item[labelKey]}>
+            <div className="barItemTop">
+              <strong>{item[labelKey]}</strong>
+              <span>{formatValue(value)}</span>
+            </div>
+            <div className="barTrack">
+              <span style={{width: `${Math.max((value / max) * 100, 3)}%`}} />
+            </div>
+          </div>
         );
       })}
     </div>
