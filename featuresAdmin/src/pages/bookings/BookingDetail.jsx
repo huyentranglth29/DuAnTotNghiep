@@ -1,24 +1,16 @@
 import {useEffect, useMemo, useState} from 'react';
 import bookingApi from '../../api/bookingApi';
-import {formatDateTime, formatVnd, getUserName, shortId} from '../../utils/adminFormatters';
+import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 
 const bookingStatusMap = {
   pending: {label: 'Chờ xử lý', tone: 'warning'},
   paid: {label: 'Hoàn tất', tone: 'success'},
   cancelled: {label: 'Đã hủy', tone: 'danger'},
-};
-
-const paymentStatusMap = {
-  unpaid: {label: 'Chưa thanh toán', tone: 'warning'},
-  paid: {label: 'Đã thanh toán', tone: 'success'},
   refunded: {label: 'Hoàn tiền', tone: 'info'},
-};
-
-const paymentMethodMap = {
-  cash: 'Tiền mặt',
-  card: 'Thẻ',
-  momo: 'Momo',
-  vnpay: 'VNPay',
+  cho_thanh_toan: {label: 'Chờ thanh toán', tone: 'warning'},
+  da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
+  da_huy: {label: 'Đã hủy', tone: 'danger'},
+  da_hoan_tien: {label: 'Đã hoàn tiền', tone: 'info'},
 };
 
 function StatusBadge({map, value}) {
@@ -47,8 +39,8 @@ function BookingDetail() {
     setError('');
 
     try {
-      const response = await bookingApi.getAll({limit: 500, sort: '-createdAt'});
-      const data = Array.isArray(response) ? response : response?.data || [];
+      const response = await bookingApi.getAll({limit: 100, sort: '-createdAt'});
+      const data = Array.isArray(response?.data) ? response.data : [];
       setBookings(data);
       setSelectedId(current => current || data[0]?._id || '');
     } catch (err) {
@@ -70,13 +62,12 @@ function BookingDetail() {
 
     return bookings.filter(booking => {
       const searchable = [
-        `DH-${shortId(booking)}`,
-        booking.ticketCode,
-        getUserName(booking),
-        booking.user?.email,
+        booking.code,
+        booking.customerName,
+        booking.customerEmail,
         booking.movieTitle,
-        booking.showtime?.movie?.title,
-        booking.seatLabels?.join(', '),
+        booking.showtimeLabel,
+        (booking.seats || []).join(', '),
       ]
         .filter(Boolean)
         .join(' ')
@@ -101,14 +92,13 @@ function BookingDetail() {
     }
   }, [filteredBookings, selectedId]);
 
-  const movieTitle = selectedBooking?.movieTitle || selectedBooking?.showtime?.movie?.title || '';
-  const seatLabels = selectedBooking?.seatLabels?.join(', ') || selectedBooking?.seats?.map(seat => `${seat.row || ''}${seat.number || ''}`).filter(Boolean).join(', ');
-
   return (
     <section className="bookingAdminPage">
       <div className="pageTitle">
         <h2>Xem chi tiết đơn đặt vé</h2>
-        <button type="button" onClick={loadData}>Tải lại</button>
+        <button type="button" onClick={loadData}>
+          Tải lại
+        </button>
       </div>
 
       <div className="panel bookingFilters">
@@ -121,14 +111,13 @@ function BookingDetail() {
           value={selectedBooking?._id || ''}
           onChange={event => setSelectedId(event.target.value)}
           disabled={filteredBookings.length === 0}
-          aria-label="Chọn đơn đặt vé"
-        >
+          aria-label="Chọn đơn đặt vé">
           {filteredBookings.length === 0 ? (
             <option value="">Không có đơn</option>
           ) : (
             filteredBookings.map(booking => (
               <option key={booking._id} value={booking._id}>
-                DH-{shortId(booking)} - {getUserName(booking) || booking.movieTitle || 'Đơn đặt vé'}
+                {booking.code} - {booking.customerName || booking.movieTitle}
               </option>
             ))
           )}
@@ -146,24 +135,25 @@ function BookingDetail() {
             <div className="bookingDetailHead">
               <div>
                 <span>Mã đơn</span>
-                <h3>DH-{shortId(selectedBooking)}</h3>
+                <h3>{selectedBooking.code}</h3>
               </div>
               <div className="bookingDetailBadges">
-                <StatusBadge map={bookingStatusMap} value={selectedBooking.status} />
-                <StatusBadge map={paymentStatusMap} value={selectedBooking.paymentStatus} />
+                <StatusBadge
+                  map={bookingStatusMap}
+                  value={selectedBooking.paymentStatus || selectedBooking.status}
+                />
               </div>
             </div>
 
             <div className="bookingDetailItems">
-              <DetailItem label="Khách hàng" value={getUserName(selectedBooking)} />
-              <DetailItem label="Email" value={selectedBooking.user?.email} />
-              <DetailItem label="Phim" value={movieTitle} />
-              <DetailItem label="Suất chiếu" value={formatDateTime(selectedBooking.showtime?.startTime)} />
-              <DetailItem label="Rạp" value={selectedBooking.cinemaName} />
-              <DetailItem label="Phòng" value={selectedBooking.roomName || selectedBooking.showtime?.room?.name} />
-              <DetailItem label="Ghế" value={seatLabels} />
-              <DetailItem label="Mã vé" value={selectedBooking.ticketCode} />
-              <DetailItem label="Phương thức" value={paymentMethodMap[selectedBooking.paymentMethod]} />
+              <DetailItem label="Khách hàng" value={selectedBooking.customerName} />
+              <DetailItem label="Email" value={selectedBooking.customerEmail} />
+              <DetailItem label="Phim" value={selectedBooking.movieTitle} />
+              <DetailItem label="Suất chiếu" value={selectedBooking.showtimeLabel} />
+              <DetailItem label="Rạp" value={selectedBooking.cinema} />
+              <DetailItem label="Phòng" value={selectedBooking.roomName} />
+              <DetailItem label="Ghế" value={(selectedBooking.seats || []).join(', ')} />
+              <DetailItem label="Phương thức" value={selectedBooking.paymentMethod} />
               <DetailItem label="Ngày đặt" value={formatDateTime(selectedBooking.createdAt)} />
             </div>
           </article>
@@ -171,7 +161,7 @@ function BookingDetail() {
           <aside className="panel bookingDetailAside">
             <span>Tổng thanh toán</span>
             <strong>{formatVnd(selectedBooking.totalPrice)}</strong>
-            <p>Voucher: {selectedBooking.voucher?.code || 'Không áp dụng'}</p>
+            <p>Voucher: {selectedBooking.voucherCode || 'Không áp dụng'}</p>
           </aside>
         </div>
       )}

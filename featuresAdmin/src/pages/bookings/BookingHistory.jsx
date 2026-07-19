@@ -1,25 +1,17 @@
 import {useEffect, useMemo, useState} from 'react';
 import bookingApi from '../../api/bookingApi';
 import Table from '../../components/Table';
-import {formatDateTime, formatVnd, getUserName, shortId} from '../../utils/adminFormatters';
+import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 
 const bookingStatusMap = {
   pending: {label: 'Chờ xử lý', tone: 'warning'},
   paid: {label: 'Hoàn tất', tone: 'success'},
   cancelled: {label: 'Đã hủy', tone: 'danger'},
-};
-
-const paymentStatusMap = {
-  unpaid: {label: 'Chưa thanh toán', tone: 'warning'},
-  paid: {label: 'Đã thanh toán', tone: 'success'},
   refunded: {label: 'Hoàn tiền', tone: 'info'},
-};
-
-const paymentMethodMap = {
-  cash: 'Tiền mặt',
-  card: 'Thẻ',
-  momo: 'Momo',
-  vnpay: 'VNPay',
+  cho_thanh_toan: {label: 'Chờ thanh toán', tone: 'warning'},
+  da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
+  da_huy: {label: 'Đã hủy', tone: 'danger'},
+  da_hoan_tien: {label: 'Đã hoàn tiền', tone: 'info'},
 };
 
 function StatusBadge({map, value}) {
@@ -39,8 +31,8 @@ function BookingHistory() {
     setError('');
 
     try {
-      const response = await bookingApi.getAll({limit: 500, sort: '-createdAt'});
-      setBookings(Array.isArray(response) ? response : response?.data || []);
+      const response = await bookingApi.getAll({limit: 100, sort: '-createdAt'});
+      setBookings(Array.isArray(response?.data) ? response.data : []);
     } catch (err) {
       setError(err.message || 'Không tải được lịch sử đặt vé.');
       setBookings([]);
@@ -57,15 +49,18 @@ function BookingHistory() {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     return bookings.filter(booking => {
-      const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        booking.status === statusFilter ||
+        booking.paymentStatus === statusFilter;
       const searchable = [
-        `DH-${shortId(booking)}`,
-        booking.ticketCode,
-        getUserName(booking),
-        booking.user?.email,
+        booking.code,
+        booking.customerName,
+        booking.customerPhone,
+        booking.customerEmail,
         booking.movieTitle,
-        booking.showtime?.movie?.title,
-        booking.seatLabels?.join(', '),
+        booking.showtimeLabel,
+        (booking.seats || []).join(', '),
         booking.status,
         booking.paymentStatus,
       ]
@@ -77,22 +72,36 @@ function BookingHistory() {
     });
   }, [bookings, keyword, statusFilter]);
 
-  const summary = useMemo(() => ({
-    total: filteredBookings.length,
-    paid: filteredBookings.filter(item => item.status === 'paid').length,
-    pending: filteredBookings.filter(item => item.status === 'pending').length,
-    cancelled: filteredBookings.filter(item => item.status === 'cancelled').length,
-  }), [filteredBookings]);
+  const summary = useMemo(
+    () => ({
+      total: filteredBookings.length,
+      paid: filteredBookings.filter(item => item.status === 'paid' || item.paymentStatus === 'da_thanh_toan')
+        .length,
+      pending: filteredBookings.filter(
+        item => item.status === 'pending' || item.paymentStatus === 'cho_thanh_toan',
+      ).length,
+      cancelled: filteredBookings.filter(
+        item =>
+          item.status === 'cancelled' ||
+          item.status === 'refunded' ||
+          item.paymentStatus === 'da_huy' ||
+          item.paymentStatus === 'da_hoan_tien',
+      ).length,
+    }),
+    [filteredBookings],
+  );
 
   const columns = [
-    {key: 'code', title: 'Mã đơn', render: item => `DH-${shortId(item)}`},
-    {key: 'customer', title: 'Khách hàng', render: getUserName},
-    {key: 'movie', title: 'Phim', render: item => item.movieTitle || item.showtime?.movie?.title || ''},
-    {key: 'seats', title: 'Ghế', render: item => item.seatLabels?.join(', ') || item.seats?.length || ''},
+    {key: 'code', title: 'Mã đơn', render: item => item.code},
+    {key: 'customer', title: 'Khách hàng', render: item => item.customerName},
+    {key: 'movie', title: 'Phim', render: item => item.movieTitle},
+    {key: 'seats', title: 'Ghế', render: item => (item.seats || []).join(', ')},
     {key: 'totalPrice', title: 'Tổng tiền', render: item => formatVnd(item.totalPrice)},
-    {key: 'method', title: 'Thanh toán', render: item => paymentMethodMap[item.paymentMethod] || 'Chưa chọn'},
-    {key: 'paymentStatus', title: 'Kết quả', render: item => <StatusBadge map={paymentStatusMap} value={item.paymentStatus} />},
-    {key: 'status', title: 'Trạng thái đơn', render: item => <StatusBadge map={bookingStatusMap} value={item.status} />},
+    {
+      key: 'paymentStatus',
+      title: 'Thanh toán',
+      render: item => <StatusBadge map={bookingStatusMap} value={item.paymentStatus || item.status} />,
+    },
     {key: 'createdAt', title: 'Ngày đặt', render: item => formatDateTime(item.createdAt)},
   ];
 
@@ -100,14 +109,28 @@ function BookingHistory() {
     <section className="bookingAdminPage">
       <div className="pageTitle">
         <h2>Xem lịch sử đặt vé</h2>
-        <button type="button" onClick={loadData}>Tải lại</button>
+        <button type="button" onClick={loadData}>
+          Tải lại
+        </button>
       </div>
 
       <div className="metricGrid">
-        <article className="metricCard"><span>Tổng đơn</span><strong>{summary.total}</strong></article>
-        <article className="metricCard"><span>Hoàn tất</span><strong>{summary.paid}</strong></article>
-        <article className="metricCard"><span>Chờ xử lý</span><strong>{summary.pending}</strong></article>
-        <article className="metricCard"><span>Đã hủy</span><strong>{summary.cancelled}</strong></article>
+        <article className="metricCard">
+          <span>Tổng đơn</span>
+          <strong>{summary.total}</strong>
+        </article>
+        <article className="metricCard">
+          <span>Hoàn tất</span>
+          <strong>{summary.paid}</strong>
+        </article>
+        <article className="metricCard">
+          <span>Chờ xử lý</span>
+          <strong>{summary.pending}</strong>
+        </article>
+        <article className="metricCard">
+          <span>Đã hủy</span>
+          <strong>{summary.cancelled}</strong>
+        </article>
       </div>
 
       <div className="panel bookingFilters">
@@ -119,11 +142,10 @@ function BookingHistory() {
         <select
           value={statusFilter}
           onChange={event => setStatusFilter(event.target.value)}
-          aria-label="Lọc trạng thái đơn"
-        >
+          aria-label="Lọc trạng thái đơn">
           <option value="all">Tất cả trạng thái</option>
-          <option value="pending">Chờ xử lý</option>
           <option value="paid">Hoàn tất</option>
+          <option value="pending">Chờ xử lý</option>
           <option value="cancelled">Đã hủy</option>
         </select>
       </div>

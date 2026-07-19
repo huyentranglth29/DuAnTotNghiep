@@ -11,7 +11,6 @@ import ShowtimeList from '../pages/showtimes/ShowtimeList';
 import ShowtimeAdd from '../pages/showtimes/ShowtimeAdd';
 import CreateShowtime from '../pages/showtimes/CreateShowtime';
 import ShowtimeStatus from '../pages/showtimes/ShowtimeStatus';
-import BookingCancel from '../pages/bookings/BookingCancel';
 import BookingDetail from '../pages/bookings/BookingDetail';
 import BookingHistory from '../pages/bookings/BookingHistory';
 import BookingList from '../pages/bookings/BookingList';
@@ -74,7 +73,7 @@ function AppRoutes() {
         <Route path="bookings" element={<BookingList />} />
         <Route path="bookings/history" element={<BookingHistory />} />
         <Route path="bookings/detail" element={<BookingDetail />} />
-        <Route path="bookings/cancel" element={<BookingCancel />} />
+        <Route path="bookings/cancel" element={<Navigate to="/bookings" replace />} />
         <Route path="payments/status" element={<PaymentStatus />} />
         <Route path="payments/history" element={<PaymentHistory />} />
         <Route path="tickets" element={<TicketList />} />
