@@ -51,6 +51,20 @@ type DatVeDetailProps = {
   onClose: () => void;
 };
 
+type ComboProduct = {
+  _id: string;
+  name: string;
+  description?: string;
+  image: string;
+  price: number;
+  stock?: number;
+  isActive: boolean;
+};
+
+type SelectedCombo = ComboProduct & {
+  quantity: number;
+};
+
 function formatBookingTime(iso?: string) {
   if (!iso) {
     return new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
@@ -156,15 +170,15 @@ function DatVeDetail({movie, seats, totalPrice, showtime, onClose}: DatVeDetailP
     }
   };
 
-  const productList = Array.isArray(productsQuery.data)
+  const productList: ComboProduct[] = Array.isArray(productsQuery.data)
     ? productsQuery.data
     : Array.isArray((productsQuery.data as any)?.data)
       ? (productsQuery.data as any).data
       : [];
   const products = productList.filter(
-    (item: any) => item?.isActive && !String(item?.image || '').includes('example.com'),
+    item => item?.isActive && !String(item?.image || '').includes('example.com'),
   );
-  const selectedCombos = products
+  const selectedCombos: SelectedCombo[] = products
     .map(item => ({...item, quantity: comboQuantities[String(item._id)] || 0}))
     .filter(item => item.quantity > 0);
   const comboTotal = selectedCombos.reduce(

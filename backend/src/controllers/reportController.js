@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const BookedSeat = require("../models/BookedSeat");
 const Booking = require("../models/Booking");
 const Movie = require("../models/Movie");
 const Room = require("../models/Room");
@@ -9,6 +10,10 @@ const QuickBooking = require("../models/QuickBooking");
 
 const paidBookingMatch = {
   $or: [{ paymentStatus: "paid" }, { status: "paid" }],
+};
+
+const paidQuickBookingMatch = {
+  status: "paid",
 };
 
 const ok = (res, data) => res.json({ success: true, data });
@@ -30,21 +35,58 @@ const getRange = (req) => {
   return { from, to };
 };
 
+const isObjectId = (value) => mongoose.Types.ObjectId.isValid(String(value));
+
+const toObjectId = (value) => new mongoose.Types.ObjectId(String(value));
+
+const seatCount = (booking) => {
+  if (Array.isArray(booking?.seats)) return booking.seats.length;
+  if (Array.isArray(booking?.seatLabels)) return booking.seatLabels.length;
+  return 0;
+};
+
+const addNumber = (map, key, value) => {
+  map.set(key, (map.get(key) || 0) + Number(value || 0));
+};
+
 const revenueByDay = async (req, res) => {
   try {
     const { from, to } = getRange(req);
-    const data = await Booking.aggregate([
-      { $match: { ...paidBookingMatch, createdAt: { $gte: from, $lte: to } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          revenue: { $sum: "$totalPrice" },
-          bookings: { $sum: 1 },
+    const [bookings, quickBookings] = await Promise.all([
+      Booking.aggregate([
+        { $match: { ...paidBookingMatch, createdAt: { $gte: from, $lte: to } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            revenue: { $sum: "$totalPrice" },
+            bookings: { $sum: 1 },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-      { $project: { _id: 0, date: "$_id", revenue: 1, bookings: 1 } },
+      ]),
+      QuickBooking.aggregate([
+        { $match: { ...paidQuickBookingMatch, createdAt: { $gte: from, $lte: to } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            revenue: { $sum: "$totalPrice" },
+            bookings: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
+
+    const dayMap = new Map();
+    [...bookings, ...quickBookings].forEach((item) => {
+      const current = dayMap.get(item._id) || {
+        date: item._id,
+        revenue: 0,
+        bookings: 0,
+      };
+      current.revenue += Number(item.revenue || 0);
+      current.bookings += Number(item.bookings || 0);
+      dayMap.set(item._id, current);
+    });
+    const data = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
     return ok(res, data);
   } catch (error) {
@@ -54,44 +96,63 @@ const revenueByDay = async (req, res) => {
 
 const revenueByMovie = async (req, res) => {
   try {
-    const data = await Booking.aggregate([
-      { $match: paidBookingMatch },
-      {
-        $lookup: {
-          from: Showtime.collection.name,
-          localField: "showtime",
-          foreignField: "_id",
-          as: "showtime",
+    const [bookings, quickBookings] = await Promise.all([
+      Booking.aggregate([
+        { $match: paidBookingMatch },
+        {
+          $lookup: {
+            from: Showtime.collection.name,
+            localField: "showtime",
+            foreignField: "_id",
+            as: "showtime",
+          },
         },
-      },
-      { $unwind: "$showtime" },
-      {
-        $group: {
-          _id: "$showtime.movie",
-          revenue: { $sum: "$totalPrice" },
-          bookings: { $sum: 1 },
+        { $unwind: { path: "$showtime", preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            from: Movie.collection.name,
+            localField: "showtime.movie",
+            foreignField: "_id",
+            as: "movie",
+          },
         },
-      },
-      {
-        $lookup: {
-          from: Movie.collection.name,
-          localField: "_id",
-          foreignField: "_id",
-          as: "movie",
+        { $unwind: { path: "$movie", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: { $ifNull: ["$showtime.movie", "$movieTitle"] },
+            title: { $first: { $ifNull: ["$movie.title", "$movieTitle"] } },
+            revenue: { $sum: "$totalPrice" },
+            bookings: { $sum: 1 },
+          },
         },
-      },
-      { $unwind: "$movie" },
-      { $sort: { revenue: -1 } },
-      {
-        $project: {
-          _id: 0,
-          movieId: "$_id",
-          title: "$movie.title",
-          revenue: 1,
-          bookings: 1,
+      ]),
+      QuickBooking.aggregate([
+        { $match: paidQuickBookingMatch },
+        {
+          $group: {
+            _id: "$movieTitle",
+            title: { $first: "$movieTitle" },
+            revenue: { $sum: "$totalPrice" },
+            bookings: { $sum: 1 },
+          },
         },
-      },
+      ]),
     ]);
+
+    const movieMap = new Map();
+    [...bookings, ...quickBookings].forEach((item) => {
+      const title = item.title || "Phim chưa xác định";
+      const current = movieMap.get(title) || {
+        movieId: isObjectId(item._id) ? item._id : undefined,
+        title,
+        revenue: 0,
+        bookings: 0,
+      };
+      current.revenue += Number(item.revenue || 0);
+      current.bookings += Number(item.bookings || 0);
+      movieMap.set(title, current);
+    });
+    const data = [...movieMap.values()].sort((a, b) => b.revenue - a.revenue);
 
     return ok(res, data);
   } catch (error) {
@@ -101,45 +162,56 @@ const revenueByMovie = async (req, res) => {
 
 const revenueByRoom = async (req, res) => {
   try {
-    const data = await Booking.aggregate([
-      { $match: paidBookingMatch },
-      {
-        $lookup: {
-          from: Showtime.collection.name,
-          localField: "showtime",
-          foreignField: "_id",
-          as: "showtime",
-        },
-      },
-      { $unwind: "$showtime" },
-      {
-        $group: {
-          _id: "$showtime.room",
-          revenue: { $sum: "$totalPrice" },
-          bookings: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: Room.collection.name,
-          localField: "_id",
-          foreignField: "_id",
-          as: "room",
-        },
-      },
-      { $unwind: "$room" },
-      { $sort: { revenue: -1 } },
-      {
-        $project: {
-          _id: 0,
-          roomId: "$_id",
-          name: "$room.name",
-          type: "$room.type",
-          revenue: 1,
-          bookings: 1,
-        },
-      },
+    const [bookings, quickBookings] = await Promise.all([
+      Booking.find(paidBookingMatch)
+        .populate({
+          path: "showtime",
+          populate: { path: "room", select: "name type" },
+        })
+        .lean(),
+      QuickBooking.find(paidQuickBookingMatch).lean(),
     ]);
+
+    const quickShowtimeIds = [
+      ...new Set(
+        quickBookings
+          .map((item) => item.showtimeId)
+          .filter(isObjectId)
+          .map(String),
+      ),
+    ];
+    const quickShowtimes = quickShowtimeIds.length
+      ? await Showtime.find({ _id: { $in: quickShowtimeIds.map(toObjectId) } })
+          .populate("room", "name type")
+          .lean()
+      : [];
+    const showtimeMap = new Map(
+      quickShowtimes.map((showtime) => [String(showtime._id), showtime]),
+    );
+    const roomMap = new Map();
+
+    const addRoom = (room, fallbackName, revenue) => {
+      const name = room?.name || fallbackName || "Phòng chưa xác định";
+      const current = roomMap.get(name) || {
+        roomId: room?._id,
+        name,
+        type: room?.type || "",
+        revenue: 0,
+        bookings: 0,
+      };
+      current.revenue += Number(revenue || 0);
+      current.bookings += 1;
+      roomMap.set(name, current);
+    };
+
+    bookings.forEach((booking) =>
+      addRoom(booking.showtime?.room, booking.roomName, booking.totalPrice),
+    );
+    quickBookings.forEach((booking) =>
+      addRoom(showtimeMap.get(String(booking.showtimeId))?.room, "", booking.totalPrice),
+    );
+
+    const data = [...roomMap.values()].sort((a, b) => b.revenue - a.revenue);
 
     return ok(res, data);
   } catch (error) {
@@ -150,19 +222,50 @@ const revenueByRoom = async (req, res) => {
 const ticketsByDay = async (req, res) => {
   try {
     const { from, to } = getRange(req);
-    const data = await Ticket.aggregate([
-      { $match: { createdAt: { $gte: from, $lte: to } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          tickets: { $sum: 1 },
-          used: { $sum: { $cond: [{ $eq: ["$status", "used"] }, 1, 0] } },
-          cancelled: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+    const [ticketRows, quickRows] = await Promise.all([
+      Ticket.aggregate([
+        { $match: { createdAt: { $gte: from, $lte: to } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            tickets: { $sum: 1 },
+            used: { $sum: { $cond: [{ $eq: ["$status", "used"] }, 1, 0] } },
+            cancelled: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-      { $project: { _id: 0, date: "$_id", tickets: 1, used: 1, cancelled: 1 } },
+      ]),
+      QuickBooking.find({
+        ...paidQuickBookingMatch,
+        createdAt: { $gte: from, $lte: to },
+      })
+        .select("seats createdAt checkedIn")
+        .lean(),
     ]);
+
+    const dayMap = new Map();
+    ticketRows.forEach((item) => {
+      dayMap.set(item._id, {
+        date: item._id,
+        tickets: Number(item.tickets || 0),
+        used: Number(item.used || 0),
+        cancelled: Number(item.cancelled || 0),
+      });
+    });
+    quickRows.forEach((booking) => {
+      const date = booking.createdAt.toISOString().slice(0, 10);
+      const current = dayMap.get(date) || {
+        date,
+        tickets: 0,
+        used: 0,
+        cancelled: 0,
+      };
+      const count = seatCount(booking);
+      current.tickets += count;
+      if (booking.checkedIn) current.used += count;
+      dayMap.set(date, current);
+    });
+
+    const data = [...dayMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
     return ok(res, data);
   } catch (error) {
@@ -177,24 +280,72 @@ const seatOccupancy = async (req, res) => {
       ? { _id: new mongoose.Types.ObjectId(showtimeId) }
       : {};
 
-    const showtimes = await Showtime.find(match).populate("room", "name totalSeats");
-    const data = [];
+    const showtimes = await Showtime.find(match).populate("room", "name totalSeats").lean();
+    const showtimeIds = showtimes.map((showtime) => showtime._id);
+    const showtimeIdStrings = showtimeIds.map(String);
+    const [ticketRows, bookedSeatRows, seatRows] = await Promise.all([
+      showtimeIds.length
+        ? Ticket.aggregate([
+            {
+              $match: {
+                showtime: { $in: showtimeIds },
+                status: { $in: ["valid", "used"] },
+              },
+            },
+            { $group: { _id: "$showtime", sold: { $sum: 1 } } },
+          ])
+        : [],
+      showtimeIdStrings.length
+        ? BookedSeat.aggregate([
+            {
+              $match: {
+                showtimeId: { $in: showtimeIdStrings },
+                booking: { $exists: true, $ne: null },
+              },
+            },
+            { $group: { _id: "$showtimeId", sold: { $sum: 1 } } },
+          ])
+        : [],
+      Seat.aggregate([
+        { $group: { _id: "$room", totalSeats: { $sum: 1 } } },
+      ]),
+    ]);
 
-    for (const showtime of showtimes) {
-      const totalSeats = showtime.room?.totalSeats || await Seat.countDocuments({ room: showtime.room?._id });
-      const soldTickets = await Ticket.countDocuments({
-        showtime: showtime._id,
-        status: { $in: ["valid", "used"] },
-      });
+    const soldByShowtime = new Map();
+    ticketRows.forEach((row) => addNumber(soldByShowtime, String(row._id), row.sold));
+    bookedSeatRows.forEach((row) => addNumber(soldByShowtime, String(row._id), row.sold));
+    const seatsByRoom = new Map(
+      seatRows.map((row) => [String(row._id), Number(row.totalSeats || 0)]),
+    );
+    const roomMap = new Map();
 
-      data.push({
-        showtimeId: showtime._id,
-        room: showtime.room?.name || "",
-        totalSeats,
-        soldTickets,
-        occupancyRate: totalSeats ? Math.round((soldTickets / totalSeats) * 100) : 0,
-      });
-    }
+    showtimes.forEach((showtime) => {
+      const roomId = String(showtime.room?._id || "");
+      const roomName = showtime.room?.name || "Phòng chưa xác định";
+      const totalSeats =
+        Number(showtime.room?.totalSeats || 0) || seatsByRoom.get(roomId) || 0;
+      const soldTickets = soldByShowtime.get(String(showtime._id)) || 0;
+      const current = roomMap.get(roomName) || {
+        roomId: showtime.room?._id,
+        room: roomName,
+        totalSeats: 0,
+        soldTickets: 0,
+        showtimes: 0,
+      };
+      current.totalSeats += totalSeats;
+      current.soldTickets += soldTickets;
+      current.showtimes += 1;
+      roomMap.set(roomName, current);
+    });
+
+    const data = [...roomMap.values()]
+      .map((room) => ({
+        ...room,
+        occupancyRate: room.totalSeats
+          ? Math.round((room.soldTickets / room.totalSeats) * 1000) / 10
+          : 0,
+      }))
+      .sort((a, b) => b.occupancyRate - a.occupancyRate);
 
     return ok(res, data);
   } catch (error) {
@@ -205,46 +356,43 @@ const seatOccupancy = async (req, res) => {
 const topMovies = async (req, res) => {
   try {
     const limit = Math.max(Number(req.query.limit) || 5, 1);
-    const data = await Booking.aggregate([
-      { $match: paidBookingMatch },
-      {
-        $lookup: {
-          from: Showtime.collection.name,
-          localField: "showtime",
-          foreignField: "_id",
-          as: "showtime",
-        },
-      },
-      { $unwind: "$showtime" },
-      { $unwind: "$seats" },
-      {
-        $group: {
-          _id: "$showtime.movie",
-          revenue: { $sum: "$totalPrice" },
-          tickets: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: Movie.collection.name,
-          localField: "_id",
-          foreignField: "_id",
-          as: "movie",
-        },
-      },
-      { $unwind: "$movie" },
-      { $sort: { revenue: -1, tickets: -1 } },
-      { $limit: limit },
-      {
-        $project: {
-          _id: 0,
-          movieId: "$_id",
-          title: "$movie.title",
-          revenue: 1,
-          tickets: 1,
-        },
-      },
+    const [bookings, quickBookings] = await Promise.all([
+      Booking.find(paidBookingMatch)
+        .populate({ path: "showtime", populate: { path: "movie", select: "title" } })
+        .select("showtime movieTitle totalPrice seats seatLabels")
+        .lean(),
+      QuickBooking.find(paidQuickBookingMatch)
+        .select("movieTitle totalPrice seats")
+        .lean(),
     ]);
+
+    const movieMap = new Map();
+    const addMovie = (title, revenue, tickets) => {
+      const safeTitle = title || "Phim chưa xác định";
+      const current = movieMap.get(safeTitle) || {
+        title: safeTitle,
+        revenue: 0,
+        tickets: 0,
+      };
+      current.revenue += Number(revenue || 0);
+      current.tickets += Number(tickets || 0);
+      movieMap.set(safeTitle, current);
+    };
+
+    bookings.forEach((booking) =>
+      addMovie(
+        booking.showtime?.movie?.title || booking.movieTitle,
+        booking.totalPrice,
+        seatCount(booking),
+      ),
+    );
+    quickBookings.forEach((booking) =>
+      addMovie(booking.movieTitle, booking.totalPrice, seatCount(booking)),
+    );
+
+    const data = [...movieMap.values()]
+      .sort((a, b) => b.revenue - a.revenue || b.tickets - a.tickets)
+      .slice(0, limit);
 
     return ok(res, data);
   } catch (error) {

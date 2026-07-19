@@ -301,6 +301,207 @@ section h2 {
   color: #159947;
 }
 
+.reportPage {
+  display: grid;
+  gap: 18px;
+}
+
+.reportHero {
+  display: grid;
+  gap: 4px;
+}
+
+.reportHero .pageTitle {
+  margin-bottom: 0;
+}
+
+.reportHero p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.reportError {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  background: #fff1f2;
+  font-weight: 700;
+}
+
+.reportMetricGrid {
+  gap: 14px;
+}
+
+.reportMetric {
+  position: relative;
+  min-height: 138px;
+  overflow: hidden;
+  padding: 18px;
+  border-color: #dfe7f1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.reportMetric::after {
+  content: '';
+  position: absolute;
+  right: -24px;
+  bottom: -34px;
+  width: 100px;
+  height: 100px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.08;
+}
+
+.reportMetric .metricIcon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 8px;
+  color: currentColor;
+  background: #f8fafc;
+}
+
+.reportMetric.green {
+  color: #047857;
+}
+
+.reportMetric.blue {
+  color: #1d4ed8;
+}
+
+.reportMetric.orange {
+  color: #b45309;
+}
+
+.reportMetric.violet {
+  color: #6d28d9;
+}
+
+.reportMetric > span:not(.metricIcon) {
+  color: #64748b;
+}
+
+.reportMetric strong {
+  color: #111827;
+  line-height: 1;
+}
+
+.reportMetric small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.reportGrid {
+  align-items: stretch;
+  gap: 18px;
+  margin-top: 0;
+}
+
+.reportPanel {
+  min-height: 210px;
+  border-color: #dfe7f1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+}
+
+.reportPanel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.reportPanel h3::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 4px #fee2e2;
+}
+
+.reportMetric,
+.reportPanel,
+.barItem,
+.barTrack span {
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+@media (hover: hover) {
+  .reportMetric:hover {
+    transform: translateY(-4px);
+    border-color: currentColor;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
+  }
+
+  .reportMetric:hover::after {
+    opacity: 0.14;
+  }
+
+  .reportMetric:hover .metricIcon {
+    background: currentColor;
+    color: #ffffff;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.14);
+  }
+
+  .reportPanel:hover {
+    transform: translateY(-3px);
+    border-color: #bfdbfe;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+  }
+
+  .reportPanel:hover h3::before {
+    background: #2563eb;
+    box-shadow: 0 0 0 4px #dbeafe;
+  }
+
+  .barItem {
+    margin: 0 -8px;
+    padding: 7px 8px;
+    border-radius: 8px;
+  }
+
+  .barItem:hover {
+    background: #f8fafc;
+  }
+
+  .barItem:hover .barItemTop strong {
+    color: #1d4ed8;
+  }
+
+  .barItem:hover .barTrack span {
+    background: linear-gradient(90deg, #1d4ed8, #22c55e);
+    box-shadow: 0 0 0 1px rgba(29, 78, 216, 0.08), 0 6px 14px rgba(37, 99, 235, 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reportMetric,
+  .reportPanel,
+  .barItem,
+  .barTrack span {
+    transition: none;
+  }
+
+  .reportMetric:hover,
+  .reportPanel:hover {
+    transform: none;
+  }
+}
+
+
+
 .dashboardGrid {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
@@ -701,7 +902,7 @@ th {
 
 .barList {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .barList p {
@@ -719,6 +920,53 @@ th {
   height: 10px;
   border-radius: 999px;
   background: #3b82f6;
+}
+
+.barItem {
+  display: grid;
+  gap: 7px;
+}
+
+.barItemTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 12px;
+  align-items: baseline;
+  color: #334155;
+  font-size: 13px;
+}
+
+.barItemTop strong {
+  overflow: hidden;
+  color: #1f2937;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barItemTop span {
+  display: inline;
+  width: auto;
+  height: auto;
+  color: #64748b;
+  background: transparent;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.barTrack {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef7;
+}
+
+.barTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.08);
 }
 
 .donut,
@@ -4770,7 +5018,7 @@ a.overviewMetric.overviewClickable {
   }
 }
 
-/* ===== Qu?n lý don d?t vé (Order Manage) ===== */
+/* ===== Qu?n lï¿½ don d?t vï¿½ (Order Manage) ===== */
 .orderManagePage {
   --order-bg: #111827;
   --order-panel: #0f172a;
@@ -5375,4 +5623,18 @@ a.overviewMetric.overviewClickable {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+
+.adminDarkMode .barItem:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.adminDarkMode .reportPanel:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.adminDarkMode .reportMetric:hover {
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }

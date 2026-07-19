@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
+const { sendLoginNotification } = require("../services/emailService");
 
 const sanitizeUser = (user) => {
   const data = user.toObject ? user.toObject() : { ...user };
@@ -83,6 +84,13 @@ const login = async (req, res) => {
 
     // Tạo JWT
     const token = generateToken(user._id, user.role);
+    sendLoginNotification({
+      email: user.email,
+      fullName: user.fullName,
+      provider: "email và mật khẩu",
+    }).catch((error) =>
+      console.warn("Không gửi được email đăng nhập:", error.message),
+    );
 
     res.status(200).json({
       success: true,
@@ -194,6 +202,13 @@ const googleLogin = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role);
+    sendLoginNotification({
+      email: user.email,
+      fullName: user.fullName,
+      provider: "Google",
+    }).catch((error) =>
+      console.warn("Không gửi được email đăng nhập Google:", error.message),
+    );
 
     res.status(200).json({
       success: true,
