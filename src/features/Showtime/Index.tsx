@@ -1,5 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
+  AppState,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,10 +9,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
+import {AUTH_USER_KEY} from '../../services/voucherService';
 import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
 
 const BLUE = '#005f98';
+
+type CurrentUser = {
+  fullName?: string;
+  email?: string;
+  avatar?: string;
+};
 
 function Showtime() {
   const [dangTim, setDangTim] = useState(false);
@@ -19,11 +29,37 @@ function Showtime() {
   const [searchPressed, setSearchPressed] = useState(false);
   const [anThanhTim, setAnThanhTim] = useState(false);
   const [xemVe, setXemVe] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser>({});
+
+  const loadCurrentUser = useCallback(async () => {
+    try {
+      const value = await AsyncStorage.getItem(AUTH_USER_KEY);
+      setCurrentUser(value ? JSON.parse(value) : {});
+    } catch {
+      setCurrentUser({});
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setTuKhoaDebounced(tuKhoa), 300);
     return () => clearTimeout(timer);
   }, [tuKhoa]);
+
+  useEffect(() => {
+    loadCurrentUser();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        loadCurrentUser();
+      }
+    });
+    return () => subscription.remove();
+  }, [loadCurrentUser]);
+
+  const displayName =
+    currentUser.fullName?.trim() ||
+    currentUser.email?.split('@')[0] ||
+    'Thành viên FilmGo';
+  const avatarLetter = displayName.charAt(0).toUpperCase() || 'F';
 
   const dongTimKiem = () => {
     setDangTim(false);
@@ -46,11 +82,18 @@ function Showtime() {
       {!anThanhTim && (
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>L</Text>
+            {currentUser.avatar ? (
+              <Image
+                source={{uri: currentUser.avatar}}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Text style={styles.avatarText}>{avatarLetter}</Text>
+            )}
           </View>
           <View style={styles.memberInfo}>
             <Text style={styles.greeting}>
-              Chào <Text style={styles.userName}>Lê Thị Ngọc Anh</Text>
+              Chào <Text style={styles.userName}>{displayName}</Text>
             </Text>
             <View style={styles.memberRow}>
               <Text style={styles.memberIcon}>♟</Text>
@@ -145,6 +188,11 @@ const styles = StyleSheet.create({
     color: '#0c0c0c',
     fontSize: 18,
     fontWeight: '500',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
   },
   memberInfo: {
     flex: 1,

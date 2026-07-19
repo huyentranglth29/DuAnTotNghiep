@@ -156,9 +156,23 @@ function ShowtimeNavigator({
       ) : activeScheduleTab === 'SẮP CHIẾU' ? (
         <SapChieu onMoviePress={chonPhim} />
       ) : activeScheduleTab === 'ĐANG CHIẾU' ? (
-        <DangChieu onMoviePress={chonPhim} />
+        <DangChieu
+          onMoviePress={chonPhim}
+          onShowtimePress={(movie, showtime) => {
+            chonPhim(movie);
+            setSelectedShowtime(showtime);
+            setShowBooking(true);
+          }}
+        />
       ) : (
-        <SuatChieuSom onMoviePress={chonPhim} />
+        <SuatChieuSom
+          onMoviePress={chonPhim}
+          onShowtimePress={(movie, showtime) => {
+            chonPhim(movie);
+            setSelectedShowtime(showtime);
+            setShowBooking(true);
+          }}
+        />
       )}
     </View>
   );
