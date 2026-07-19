@@ -80,7 +80,17 @@ const resources = {
     keywordFields: ["fullName", "email", "phone", "role", "status"],
   }),
   tickets: createAdminCrudController(Ticket, {
-    populate: "booking showtime seat",
+    populate: [
+      { path: "booking", select: "ticketCode movieTitle roomName totalPrice status paymentStatus" },
+      {
+        path: "showtime",
+        populate: [
+          { path: "movie", select: "title" },
+          { path: "room", select: "name" },
+        ],
+      },
+      { path: "seat", populate: { path: "room", select: "name" } },
+    ],
     keywordFields: ["code", "status"],
   }),
   reviews: createAdminCrudController(Review, {
