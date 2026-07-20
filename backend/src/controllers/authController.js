@@ -90,6 +90,13 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.deleted) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản đã bị xóa",
+      });
+    }
+
     if (user.status !== "active") {
       return res.status(403).json({
         success: false,
@@ -120,6 +127,9 @@ const login = async (req, res) => {
 
     // Tạo JWT
     failedLoginAttempts.delete(String(user.email).toLowerCase());
+    user.lastLogin = new Date();
+    user.lastSeen = new Date();
+    await user.save();
     const token = generateToken(user._id, user.role);
     sendLoginNotification({
       email: user.email,
@@ -196,6 +206,13 @@ const googleLogin = async (req, res) => {
 
     let user = await User.findOne({ email });
 
+    if (user?.deleted) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản đã bị xóa",
+      });
+    }
+
     if (!user) {
       user = await User.create({
         fullName,
@@ -206,6 +223,8 @@ const googleLogin = async (req, res) => {
         authProvider: "google",
         googleId,
         avatar,
+        lastLogin: new Date(),
+        lastSeen: new Date(),
       });
     } else {
       if (user.status !== "active") {
@@ -216,26 +235,21 @@ const googleLogin = async (req, res) => {
       }
 
       // Email đã tồn tại (local hoặc google) → không tạo user mới, chỉ gắn Google
-      let changed = false;
       if (googleId && user.googleId !== googleId) {
         user.googleId = googleId;
-        changed = true;
       }
       if (user.authProvider !== "google") {
         user.authProvider = "google";
-        changed = true;
       }
       if (avatar && user.avatar !== avatar) {
         user.avatar = avatar;
-        changed = true;
       }
       if (fullName && !user.fullName) {
         user.fullName = fullName;
-        changed = true;
       }
-      if (changed) {
-        await user.save();
-      }
+      user.lastLogin = new Date();
+      user.lastSeen = new Date();
+      await user.save();
     }
 
     const token = generateToken(user._id, user.role);
@@ -359,6 +373,24 @@ const updateProfile = async (req, res) => {
   }
 };
 
+/** Ping online từ app user */
+const heartbeat = async (req, res) => {
+  try {
+    const now = new Date();
+    await User.updateOne(
+      {_id: req.user._id},
+      {$set: {lastSeen: now}},
+    );
+    return res.json({
+      success: true,
+      message: "ok",
+      lastSeen: now,
+    });
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -366,4 +398,5 @@ module.exports = {
   setPassword,
   profile,
   updateProfile,
+  heartbeat,
 };

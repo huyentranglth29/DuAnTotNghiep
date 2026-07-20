@@ -5894,3 +5894,665 @@ a.overviewMetric.overviewClickable {
 .adminDarkMode .reportMetric:hover {
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }
+
+/* ===== Quản lý người dùng ===== */
+.userManagePage {
+  --user-panel: #ffffff;
+  --user-card: #ffffff;
+  --user-control: #ffffff;
+  --user-border: #d7dee8;
+  --user-text: #17202a;
+  --user-muted: #64748b;
+  --user-hover: #eef2f7;
+  --user-thead: #f1f5f9;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  color: var(--user-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.adminDarkMode .userManagePage {
+  --user-panel: #0f172a;
+  --user-card: #0f172a;
+  --user-control: #111827;
+  --user-border: #1f2937;
+  --user-text: #f8fafc;
+  --user-muted: #94a3b8;
+  --user-hover: #1e293b;
+  --user-thead: #0b1220;
+}
+
+.userManagePage.has-panel {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.userManageMain {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.userManageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.userManageHeader h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.userManageHeader p {
+  margin: 6px 0 0;
+  color: var(--user-muted);
+  font-size: 14px;
+}
+
+.userManageActions {
+  display: flex;
+  gap: 10px;
+}
+
+.userStatGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.userStatCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--user-border);
+  border-radius: 14px;
+  background: var(--user-card);
+  color: var(--user-text);
+  text-align: left;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.userStatCard.is-clickable {
+  cursor: pointer;
+}
+
+.userStatCard.is-clickable:hover {
+  transform: translateY(-3px);
+  border-color: #94a3b8;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.userStatCard.is-active {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.25);
+}
+
+.userStatIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.userStatIcon--blue {
+  background: #3b82f6;
+}
+
+.userStatIcon--green {
+  background: #22c55e;
+}
+
+.userStatIcon--red {
+  background: #ef4444;
+}
+
+.userStatIcon--orange {
+  background: #f59e0b;
+}
+
+.userStatIcon--purple {
+  background: #a855f7;
+}
+
+.userStatText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.userStatText span {
+  color: var(--user-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.userStatText strong {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.adminDarkMode .userStatCard.is-clickable:hover {
+  border-color: #475569;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  background: #111827;
+}
+
+.userFilterBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(4, minmax(120px, 0.7fr));
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--user-border);
+  border-radius: 12px;
+  background: var(--user-card);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.userFilterBar:hover {
+  transform: translateY(-2px);
+  border-color: #94a3b8;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.userSearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.userSearch svg {
+  position: absolute;
+  left: 12px;
+  color: var(--user-muted);
+  pointer-events: none;
+}
+
+.userFilterBar input,
+.userFilterBar select,
+.userModal input,
+.userModal select,
+.userModal textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--user-border);
+  border-radius: 10px;
+  color: var(--user-text);
+  background: var(--user-control);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.userFilterBar input:hover,
+.userFilterBar select:hover,
+.userFilterBar input:focus,
+.userFilterBar select:focus {
+  transform: translateY(-1px);
+  border-color: #64748b;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+  outline: none;
+}
+
+.userSearch input {
+  padding-left: 36px;
+}
+
+.userBtnGhost,
+.userBtnPrimary,
+.userBtnDanger,
+.userIconBtn,
+.userPagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--user-border);
+  color: var(--user-text);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.userBtnGhost:hover,
+.userBtnPrimary:hover,
+.userBtnDanger:hover,
+.userIconBtn:hover,
+.userPagination button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  background: var(--user-hover);
+}
+
+.userBtnPrimary {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.userBtnPrimary:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.userBtnDanger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.userBtnDanger:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.userError {
+  margin: 0;
+  color: #dc2626;
+}
+
+.userTableCard {
+  overflow: hidden;
+  border: 1px solid var(--user-border);
+  border-radius: 12px;
+  background: var(--user-card);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.userTableCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.userTableWrap {
+  overflow: auto;
+  max-height: calc(100vh - 360px);
+}
+
+.userTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1100px;
+}
+
+.userTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--user-border);
+  color: var(--user-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  background: var(--user-thead);
+  white-space: nowrap;
+}
+
+.userTable tbody td {
+  padding: 12px;
+  border-bottom: 1px solid var(--user-border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.userTable tbody tr {
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.userTable tbody tr:hover {
+  background: var(--user-hover);
+  transform: translateY(-2px) scale(1.002);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  position: relative;
+  z-index: 1;
+}
+
+.userTable tbody tr.is-active {
+  background: var(--user-hover);
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+
+.userEmpty {
+  padding: 40px 16px !important;
+  color: var(--user-muted);
+  text-align: center;
+}
+
+.userAvatar,
+.userAvatarFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.userAvatarFallback {
+  background: #e11d48;
+  color: #fff;
+  font-weight: 800;
+}
+
+.userBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.userBadge--success {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.userBadge--danger {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.userBadge--google {
+  color: #c2410c;
+  background: rgba(249, 115, 22, 0.14);
+}
+
+.userBadge--email {
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.userBadge--admin {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.userBadge--online {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.userBadge--offline {
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.adminDarkMode .userBadge--online {
+  color: #86efac;
+}
+
+.adminDarkMode .userBadge--offline {
+  color: #94a3b8;
+}
+
+.userRowActions {
+  display: flex;
+  gap: 6px;
+}
+
+.userIconBtn {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.userIconBtn.is-danger {
+  color: #dc2626;
+}
+
+.userIconBtn:hover {
+  border-color: #94a3b8;
+}
+
+.userIconBtn.is-danger:hover {
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.adminDarkMode .userFilterBar:hover,
+.adminDarkMode .userTableCard:hover {
+  border-color: #475569;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+.adminDarkMode .userTable tbody tr:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.adminDarkMode .userBtnGhost:hover,
+.adminDarkMode .userIconBtn:hover,
+.adminDarkMode .userPagination button:hover:not(:disabled) {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+
+.userPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--user-border);
+  color: var(--user-muted);
+  font-size: 13px;
+}
+
+.userPagination > div {
+  display: flex;
+  gap: 6px;
+}
+
+.userPagination button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.userPagination button.is-active {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+
+.userDetailPanel {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--user-border);
+  border-radius: 12px;
+  background: var(--user-panel);
+}
+
+.userDetailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.userDetailProfile {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.userDetailProfile strong {
+  display: block;
+  font-size: 18px;
+}
+
+.userDetailProfile p {
+  margin: 4px 0 0;
+  color: var(--user-muted);
+  font-size: 13px;
+}
+
+.userDetailPanel h4 {
+  margin: 4px 0 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--user-muted);
+}
+
+.userDetailGrid,
+.userDetailStats {
+  display: grid;
+  gap: 10px;
+}
+
+.userDetailGrid > div,
+.userDetailStats > div {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--user-border);
+}
+
+.userDetailGrid span,
+.userDetailStats span,
+.userMuted {
+  color: var(--user-muted);
+  font-size: 12px;
+}
+
+.userDetailGrid strong,
+.userDetailStats strong {
+  font-size: 14px;
+}
+
+.userRecentList {
+  display: grid;
+  gap: 10px;
+}
+
+.userRecentList article {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--user-border);
+  border-radius: 10px;
+}
+
+.userRecentList span,
+.userRecentList small {
+  color: var(--user-muted);
+  font-size: 12px;
+}
+
+.userDetailFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.userModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.userModal {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--user-border, #d7dee8);
+  border-radius: 14px;
+  background: var(--user-panel, #fff);
+  color: var(--user-text, #17202a);
+}
+
+.userModal h3 {
+  margin: 0;
+}
+
+.userModal p {
+  margin: 0;
+  color: var(--user-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.userModal label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--user-muted);
+}
+
+.userModal textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.userModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 1280px) {
+  .userManagePage.has-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .userStatGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .userFilterBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .userStatGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -13,6 +13,7 @@ const {
   getShowtimeOccupancy,
 } = require("../controllers/showtimeController");
 const reports = require("../controllers/reportController");
+const adminUser = require("../controllers/adminUserController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
@@ -24,7 +25,6 @@ const Room = require("../models/Room");
 const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
-const User = require("../models/User");
 const Voucher = require("../models/Voucher");
 const { createNotification } = require("../services/notificationService");
 const adminBooking = require("../controllers/adminBookingController");
@@ -48,6 +48,15 @@ router.get("/bookings/movies", adminBooking.getOrderMovies);
 router.get("/bookings", adminBooking.listOrders);
 router.get("/bookings/:id", adminBooking.getOrderById);
 router.put("/bookings/:id", adminBooking.updateOrder);
+
+// Quản lý người dùng (thống kê + list + lock/unlock/soft-delete)
+router.get("/users/stats", adminUser.getUserStats);
+router.get("/users/export", adminUser.exportUsers);
+router.get("/users", adminUser.listUsers);
+router.get("/users/:id", adminUser.getUserById);
+router.put("/users/:id", adminUser.updateUser);
+router.post("/users/:id/lock", adminUser.lockUser);
+router.post("/users/:id/unlock", adminUser.unlockUser);
 
 const resources = {
   movies: createAdminCrudController(Movie, {
@@ -75,9 +84,6 @@ const resources = {
   }),
   products: createAdminCrudController(Product, {
     keywordFields: ["name", "description"],
-  }),
-  users: createAdminCrudController(User, {
-    keywordFields: ["fullName", "email", "phone", "role", "status"],
   }),
   tickets: createAdminCrudController(Ticket, {
     populate: [
