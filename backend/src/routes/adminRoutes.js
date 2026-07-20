@@ -18,6 +18,7 @@ const adminMiddleware = require("../middleware/adminMiddleware");
 
 const Movie = require("../models/Movie");
 const Notification = require("../models/Notification");
+const NewsEvent = require("../models/NewsEvent");
 const Product = require("../models/Product");
 const Review = require("../models/Review");
 const Room = require("../models/Room");
@@ -99,6 +100,10 @@ const resources = {
   }),
   notifications: createAdminCrudController(Notification, {
     keywordFields: ["title", "content", "target"],
+  }),
+  "news-events": createAdminCrudController(NewsEvent, {
+    populate: "createdBy",
+    keywordFields: ["title", "summary", "content", "category", "status"],
   }),
 };
 

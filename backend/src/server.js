@@ -19,6 +19,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const seatHoldRoutes = require("./routes/seatHoldRoutes");
+const newsEventRoutes = require("./routes/newsEventRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
 
 dotenv.config();
@@ -62,6 +63,7 @@ app.use("/api/vouchers", voucherRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/news-events", newsEventRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/seat-holds", seatHoldRoutes);
 

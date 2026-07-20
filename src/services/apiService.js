@@ -165,6 +165,11 @@ export const markAllNotificationsRead = async () => {
   return apiClient.post('/api/notifications/read-all');
 };
 
+export const getNewsEvents = async () => {
+  const response = await apiClient.get('/api/news-events');
+  return response?.data ?? response ?? [];
+};
+
 /**
  * Lưu đặt vé nhanh lên MongoDB Atlas
  * POST /api/quick-bookings
