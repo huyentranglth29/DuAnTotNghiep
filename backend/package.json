@@ -15,6 +15,7 @@
     "migrate:collections:vi": "node src/scripts/migrateCollectionsToVietnamese.js",
     "seed:data": "node src/scripts/seedData.js",
     "seed:vouchers": "node src/scripts/seedVoucherUsage.js",
+    "seed:news": "node src/scripts/seedNewsEvents.js",
     "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js"
   },
   "dependencies": {
