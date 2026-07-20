@@ -6,6 +6,7 @@ const {
   register,
   login,
   googleLogin,
+  setPassword,
   profile,
 } = require("../controllers/authController");
 
@@ -20,6 +21,7 @@ router.post("/login", login);
 // Đăng nhập bằng Google
 router.post("/google", googleLogin);
 router.post("/google-login", googleLogin);
+router.post("/set-password", authMiddleware, setPassword);
 
 // Lấy thông tin cá nhân
 router.get("/profile", authMiddleware, profile);

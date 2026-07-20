@@ -2,12 +2,37 @@ const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
-const { sendLoginNotification } = require("../services/emailService");
+const { sendLoginNotification, sendFailedLoginNotification } = require("../services/emailService");
+
+const failedLoginAttempts = new Map();
+const FAILED_LOGIN_THRESHOLD = 3;
+const FAILED_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 
 const sanitizeUser = (user) => {
   const data = user.toObject ? user.toObject() : { ...user };
   delete data.password;
+  data.hasPassword = Boolean(user.password);
   return data;
+};
+
+const setPassword = async (req, res) => {
+  try {
+    const {password, confirmPassword} = req.body;
+    if (typeof password !== "string" || password.length < 6) {
+      return res.status(400).json({success: false, message: "Mật khẩu phải có ít nhất 6 ký tự"});
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({success: false, message: "Mật khẩu xác nhận không khớp"});
+    }
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({success: false, message: "Không tìm thấy tài khoản"});
+    user.password = password;
+    user.authProvider = user.googleId ? "google" : "local";
+    await user.save();
+    return res.json({success: true, message: "Đã tạo mật khẩu FilmGo", user: sanitizeUser(user)});
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
 };
 
 // Đăng ký
@@ -76,6 +101,17 @@ const login = async (req, res) => {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
+      const key = String(user.email).toLowerCase();
+      const previous = failedLoginAttempts.get(key);
+      const attempts = previous && previous.expiresAt > Date.now() ? previous.count + 1 : 1;
+      failedLoginAttempts.set(key, {count: attempts, expiresAt: Date.now() + FAILED_LOGIN_WINDOW_MS});
+      if (attempts === FAILED_LOGIN_THRESHOLD) {
+        sendFailedLoginNotification({
+          email: user.email,
+          provider: "email và mật khẩu",
+          ipAddress: req.ip,
+        }).catch((error) => console.warn("Không gửi được email cảnh báo:", error.message));
+      }
       return res.status(401).json({
         success: false,
         message: "Sai mật khẩu",
@@ -83,6 +119,7 @@ const login = async (req, res) => {
     }
 
     // Tạo JWT
+    failedLoginAttempts.delete(String(user.email).toLowerCase());
     const token = generateToken(user._id, user.role);
     sendLoginNotification({
       email: user.email,
@@ -259,5 +296,6 @@ module.exports = {
   register,
   login,
   googleLogin,
+  setPassword,
   profile,
 };

@@ -85,6 +85,10 @@ export async function loginWithGoogleApi(idToken) {
   return response;
 }
 
+export async function setFilmGoPassword(password, confirmPassword) {
+  return apiClient.post('/api/auth/set-password', {password, confirmPassword});
+}
+
 export async function registerWithApi({fullName, email, password, phone}) {
   return apiClient.post('/api/auth/register', {
     fullName,
