@@ -107,6 +107,11 @@ export async function updateAuthProfile(payload) {
   return response;
 }
 
+/** Ping online để Admin biết user đang hoạt động */
+export async function sendAuthHeartbeat() {
+  return apiClient.post('/api/auth/heartbeat', {});
+}
+
 export async function registerWithApi({fullName, email, password, phone}) {
   return apiClient.post('/api/auth/register', {
     fullName,

@@ -9,6 +9,7 @@ const {
   setPassword,
   profile,
   updateProfile,
+  heartbeat,
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -27,5 +28,6 @@ router.post("/set-password", authMiddleware, setPassword);
 // Lấy / cập nhật thông tin cá nhân
 router.get("/profile", authMiddleware, profile);
 router.put("/profile", authMiddleware, updateProfile);
+router.post("/heartbeat", authMiddleware, heartbeat);
 
 module.exports = router;

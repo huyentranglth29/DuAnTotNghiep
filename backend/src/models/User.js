@@ -62,6 +62,7 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "blocked"],
       default: "active",
     },
+    /** local = Email/mật khẩu, google = Google Sign-In */
     authProvider: {
       type: String,
       enum: ["local", "google"],
@@ -76,6 +77,58 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+    /** Ping gần nhất từ app — dùng để xác định đang online */
+    lastSeen: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    lockedReason: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    lockedAt: {
+      type: Date,
+      default: null,
+    },
+    lockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    unlockedAt: {
+      type: Date,
+      default: null,
+    },
+    unlockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    rewardPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   {
@@ -102,6 +155,7 @@ userSchema.methods.comparePassword = function comparePassword(password) {
 userSchema.set("toJSON", {
   transform(doc, ret) {
     delete ret.password;
+    ret.provider = ret.authProvider === "google" ? "google" : "local";
     return ret;
   },
 });

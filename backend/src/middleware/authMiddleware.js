@@ -33,6 +33,13 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    if (user.deleted) {
+      return res.status(403).json({
+        success: false,
+        message: "Tài khoản đã bị xóa",
+      });
+    }
+
     if (user.status !== "active") {
       return res.status(403).json({
         success: false,
@@ -41,6 +48,12 @@ const authMiddleware = async (req, res, next) => {
     }
 
     req.user = user;
+
+    // Cập nhật online (throttle 20s) — không chặn request
+    const lastSeenAt = user.lastSeen ? new Date(user.lastSeen).getTime() : 0;
+    if (Date.now() - lastSeenAt > 20 * 1000) {
+      User.updateOne({_id: user._id}, {$set: {lastSeen: new Date()}}).catch(() => {});
+    }
 
     next();
   } catch (error) {

@@ -25,6 +25,7 @@ import {
   getVouchers,
   getProducts,
   getNotifications,
+  getNewsEvents,
   markNotificationRead,
   markAllNotificationsRead,
 } from '../../services/apiService';
@@ -60,6 +61,10 @@ function TrangChu() {
     queryKey: ['notifications'],
     queryFn: getNotifications,
   });
+  const newsEventsQuery = useQuery({
+    queryKey: ['news-events'],
+    queryFn: getNewsEvents,
+  });
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,6 +90,7 @@ function TrangChu() {
     vouchersQuery.isLoading ||
     productsQuery.isLoading ||
     notificationsQuery.isLoading ||
+    newsEventsQuery.isLoading ||
     (isSearching && searchMoviesQuery.isLoading);
 
   const loi =
@@ -94,7 +100,8 @@ function TrangChu() {
     quickMoviesQuery.error ??
     vouchersQuery.error ??
     productsQuery.error ??
-    notificationsQuery.error;
+    notificationsQuery.error ??
+    newsEventsQuery.error;
 
   const thuLai = useCallback(() => {
     phimNoiBat.refetch();
@@ -104,6 +111,7 @@ function TrangChu() {
     vouchersQuery.refetch();
     productsQuery.refetch();
     notificationsQuery.refetch();
+    newsEventsQuery.refetch();
   }, [
     phimNoiBat,
     phimDangChieu,
@@ -112,6 +120,7 @@ function TrangChu() {
     vouchersQuery,
     productsQuery,
     notificationsQuery,
+    newsEventsQuery,
   ]);
 
   const listPhimNoiBat = phimNoiBat.data ?? [];
@@ -120,9 +129,10 @@ function TrangChu() {
   const listQuickMovies = quickMoviesQuery.data ?? [];
   const listVouchers = (vouchersQuery.data as any) ?? [];
   const listProducts = (productsQuery.data as any) ?? [];
-  const listNews = (notificationsQuery.data as any) ?? [];
-  const unreadNotifications = Array.isArray(listNews)
-    ? listNews.filter((item: any) => !item.isRead).length
+  const listNotifications = (notificationsQuery.data as any) ?? [];
+  const listNews = (newsEventsQuery.data as any) ?? [];
+  const unreadNotifications = Array.isArray(listNotifications)
+    ? listNotifications.filter((item: any) => !item.isRead).length
     : 0;
 
   // Gộp các phim nổi bật + phim đang chiếu hot lên Banner
@@ -355,16 +365,18 @@ function TrangChu() {
         <Image source={{uri: item.image}} style={styles.newsImage} />
         <View style={styles.newsContent}>
           <View style={styles.newsMetaRow}>
-            <Text style={styles.newsBadge}>SỰ KIỆN</Text>
+        <Text style={styles.newsBadge}>
+          {item.category === 'tin_tuc' ? 'TIN TỨC' : item.category === 'khuyen_mai' ? 'KHUYẾN MÃI' : 'SỰ KIỆN'}
+        </Text>
             <Text style={styles.newsDate}>
-              {item.sentAt ? new Date(item.sentAt).toLocaleDateString('vi-VN') : 'FilmGo'}
+              {item.publishDate ? new Date(item.publishDate).toLocaleDateString('vi-VN') : 'FilmGo'}
             </Text>
           </View>
           <Text style={styles.newsTitle} numberOfLines={2}>
             {item.title}
           </Text>
           <Text style={styles.newsDesc} numberOfLines={2}>
-            {item.content}
+            {item.summary || item.content}
           </Text>
           <Text style={styles.newsReadMore}>Xem chi tiết  ›</Text>
         </View>
@@ -566,7 +578,7 @@ function TrangChu() {
             </TouchableOpacity>
           </View>
           <FlatList
-            data={Array.isArray(listNews) ? listNews : []}
+            data={Array.isArray(listNotifications) ? listNotifications : []}
             keyExtractor={(item: any) => String(item._id)}
             contentContainerStyle={styles.notificationList}
             ListEmptyComponent={<Text style={styles.notificationEmpty}>Chưa có thông báo nào</Text>}
@@ -950,8 +962,8 @@ function TrangChu() {
               contentContainerStyle={styles.newsModalBodyContent}
               showsVerticalScrollIndicator={false}>
               <Text style={styles.newsModalDate}>
-                🗓 {selectedNews?.sentAt
-                  ? new Date(selectedNews.sentAt).toLocaleDateString('vi-VN')
+                🗓 {selectedNews?.publishDate
+                  ? new Date(selectedNews.publishDate).toLocaleDateString('vi-VN')
                   : 'FilmGo Hà Trung'}
               </Text>
               <Text style={styles.newsModalTitle}>{selectedNews?.title}</Text>

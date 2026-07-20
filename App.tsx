@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import LoginNavigator from './src/Navigation/LoginNavigator';
 import TabNavigator from './src/Navigation/TabNavigator';
+import PresenceHeartbeat from './src/components/PresenceHeartbeat';
 import QueryProvider from './src/providers/QueryProvider';
 
 function App() {
@@ -11,7 +12,10 @@ function App() {
       {!isLoggedIn ? (
         <LoginNavigator onAuthenticated={() => setIsLoggedIn(true)} />
       ) : (
-        <TabNavigator onLoggedOut={() => setIsLoggedIn(false)} />
+        <>
+          <PresenceHeartbeat />
+          <TabNavigator onLoggedOut={() => setIsLoggedIn(false)} />
+        </>
       )}
     </QueryProvider>
   );
