@@ -100,7 +100,8 @@ const getShowtimeSeats = async (req, res, next) => {
         .json({ success: false, message: "Không tìm thấy suất chiếu" });
     }
 
-    const [seats, soldLabels] = await Promise.all([
+    const holdToken = String(req.query.holdToken || "").trim();
+    const [seats, soldRows] = await Promise.all([
       Seat.find({ room: showtime.room._id, status: "active" })
         .sort({ row: 1, number: 1 })
         .lean(),
@@ -110,9 +111,18 @@ const getShowtimeSeats = async (req, res, next) => {
           { expiresAt: { $exists: false } },
           { expiresAt: { $gt: new Date() } },
         ],
-      }).distinct("seatLabel"),
+      }).select("seatLabel status holdToken").lean(),
     ]);
-    const sold = new Set(soldLabels);
+    const sold = new Set(
+      soldRows
+        .filter((row) => row.status !== "held" || !row.expiresAt || new Date(row.expiresAt) > new Date())
+        .map((row) => row.seatLabel),
+    );
+    const heldByMe = new Set(
+      soldRows
+        .filter((row) => row.status === "held" && row.holdToken === holdToken)
+        .map((row) => row.seatLabel),
+    );
 
     return res.json({
       success: true,
@@ -125,7 +135,9 @@ const getShowtimeSeats = async (req, res, next) => {
           row: seat.row,
           number: seat.number,
           type: seat.type,
-          isBooked: sold.has(`${seat.row}${seat.number}`),
+          isBooked: sold.has(`${seat.row}${seat.number}`) && !heldByMe.has(`${seat.row}${seat.number}`),
+          isHeld: sold.has(`${seat.row}${seat.number}`) && !heldByMe.has(`${seat.row}${seat.number}`),
+          heldByMe: heldByMe.has(`${seat.row}${seat.number}`),
         })),
       },
     });

@@ -161,6 +161,7 @@ function TrangChu() {
   const [bookingSummary, setBookingSummary] = useState<{
     seats: string[];
     totalPrice: number;
+    holdToken: string;
   } | null>(null);
   const [selectedShowtime, setSelectedShowtime] = useState<{
     id: string;
@@ -428,6 +429,7 @@ function TrangChu() {
         }}
         seats={bookingSummary.seats}
         totalPrice={bookingSummary.totalPrice}
+        holdToken={bookingSummary.holdToken}
         showtime={selectedShowtime ?? undefined}
         onClose={() => {
           setBookingSummary(null);

@@ -41,6 +41,7 @@ function ShowtimeNavigator({
   const [bookingSummary, setBookingSummary] = useState<{
     seats: string[];
     totalPrice: number;
+    holdToken: string;
   } | null>(null);
 
   useEffect(() => {
@@ -72,6 +73,7 @@ function ShowtimeNavigator({
         movie={selectedMovie}
         seats={bookingSummary.seats}
         totalPrice={bookingSummary.totalPrice}
+        holdToken={bookingSummary.holdToken}
         showtime={selectedShowtime}
         onClose={() => setBookingSummary(null)}
       />

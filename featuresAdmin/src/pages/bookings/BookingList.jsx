@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
 import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
+import {useAdminTheme} from '../../theme/AdminThemeContext';
 
 const PAYMENT_BADGE = {
   da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
@@ -84,6 +85,7 @@ function Timeline({order}) {
 }
 
 function BookingList() {
+  const {darkMode} = useAdminTheme();
   const [orders, setOrders] = useState([]);
   const [movies, setMovies] = useState([]);
   const [pagination, setPagination] = useState({page: 1, totalPages: 1, total: 0, limit: 10});
@@ -602,7 +604,12 @@ function BookingList() {
 
           <div className="orderQrBox">
             <span>QR Code</span>
-            <QRCodeSVG value={selected.code} size={132} bgColor="#0F172A" fgColor="#F8FAFC" />
+            <QRCodeSVG
+              value={selected.code}
+              size={132}
+              bgColor={darkMode ? '#0F172A' : '#FFFFFF'}
+              fgColor={darkMode ? '#F8FAFC' : '#0F172A'}
+            />
             <small>{selected.code}</small>
           </div>
 

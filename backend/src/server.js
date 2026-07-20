@@ -17,6 +17,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const seatHoldRoutes = require("./routes/seatHoldRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
 
 dotenv.config();
@@ -60,6 +61,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/seat-holds", seatHoldRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

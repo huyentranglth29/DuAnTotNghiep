@@ -47,4 +47,18 @@ async function sendLoginNotification({ email, fullName, provider = "FilmGo" }) {
   return true;
 }
 
-module.exports = { sendLoginNotification };
+async function sendFailedLoginNotification({email, provider = "FilmGo", ipAddress = "không xác định"}) {
+  const mailer = getTransporter();
+  if (!mailer || !email) return false;
+  const now = new Date().toLocaleString("vi-VN", {dateStyle: "full", timeStyle: "short"});
+  await mailer.sendMail({
+    from: process.env.MAIL_FROM || process.env.MAIL_USER,
+    to: email,
+    subject: "Cảnh báo đăng nhập FilmGo",
+    text: `Đã có 3 lần đăng nhập không thành công vào FilmGo bằng ${provider} lúc ${now}. Địa chỉ IP: ${ipAddress}. Nếu không phải bạn, hãy đổi mật khẩu ngay.`,
+    html: `<p>Đã có <strong>3 lần đăng nhập không thành công</strong> vào FilmGo bằng <strong>${provider}</strong> lúc <strong>${now}</strong>.</p><p>Địa chỉ IP: ${ipAddress}</p><p>Nếu không phải bạn, hãy đổi mật khẩu ngay.</p>`,
+  });
+  return true;
+}
+
+module.exports = {sendLoginNotification, sendFailedLoginNotification};
