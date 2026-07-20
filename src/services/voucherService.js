@@ -89,6 +89,24 @@ export async function setFilmGoPassword(password, confirmPassword) {
   return apiClient.post('/api/auth/set-password', {password, confirmPassword});
 }
 
+export async function getAuthProfile() {
+  const response = await apiClient.get('/api/auth/profile');
+  const user = response?.user || response;
+  if (user) {
+    await saveAuthSession({user});
+  }
+  return user;
+}
+
+export async function updateAuthProfile(payload) {
+  const response = await apiClient.put('/api/auth/profile', payload);
+  const user = response?.user;
+  if (user) {
+    await saveAuthSession({user});
+  }
+  return response;
+}
+
 export async function registerWithApi({fullName, email, password, phone}) {
   return apiClient.post('/api/auth/register', {
     fullName,

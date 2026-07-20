@@ -25,4 +25,20 @@ export const API_CONFIG = {
   timeout: Number(Config.API_TIMEOUT) || 15000,
 };
 
+/** Ghép URL ảnh avatar (relative `/uploads/...` hoặc URL đầy đủ). */
+export function resolveMediaUrl(pathOrUrl) {
+  if (!pathOrUrl) {
+    return '';
+  }
+  const value = String(pathOrUrl).trim();
+  if (!value) {
+    return '';
+  }
+  if (/^(https?:\/\/|data:|file:)/i.test(value)) {
+    return value;
+  }
+  const base = String(API_CONFIG.baseURL || '').replace(/\/$/, '');
+  return `${base}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
 export default API_CONFIG;
