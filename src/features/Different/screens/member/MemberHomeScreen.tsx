@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {resolveMediaUrl} from '../../../../config/api.config';
 import {AUTH_USER_KEY} from '../../../../services/voucherService';
 import {
   Barcode,
@@ -17,20 +18,32 @@ type MemberHomeScreenProps = {
   onLogout: () => void;
 };
 
-type CurrentUser = {_id?: string; id?: string; fullName?: string; email?: string; phone?: string};
+type CurrentUser = {
+  _id?: string;
+  id?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+};
 
 function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
   const [confirm, setConfirm] = useState<'logout' | 'delete' | null>(null);
   const [user, setUser] = useState<CurrentUser>({});
 
-  useEffect(() => {
+  const loadUser = useCallback(() => {
     AsyncStorage.getItem(AUTH_USER_KEY)
       .then(value => setUser(value ? JSON.parse(value) : {}))
       .catch(() => setUser({}));
   }, []);
 
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
+
   const name = user.fullName || 'Thành viên FilmGo';
   const memberId = String(user._id || user.id || '').replace(/\D/g, '').slice(-16).padStart(16, '0');
+  const avatarUri = resolveMediaUrl(user.avatar);
 
   return (
     <View style={styles.screen}>
@@ -38,7 +51,11 @@ function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{name.trim().charAt(0).toUpperCase() || 'F'}</Text>
+            {avatarUri ? (
+              <Image source={{uri: avatarUri}} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{name.trim().charAt(0).toUpperCase() || 'F'}</Text>
+            )}
           </View>
           <Text style={styles.name}>{name}</Text>
           {!!user.email && <Text style={styles.profileEmail}>{user.email}</Text>}
@@ -148,6 +165,11 @@ const styles = StyleSheet.create({
     borderColor: '#2a73bd',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     color: '#1f7ed9',

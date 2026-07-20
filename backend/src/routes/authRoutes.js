@@ -8,6 +8,7 @@ const {
   googleLogin,
   setPassword,
   profile,
+  updateProfile,
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -23,7 +24,8 @@ router.post("/google", googleLogin);
 router.post("/google-login", googleLogin);
 router.post("/set-password", authMiddleware, setPassword);
 
-// Lấy thông tin cá nhân
+// Lấy / cập nhật thông tin cá nhân
 router.get("/profile", authMiddleware, profile);
+router.put("/profile", authMiddleware, updateProfile);
 
 module.exports = router;

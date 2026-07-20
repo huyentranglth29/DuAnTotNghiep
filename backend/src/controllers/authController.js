@@ -278,7 +278,7 @@ const profile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user,
+      user: sanitizeUser(user),
     });
 
   } catch (error) {
@@ -292,10 +292,78 @@ const profile = async (req, res) => {
 
 };
 
+const ALLOWED_GENDERS = new Set(["", "Nam", "Nữ", "Khác"]);
+
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({success: false, message: "Không tìm thấy tài khoản"});
+    }
+
+    const {
+      fullName,
+      phone,
+      gender,
+      birthDate,
+      idCard,
+      province,
+      district,
+      address,
+    } = req.body;
+
+    if (typeof fullName === "string") {
+      const trimmed = fullName.trim();
+      if (!trimmed) {
+        return res.status(400).json({success: false, message: "Họ và tên không được để trống"});
+      }
+      user.fullName = trimmed;
+    }
+
+    if (typeof phone === "string") {
+      user.phone = phone.trim();
+    }
+
+    if (typeof gender === "string") {
+      const nextGender = gender.trim();
+      if (!ALLOWED_GENDERS.has(nextGender)) {
+        return res.status(400).json({success: false, message: "Giới tính không hợp lệ"});
+      }
+      user.gender = nextGender;
+    }
+
+    if (birthDate === null || birthDate === "") {
+      user.birthDate = null;
+    } else if (birthDate !== undefined) {
+      const parsed = new Date(birthDate);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({success: false, message: "Ngày sinh không hợp lệ"});
+      }
+      user.birthDate = parsed;
+    }
+
+    if (typeof idCard === "string") user.idCard = idCard.trim();
+    if (typeof province === "string") user.province = province.trim();
+    if (typeof district === "string") user.district = district.trim();
+    if (typeof address === "string") user.address = address.trim();
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: "Cập nhật thông tin thành công",
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
+};
+
 module.exports = {
   register,
   login,
   googleLogin,
   setPassword,
   profile,
+  updateProfile,
 };

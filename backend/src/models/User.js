@@ -23,6 +23,35 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    gender: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    birthDate: {
+      type: Date,
+      default: null,
+    },
+    idCard: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    province: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    district: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     role: {
       type: String,
       enum: ["user", "admin"],

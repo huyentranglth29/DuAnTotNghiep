@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
+import {resolveMediaUrl} from '../../config/api.config';
 import {AUTH_USER_KEY} from '../../services/voucherService';
 import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
 
@@ -60,6 +61,7 @@ function Showtime() {
     currentUser.email?.split('@')[0] ||
     'Thành viên FilmGo';
   const avatarLetter = displayName.charAt(0).toUpperCase() || 'F';
+  const avatarUri = resolveMediaUrl(currentUser.avatar);
 
   const dongTimKiem = () => {
     setDangTim(false);
@@ -82,9 +84,9 @@ function Showtime() {
       {!anThanhTim && (
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            {currentUser.avatar ? (
+            {avatarUri ? (
               <Image
-                source={{uri: currentUser.avatar}}
+                source={{uri: avatarUri}}
                 style={styles.avatarImage}
               />
             ) : (

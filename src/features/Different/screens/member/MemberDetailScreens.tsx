@@ -1,6 +1,21 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
+import {resolveMediaUrl} from '../../../../config/api.config';
+import {
+  AUTH_USER_KEY,
+  getAuthProfile,
+  updateAuthProfile,
+} from '../../../../services/voucherService';
 import {
   DatePickerModal,
   EditBox,
@@ -79,21 +94,67 @@ export function MemberCardDetailScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
+type ProfileForm = {
+  email: string;
+  fullName: string;
+  gender: string;
+  birthDate: Date | null;
+  idCard: string;
+  phone: string;
+  province: string;
+  district: string;
+  address: string;
+  avatar: string;
+};
+
+const emptyProfile = (): ProfileForm => ({
+  email: '',
+  fullName: '',
+  gender: '',
+  birthDate: null,
+  idCard: '',
+  phone: '',
+  province: '',
+  district: '',
+  address: '',
+  avatar: '',
+});
+
+function parseBirthDate(value?: string | Date | null) {
+  if (!value) {
+    return null;
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function mapUserToForm(user: Record<string, any> | null | undefined): ProfileForm {
+  return {
+    email: user?.email || '',
+    fullName: user?.fullName || '',
+    gender: user?.gender || '',
+    birthDate: parseBirthDate(user?.birthDate),
+    idCard: user?.idCard || '',
+    phone: user?.phone || '',
+    province: user?.province || '',
+    district: user?.district || '',
+    address: user?.address || '',
+    avatar: user?.avatar || '',
+  };
+}
+
 export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
   const [editing, setEditing] = useState(false);
-  const [fullName, setFullName] = useState('Lê Thị Ngọc Anh');
-  const [gender, setGender] = useState('');
-  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
+  const [draft, setDraft] = useState<ProfileForm>(emptyProfile);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear() - 18, now.getMonth(), 1);
   });
-  const [idCard, setIdCard] = useState('');
-  const [phone, setPhone] = useState('0357276740');
-  const [province, setProvince] = useState('');
-  const [district, setDistrict] = useState('');
-  const [address, setAddress] = useState('');
   const [picker, setPicker] = useState<'gender' | 'province' | 'district' | null>(
     null,
   );
@@ -102,29 +163,125 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
     item.toLowerCase().includes(search.trim().toLowerCase()),
   );
 
+  const applyUser = useCallback((user: Record<string, any> | null | undefined) => {
+    const next = mapUserToForm(user);
+    setProfile(next);
+    setDraft(next);
+  }, []);
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const cached = await AsyncStorage.getItem(AUTH_USER_KEY);
+      if (cached) {
+        applyUser(JSON.parse(cached));
+      }
+      const user = await getAuthProfile();
+      applyUser(user);
+    } catch (err: any) {
+      setError(err?.message || 'Không tải được thông tin tài khoản');
+    } finally {
+      setLoading(false);
+    }
+  }, [applyUser]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const startEditing = () => {
+    setDraft(profile);
+    setError('');
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setDraft(profile);
+    setError('');
+    setEditing(false);
+  };
+
+  const saveProfile = async () => {
+    const fullName = draft.fullName.trim();
+    if (!fullName) {
+      setError('Vui lòng nhập họ và tên');
+      return;
+    }
+    if (!draft.phone.trim()) {
+      setError('Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      const response = await updateAuthProfile({
+        fullName,
+        phone: draft.phone.trim(),
+        gender: draft.gender,
+        birthDate: draft.birthDate ? draft.birthDate.toISOString() : null,
+        idCard: draft.idCard.trim(),
+        province: draft.province,
+        district: draft.district,
+        address: draft.address.trim(),
+      });
+      applyUser(response?.user);
+      setEditing(false);
+      Alert.alert('Thành công', 'Đã lưu thông tin cá nhân');
+    } catch (err: any) {
+      setError(err?.message || 'Không lưu được thông tin');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const active = editing ? draft : profile;
+  const avatarUri = resolveMediaUrl(active.avatar);
+  const avatarLetter =
+    (active.fullName || active.email || 'F').trim().charAt(0).toUpperCase() || 'F';
+
+  const avatarBlock = (
+    <View style={styles.avatarCard}>
+      <View style={styles.avatarWrap}>
+        {avatarUri ? (
+          <Image source={{uri: avatarUri}} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatarFallback}>
+            <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.avatarName}>{active.fullName || 'Thành viên FilmGo'}</Text>
+      {!!active.email && <Text style={styles.avatarEmail}>{active.email}</Text>}
+    </View>
+  );
+
   if (editing) {
     return (
       <View style={styles.screen}>
-        <MemberHeader title="THÔNG TIN CÁ NHÂN" onBack={() => setEditing(false)} />
+        <MemberHeader title="THÔNG TIN CÁ NHÂN" onBack={cancelEditing} />
         <ScrollView contentContainerStyle={styles.formContent}>
+          {avatarBlock}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
           <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
-          <EditBox label="Email" value="ngank301006@gmail.com" disabled required />
+          <EditBox label="Email" value={draft.email} disabled required />
           <EditBox
             label="Họ và tên"
-            value={fullName}
+            value={draft.fullName}
             placeholder="Nhập họ và tên"
             required
-            onChangeText={setFullName}
+            onChangeText={value => setDraft(current => ({...current, fullName: value}))}
           />
           <SelectBox
             label="Giới tính"
-            value={gender}
+            value={draft.gender}
             placeholder="Chọn giới tính"
             onPress={() => setPicker('gender')}
           />
           <SelectBox
             label="Ngày sinh"
-            value={birthDate ? formatBirthDate(birthDate) : ''}
+            value={draft.birthDate ? formatBirthDate(draft.birthDate) : ''}
             placeholder="Chọn ngày sinh"
             icon="calendar"
             onPress={() => setShowCalendar(true)}
@@ -132,41 +289,51 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
           <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
           <EditBox
             label="CMND/CCCD"
-            value={idCard}
+            value={draft.idCard}
             placeholder="Nhập cmnd/cccd"
-            onChangeText={setIdCard}
+            onChangeText={value => setDraft(current => ({...current, idCard: value}))}
           />
           <EditBox
             label="Số điện thoại"
-            value={phone}
+            value={draft.phone}
             placeholder="Nhập số điện thoại"
             required
-            onChangeText={setPhone}
+            onChangeText={value => setDraft(current => ({...current, phone: value}))}
           />
           <SelectBox
             label="Tỉnh/Thành phố"
-            value={province}
+            value={draft.province}
             placeholder="Chọn tỉnh/thành phố"
             onPress={() => setPicker('province')}
           />
           <SelectBox
             label="Quận/Huyện"
-            value={district}
+            value={draft.district}
             placeholder="Chọn quận/huyện"
             onPress={() => setPicker('district')}
           />
           <EditBox
             label="Địa chỉ"
-            value={address}
+            value={draft.address}
             placeholder="Nhập địa chỉ"
-            onChangeText={setAddress}
+            onChangeText={value => setDraft(current => ({...current, address: value}))}
           />
-          <TouchableOpacity style={styles.saveButton} onPress={() => setEditing(false)}>
-            <Text style={styles.saveText}>Lưu thay đổi</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setEditing(false)}>
-            <Text style={styles.cancelText}>Huỷ bỏ</Text>
-          </TouchableOpacity>
+          <View style={styles.editActions}>
+            <TouchableOpacity
+              style={styles.cancelOutlineBtn}
+              onPress={cancelEditing}
+              disabled={saving}
+            >
+              <Text style={styles.cancelOutlineText}>Hủy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, styles.saveButtonFlex, saving && styles.btnDisabled]}
+              onPress={saveProfile}
+              disabled={saving}
+            >
+              <Text style={styles.saveText}>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
         <OptionSheet
           visible={picker === 'gender'}
@@ -174,7 +341,7 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
           options={['Nam', 'Nữ', 'Khác']}
           onClose={() => setPicker(null)}
           onSelect={value => {
-            setGender(value);
+            setDraft(current => ({...current, gender: value}));
             setPicker(null);
           }}
         />
@@ -184,7 +351,7 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
           options={districts}
           onClose={() => setPicker(null)}
           onSelect={value => {
-            setDistrict(value);
+            setDraft(current => ({...current, district: value}));
             setPicker(null);
           }}
         />
@@ -195,19 +362,18 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
           onSearch={setSearch}
           onClose={() => setPicker(null)}
           onSelect={value => {
-            setProvince(value);
-            setDistrict('');
+            setDraft(current => ({...current, province: value, district: ''}));
             setPicker(null);
           }}
         />
         <DatePickerModal
           visible={showCalendar}
           currentMonth={calendarMonth}
-          selectedDate={birthDate}
+          selectedDate={draft.birthDate}
           onClose={() => setShowCalendar(false)}
           onChangeMonth={setCalendarMonth}
           onSelectDate={date => {
-            setBirthDate(date);
+            setDraft(current => ({...current, birthDate: date}));
             setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
             setShowCalendar(false);
           }}
@@ -222,23 +388,26 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
         title="THÔNG TIN CÁ NHÂN"
         onBack={onBack}
         rightIcon="edit"
-        onRightPress={() => setEditing(true)}
+        onRightPress={startEditing}
       />
       <ScrollView contentContainerStyle={styles.accountContent}>
+        {loading ? <Text style={styles.loadingText}>Đang tải thông tin...</Text> : null}
+        {avatarBlock}
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
         <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
-        <Info label="Email" value="ngank301006@gmail.com" />
-        <Info label="Họ và tên" value={fullName} />
-        <Info label="Giới tính" value={gender} />
+        <Info label="Email" value={profile.email} />
+        <Info label="Họ và tên" value={profile.fullName} />
+        <Info label="Giới tính" value={profile.gender} />
         <Info
           label="Ngày sinh"
-          value={birthDate ? formatBirthDate(birthDate) : ''}
+          value={profile.birthDate ? formatBirthDate(profile.birthDate) : ''}
         />
         <Text style={[styles.sectionTitle, styles.sectionGap]}>Thông tin liên hệ</Text>
-        <Info label="CMND/CCCD" value={idCard} />
-        <Info label="Số điện thoại" value={phone} />
-        <Info label="Tỉnh/Thành phố" value={province} />
-        <Info label="Quận/Huyện" value={district} />
-        <Info label="Địa chỉ" value={address} />
+        <Info label="CMND/CCCD" value={profile.idCard} />
+        <Info label="Số điện thoại" value={profile.phone} />
+        <Info label="Tỉnh/Thành phố" value={profile.province} />
+        <Info label="Quận/Huyện" value={profile.district} />
+        <Info label="Địa chỉ" value={profile.address} />
       </ScrollView>
     </View>
   );
@@ -466,60 +635,127 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   accountContent: {
-    paddingHorizontal: 32,
-    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 32,
+  },
+  loadingText: {
+    color: '#666',
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 15,
+    marginBottom: 12,
+    fontWeight: '600',
+  },
+  avatarCard: {
+    alignItems: 'center',
+    marginBottom: 22,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: '#f4f7fb',
+  },
+  avatarWrap: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+  },
+  avatarFallback: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e11d48',
+  },
+  avatarLetter: {
+    color: '#fff',
+    fontSize: 40,
+    fontWeight: '800',
+  },
+  avatarName: {
+    color: '#111827',
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  avatarEmail: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 4,
   },
   sectionTitle: {
     color: '#35358d',
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '900',
   },
   sectionGap: {
     marginTop: 26,
   },
   infoRow: {
-    minHeight: 96,
+    minHeight: 88,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ccc',
     justifyContent: 'center',
   },
   infoLabel: {
     color: '#3f3f3f',
-    fontSize: 24,
+    fontSize: 18,
   },
   infoValue: {
     color: '#050505',
-    fontSize: 22,
-    fontWeight: '900',
-    marginTop: 14,
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 10,
   },
   formContent: {
     padding: 24,
-    paddingBottom: 28,
+    paddingBottom: 36,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 28,
   },
   saveButton: {
-    minHeight: 60,
+    minHeight: 56,
     borderRadius: 10,
-    backgroundColor: '#3f82f1',
+    backgroundColor: '#e11d48',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 36,
+  },
+  saveButtonFlex: {
+    flex: 1.4,
   },
   saveText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
   },
-  cancelButton: {
-    minHeight: 58,
+  cancelOutlineBtn: {
+    flex: 1,
+    minHeight: 56,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#94a3b8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 18,
   },
-  cancelText: {
-    color: '#f24b40',
-    fontSize: 20,
-    fontWeight: '900',
+  cancelOutlineText: {
+    color: '#334155',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
   passwordContent: {
     paddingHorizontal: 8,
