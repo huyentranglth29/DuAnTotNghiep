@@ -5183,24 +5183,42 @@ a.overviewMetric.overviewClickable {
   }
 }
 
-/* ===== Qu?n l� don d?t v� (Order Manage) ===== */
+/* ===== Quản lý đơn đặt vé (Order Manage) — mặc định Light ===== */
 .orderManagePage {
-  --order-bg: #111827;
-  --order-panel: #0f172a;
-  --order-card: #0f172a;
-  --order-border: #1f2937;
-  --order-text: #f8fafc;
-  --order-muted: #94a3b8;
-  --order-hover: #1e293b;
+  --order-bg: #f6f8fb;
+  --order-panel: #ffffff;
+  --order-card: #ffffff;
+  --order-control: #ffffff;
+  --order-border: #d7dee8;
+  --order-text: #17202a;
+  --order-muted: #64748b;
+  --order-hover: #eef2f7;
+  --order-thead: #f1f5f9;
+  --order-row-border: #e8eef5;
+  --order-code: #dc2626;
   --order-red: #ef4444;
-  --order-green: #22c55e;
-  --order-yellow: #eab308;
+  --order-green: #16a34a;
+  --order-yellow: #ca8a04;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   min-height: calc(100vh - 120px);
   color: var(--order-text);
   font-family: Inter, system-ui, sans-serif;
+}
+
+.adminDarkMode .orderManagePage {
+  --order-bg: #111827;
+  --order-panel: #0f172a;
+  --order-card: #0f172a;
+  --order-control: #111827;
+  --order-border: #1f2937;
+  --order-text: #f8fafc;
+  --order-muted: #94a3b8;
+  --order-hover: #1e293b;
+  --order-thead: #0b1220;
+  --order-row-border: rgba(31, 41, 55, 0.9);
+  --order-code: #f87171;
 }
 
 .orderManagePage.has-panel {
@@ -5273,7 +5291,7 @@ a.overviewMetric.overviewClickable {
   border: 1px solid var(--order-border);
   border-radius: 10px;
   color: var(--order-text);
-  background: #111827;
+  background: var(--order-control);
 }
 
 .orderSearch input {
@@ -5323,6 +5341,10 @@ a.overviewMetric.overviewClickable {
 
 .orderError {
   margin: 0;
+  color: #dc2626;
+}
+
+.adminDarkMode .orderError {
   color: #fca5a5;
 }
 
@@ -5357,19 +5379,19 @@ a.overviewMetric.overviewClickable {
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: #0b1220;
+  background: var(--order-thead);
   white-space: nowrap;
 }
 
 .orderTable tbody td {
   padding: 14px 12px;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+  border-bottom: 1px solid var(--order-row-border);
   font-size: 13px;
   vertical-align: middle;
 }
 
 .orderTable tbody tr:hover {
-  background: rgba(30, 41, 59, 0.65);
+  background: var(--order-hover);
 }
 
 .orderTable tbody tr.is-active {
@@ -5377,7 +5399,7 @@ a.overviewMetric.overviewClickable {
 }
 
 .orderCode {
-  color: #f87171;
+  color: var(--order-code);
   font-weight: 700;
 }
 
@@ -5409,21 +5431,41 @@ a.overviewMetric.overviewClickable {
 }
 
 .orderBadge--success {
-  color: #86efac;
-  background: rgba(34, 197, 94, 0.16);
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.14);
 }
 
 .orderBadge--warning {
-  color: #fde68a;
+  color: #a16207;
   background: rgba(234, 179, 8, 0.16);
 }
 
 .orderBadge--danger {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.orderBadge--muted {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.adminDarkMode .orderBadge--success {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.adminDarkMode .orderBadge--warning {
+  color: #fde68a;
+  background: rgba(234, 179, 8, 0.16);
+}
+
+.adminDarkMode .orderBadge--danger {
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.16);
 }
 
-.orderBadge--muted {
+.adminDarkMode .orderBadge--muted {
   color: #cbd5e1;
   background: rgba(148, 163, 184, 0.14);
 }
@@ -5453,8 +5495,8 @@ a.overviewMetric.overviewClickable {
   padding: 6px;
   border: 1px solid var(--order-border);
   border-radius: 10px;
-  background: #111827;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  background: var(--order-panel);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
 }
 
 .orderMoreMenu button {
@@ -5469,6 +5511,14 @@ a.overviewMetric.overviewClickable {
 }
 
 .orderMoreMenu button.is-danger {
+  color: #dc2626;
+}
+
+.adminDarkMode .orderMoreMenu {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.adminDarkMode .orderMoreMenu button.is-danger {
   color: #fca5a5;
 }
 
@@ -5537,7 +5587,7 @@ a.overviewMetric.overviewClickable {
 .orderDetailHead strong {
   display: block;
   margin-top: 4px;
-  color: #f87171;
+  color: var(--order-code);
   font-size: 22px;
   font-weight: 800;
 }
@@ -5557,7 +5607,7 @@ a.overviewMetric.overviewClickable {
   display: grid;
   gap: 3px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+  border-bottom: 1px solid var(--order-row-border);
 }
 
 .orderDetailSections span {
@@ -5619,6 +5669,10 @@ a.overviewMetric.overviewClickable {
 }
 
 .orderTimeline li.is-done strong {
+  color: #16a34a;
+}
+
+.adminDarkMode .orderTimeline li.is-done strong {
   color: #86efac;
 }
 
@@ -5633,6 +5687,10 @@ a.overviewMetric.overviewClickable {
   flex: 1;
   min-height: 28px;
   margin-top: 2px;
+  background: #cbd5e1;
+}
+
+.adminDarkMode .orderTimelineMark i {
   background: #334155;
 }
 
@@ -5659,16 +5717,28 @@ a.overviewMetric.overviewClickable {
 
 .orderBtnPrint {
   border-color: #2563eb;
-  color: #93c5fd;
+  color: #1d4ed8;
 }
 
 .orderBtnRefund {
   border-color: #ea580c;
-  color: #fdba74;
+  color: #c2410c;
 }
 
 .orderBtnCancel {
   border-color: #dc2626;
+  color: #b91c1c;
+}
+
+.adminDarkMode .orderBtnPrint {
+  color: #93c5fd;
+}
+
+.adminDarkMode .orderBtnRefund {
+  color: #fdba74;
+}
+
+.adminDarkMode .orderBtnCancel {
   color: #fca5a5;
 }
 
@@ -5738,7 +5808,7 @@ a.overviewMetric.overviewClickable {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(2, 6, 23, 0.72);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 .orderConfirmModal {
@@ -5746,10 +5816,10 @@ a.overviewMetric.overviewClickable {
   display: grid;
   gap: 12px;
   padding: 20px;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--order-border, #d7dee8);
   border-radius: 14px;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--order-panel, #ffffff);
+  color: var(--order-text, #17202a);
   font-family: Inter, system-ui, sans-serif;
 }
 
@@ -5760,7 +5830,7 @@ a.overviewMetric.overviewClickable {
 
 .orderConfirmModal p {
   margin: 0;
-  color: #94a3b8;
+  color: var(--order-muted, #64748b);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -5768,7 +5838,7 @@ a.overviewMetric.overviewClickable {
 .orderConfirmModal label {
   display: grid;
   gap: 8px;
-  color: #cbd5e1;
+  color: var(--order-muted, #64748b);
   font-size: 13px;
   font-weight: 600;
 }
@@ -5777,11 +5847,32 @@ a.overviewMetric.overviewClickable {
   width: 100%;
   min-height: 96px;
   padding: 12px;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--order-border, #d7dee8);
   border-radius: 10px;
-  color: #f8fafc;
-  background: #111827;
+  color: var(--order-text, #17202a);
+  background: var(--order-control, #ffffff);
   resize: vertical;
+}
+
+.adminDarkMode .orderConfirmOverlay {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.adminDarkMode .orderConfirmModal {
+  border-color: #1f2937;
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.adminDarkMode .orderConfirmModal p,
+.adminDarkMode .orderConfirmModal label {
+  color: #94a3b8;
+}
+
+.adminDarkMode .orderConfirmModal textarea {
+  border-color: #1f2937;
+  background: #111827;
+  color: #f8fafc;
 }
 
 .orderConfirmActions {
