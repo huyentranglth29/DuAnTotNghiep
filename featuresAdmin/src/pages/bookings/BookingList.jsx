@@ -425,7 +425,25 @@ function BookingList() {
                             <span>{order.customerPhone || order.customerEmail || '—'}</span>
                           </div>
                         </td>
-                        <td>{order.movieTitle}</td>
+                        <td>
+                          <div className="orderMovieCell">
+                            {order.moviePoster ? (
+                              <img
+                                src={order.moviePoster}
+                                alt={order.movieTitle}
+                                loading="lazy"
+                                onError={event => {
+                                  event.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <span className="orderMoviePosterFallback" aria-hidden="true">
+                                🎬
+                              </span>
+                            )}
+                            <span className="orderMovieTitle">{order.movieTitle}</span>
+                          </div>
+                        </td>
                         <td>{order.showtimeLabel || '—'}</td>
                         <td>{(order.seats || []).join(', ') || '—'}</td>
                         <td>{formatVnd(order.totalPrice)}</td>
