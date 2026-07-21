@@ -32,6 +32,7 @@ import PersonalInformation from '../pages/personal information/PersonalInformati
 import PaymentHistory from '../pages/payments/PaymentHistory';
 import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
+import NewsEventList from '../pages/news-events/NewsEventList';
 
 function isAuthenticated() {
   return Boolean(localStorage.getItem('filmgo_admin_token'));
@@ -88,6 +89,7 @@ function AppRoutes() {
         <Route path="reviews" element={<ReviewList />} />
         <Route path="notifications" element={<NotificationList />} />
         <Route path="notifications/create" element={<CreateNotification />} />
+        <Route path="news-events" element={<NewsEventList />} />
         <Route path="personal-information" element={<PersonalInformation />} />
         <Route path="reports/revenue" element={<RevenueReport />} />
       </Route>

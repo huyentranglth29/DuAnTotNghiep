@@ -38,6 +38,7 @@ import {
   formatGio,
   layDanhSachSuatChieu,
 } from '../../services/showtimeService';
+import {claimVoucher} from '../../services/voucherService';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -71,6 +72,8 @@ function TrangChu() {
   const [searchQueryDebounced, setSearchQueryDebounced] = useState('');
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [claimingVoucher, setClaimingVoucher] = useState('');
+  const [claimedVouchers, setClaimedVouchers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -321,18 +324,22 @@ function TrangChu() {
   };
 
   const renderVoucherCard = ({item}: {item: any}) => {
+    const handleClaim = async () => {
+      if (claimingVoucher) return;
+      setClaimingVoucher(item.code);
+      try {
+        const result = await claimVoucher(item.code);
+        setClaimedVouchers(current => new Set(current).add(item.code));
+        Alert.alert('Nhận voucher thành công', result?.message || `Mã ${item.code} đã được thêm vào Voucher của tôi.`);
+      } catch (error) {
+        const message = (error as Error)?.message || 'Không thể nhận voucher';
+        Alert.alert(message.toLowerCase().includes('đăng nhập') ? 'Vui lòng đăng nhập' : 'Không thể nhận voucher', message);
+      } finally {
+        setClaimingVoucher('');
+      }
+    };
     return (
-      <TouchableOpacity
-        style={styles.voucherCard}
-        activeOpacity={0.9}
-        onPress={() => {
-          Alert.alert(
-            'Ưu đãi',
-            `Mã Voucher: ${item.code}\n${item.description}\nHạn sử dụng đến: ${new Date(
-              item.endDate,
-            ).toLocaleDateString('vi-VN')}`,
-          );
-        }}>
+      <View style={styles.voucherCard}>
         <View style={styles.voucherLeft}>
           <Text style={styles.voucherType}>
             {item.discountType === 'percent'
@@ -348,8 +355,19 @@ function TrangChu() {
           <Text style={styles.voucherDesc} numberOfLines={2}>
             {item.description}
           </Text>
+          <Text style={styles.voucherExpiry}>
+            HSD: {new Date(item.endDate).toLocaleDateString('vi-VN')}
+          </Text>
+          <TouchableOpacity
+            style={[styles.voucherClaimBtn, (claimingVoucher === item.code || claimedVouchers.has(item.code)) && styles.voucherClaimBtnDisabled]}
+            disabled={Boolean(claimingVoucher) || claimedVouchers.has(item.code)}
+            onPress={handleClaim}>
+            <Text style={styles.voucherClaimText}>
+              {claimedVouchers.has(item.code) ? 'Đã nhận' : claimingVoucher === item.code ? 'Đang nhận...' : 'Nhận ngay'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -790,7 +808,7 @@ function TrangChu() {
           {/* Ưu đãi / Voucher */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>VOUCHER ƯU ĐÃI</Text>
+              <Text style={styles.sectionTitle}>🎁 ƯU ĐÃI NỔI BẬT</Text>
             </View>
             <FlatList
               data={listVouchers}
@@ -800,7 +818,11 @@ function TrangChu() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có voucher</Text>
+                <View style={styles.voucherEmpty}>
+                  <Text style={styles.voucherEmptyIcon}>🎁</Text>
+                  <Text style={styles.voucherEmptyTitle}>Chưa có ưu đãi mới</Text>
+                  <Text style={styles.voucherEmptyText}>Hãy quay lại thường xuyên để nhận voucher từ FilmGo.</Text>
+                </View>
               }
             />
           </View>
@@ -1490,8 +1512,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   voucherCard: {
-    width: 212,
-    height: 76,
+    width: 250,
+    minHeight: 118,
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#ffe0b2',
@@ -1532,6 +1554,40 @@ const styles = StyleSheet.create({
     color: '#5d4037',
     marginTop: 2,
   },
+  voucherExpiry: {
+    fontSize: 9,
+    color: '#8d6e63',
+    marginTop: 3,
+  },
+  voucherClaimBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#e91e63',
+  },
+  voucherClaimBtnDisabled: {
+    opacity: 0.6,
+  },
+  voucherClaimText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  voucherEmpty: {
+    width: SCREEN_WIDTH - 32,
+    minHeight: 92,
+    borderRadius: 14,
+    backgroundColor: '#fff8e1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 4,
+  },
+  voucherEmptyIcon: {fontSize: 24},
+  voucherEmptyTitle: {fontSize: 14, fontWeight: '800', color: '#5d4037', marginTop: 3},
+  voucherEmptyText: {fontSize: 11, color: '#8d6e63', textAlign: 'center', marginTop: 3},
   newsCard: {
     width: 258,
     borderRadius: 10,

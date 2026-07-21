@@ -45,6 +45,7 @@ const menuItems = [
   {to: '/products', label: 'Sản phẩm'},
   {to: '/reviews', label: 'Đánh giá phim'},
   {to: '/notifications', label: 'Thông báo'},
+  {to: '/news-events', label: 'Tin tức & Sự kiện'},
 ];
 
 function Sidebar() {
