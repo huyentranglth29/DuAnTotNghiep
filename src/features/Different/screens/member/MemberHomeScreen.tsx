@@ -11,6 +11,13 @@ import {
   MemberMenuRow,
 } from './MemberComponents';
 import { BLUE, memberRows, MemberScreenName } from './memberData';
+import {
+  CurrentUser,
+  MemberStats,
+  buildMemberId,
+  formatMoney,
+  loadMemberStats,
+} from './memberStats';
 
 type MemberHomeScreenProps = {
   onBack: () => void;
@@ -18,18 +25,11 @@ type MemberHomeScreenProps = {
   onLogout: () => void;
 };
 
-type CurrentUser = {
-  _id?: string;
-  id?: string;
-  fullName?: string;
-  email?: string;
-  phone?: string;
-  avatar?: string;
-};
-
 function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
   const [confirm, setConfirm] = useState<'logout' | 'delete' | null>(null);
   const [user, setUser] = useState<CurrentUser>({});
+  const [stats, setStats] = useState<MemberStats | null>(null);
+  const [statsError, setStatsError] = useState('');
 
   const loadUser = useCallback(() => {
     AsyncStorage.getItem(AUTH_USER_KEY)
@@ -37,13 +37,30 @@ function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
       .catch(() => setUser({}));
   }, []);
 
+  const loadStats = useCallback(async () => {
+    setStatsError('');
+    try {
+      const next = await loadMemberStats();
+      setStats(next);
+      setUser(next.user);
+    } catch (error) {
+      setStatsError((error as Error)?.message || 'Không tải được dữ liệu thành viên');
+    }
+  }, []);
+
   useEffect(() => {
     loadUser();
-  }, [loadUser]);
+    loadStats();
+  }, [loadStats, loadUser]);
 
   const name = user.fullName || 'Thành viên FilmGo';
-  const memberId = String(user._id || user.id || '').replace(/\D/g, '').slice(-16).padStart(16, '0');
+  const memberId = stats?.memberId || buildMemberId(user);
   const avatarUri = resolveMediaUrl(user.avatar);
+  const totalSpent = stats?.totalSpent ?? 0;
+  const currentPoints = stats?.currentPoints ?? 0;
+  const remainingToNextTier = stats?.remainingToNextTier ?? 3_000_000;
+  const nextTierName = stats?.nextTierName ?? 'VIP';
+  const progressRatio = stats?.progressRatio ?? 0;
 
   return (
     <View style={styles.screen}>
@@ -68,24 +85,33 @@ function MemberHomeScreen({ onBack, onOpen, onLogout }: MemberHomeScreenProps) {
           <View style={styles.summaryBox}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Tổng chi tiêu</Text>
-              <Text style={styles.summaryValue}>0 đ</Text>
+              <Text style={styles.summaryValue}>{formatMoney(totalSpent)}</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Điểm thưởng</Text>
-              <Text style={styles.summaryValue}>0</Text>
+              <Text style={styles.summaryValue}>{currentPoints.toLocaleString('vi-VN')}</Text>
             </View>
           </View>
 
           <Text style={styles.vipText}>
-            Bạn cần tích luỹ thêm <Text style={styles.vipAmount}>3.000.000 đ</Text> để
-            thăng hạng{'\n'}VIP
+            {remainingToNextTier > 0
+              ? 'Bạn cần tích luỹ thêm '
+              : 'Bạn đã đạt hạng '}
+            <Text style={styles.vipAmount}>
+              {remainingToNextTier > 0 ? formatMoney(remainingToNextTier) : nextTierName}
+            </Text>
+            {remainingToNextTier > 0 ? ' để thăng hạng' : ''}{'\n'}
+            {nextTierName}
           </Text>
-          <View style={styles.progressBar} />
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressText}>0 đ</Text>
-            <Text style={styles.progressText}>3.000.000 đ</Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, {width: `${progressRatio * 100}%`}]} />
           </View>
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressText}>{formatMoney(totalSpent)}</Text>
+            <Text style={styles.progressText}>{formatMoney(stats?.nextTierSpend ?? 3_000_000)}</Text>
+          </View>
+          {!!statsError && <Text style={styles.statsError}>{statsError}</Text>}
         </View>
 
         <View style={styles.rowList}>
@@ -248,6 +274,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#aaa',
     marginTop: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#1b79d8',
   },
   progressLabels: {
     width: '100%',
@@ -258,6 +290,13 @@ const styles = StyleSheet.create({
   progressText: {
     color: '#444',
     fontSize: 14,
+  },
+  statsError: {
+    color: '#dc2626',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 12,
+    textAlign: 'center',
   },
   rowList: {
     marginTop: 36,
