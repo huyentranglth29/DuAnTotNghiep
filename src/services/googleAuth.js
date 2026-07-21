@@ -22,6 +22,8 @@ export const GOOGLE_WEB_CLIENT_ID = String(
 
 let configured = false;
 let GoogleSigninModule = null;
+const isTestEnvironment =
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
 
 function loadGoogleSignIn() {
   if (GoogleSigninModule) {
@@ -46,7 +48,7 @@ function loadGoogleSignIn() {
 }
 
 export function configureGoogleSignIn() {
-  if (configured) {
+  if (configured || isTestEnvironment) {
     return;
   }
 

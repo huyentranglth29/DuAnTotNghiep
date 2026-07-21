@@ -108,7 +108,7 @@ function MyVoucherScreen({
       )}
 
       {loading && items.length === 0 && availableItems.length === 0 ? (
-        <ActivityIndicator style={{marginTop: 40}} color={VOUCHER_BLUE} />
+        <ActivityIndicator style={styles.loadingIndicator} color={VOUCHER_BLUE} />
       ) : items.length === 0 && availableItems.length === 0 ? (
         <View style={styles.empty}>
           <GiftIcon color="#dddddd" size={94} strokeWidth={5} />
@@ -132,7 +132,7 @@ function MyVoucherScreen({
               <Text style={styles.sectionSubtitle}>Nhận ngay ưu đãi mới từ FilmGo, không cần nhập mã.</Text>
               {availableItems.map(item => (
                 <View key={item._id || item.code} style={styles.newCard}>
-                  <View style={{flex: 1}}>
+                  <View style={styles.newCardContent}>
                     <Text style={styles.code}>{item.code}</Text>
                     <Text style={styles.desc} numberOfLines={2}>{item.description || 'Ưu đãi FilmGo'}</Text>
                     <Text style={styles.value}>{formatVoucherValue(item)}</Text>
@@ -211,6 +211,9 @@ const styles = StyleSheet.create({
     color: '#9a3412',
     fontSize: 13,
   },
+  loadingIndicator: {
+    marginTop: 40,
+  },
   list: {
     padding: 16,
     paddingBottom: 40,
@@ -228,6 +231,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
+  },
+  newCardContent: {
+    flex: 1,
   },
   code: {
     color: VOUCHER_BLUE,

@@ -21,7 +21,6 @@ const menuItems = [
       {to: '/bookings', label: 'Quản lý đơn đặt vé'},
       {to: '/bookings/history', label: 'Lịch sử đặt vé'},
       {to: '/bookings/detail', label: 'Chi tiết đơn'},
-      {to: '/bookings/cancel', label: 'Hủy đặt vé'},
     ],
   },
   {
@@ -45,6 +44,7 @@ const menuItems = [
   {to: '/products', label: 'Sản phẩm'},
   {to: '/reviews', label: 'Đánh giá phim'},
   {to: '/notifications', label: 'Thông báo'},
+  {to: '/news-events', label: 'Tin tức & Sự kiện'},
 ];
 
 function Sidebar() {

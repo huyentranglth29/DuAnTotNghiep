@@ -23,7 +23,7 @@ type CurrentUser = {
   avatar?: string;
 };
 
-function Showtime() {
+function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
   const [dangTim, setDangTim] = useState(false);
   const [tuKhoa, setTuKhoa] = useState('');
   const [tuKhoaDebounced, setTuKhoaDebounced] = useState('');
@@ -83,7 +83,7 @@ function Showtime() {
     <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
       {!anThanhTim && (
         <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
+          <Pressable style={styles.avatar} onPress={onOpenMember} accessibilityLabel="Mở trang thành viên">
             {avatarUri ? (
               <Image
                 source={{uri: avatarUri}}
@@ -92,7 +92,7 @@ function Showtime() {
             ) : (
               <Text style={styles.avatarText}>{avatarLetter}</Text>
             )}
-          </View>
+          </Pressable>
           <View style={styles.memberInfo}>
             <Text style={styles.greeting}>
               Chào <Text style={styles.userName}>{displayName}</Text>

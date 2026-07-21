@@ -58,6 +58,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const selectedSeatsRef = useRef(new Set<string>());
   const holdTokenRef = useRef(`hold-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const continuingRef = useRef(false);
+  const holdingRef = useRef(false);
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
   const unitPrice = showtime.price > 0 ? showtime.price : 55000;
   const totalPrice = selectedSeatList.reduce((total, seat) => {
@@ -94,21 +95,38 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         const nextHeld = new Set(
           seats.filter(seat => seat.isHeld && !seat.heldByMe).map(seat => seat.label),
         );
+        const heldByMe = new Set(
+          seats.filter(seat => seat.heldByMe).map(seat => seat.label),
+        );
         const unavailableSelected = Array.from(selectedSeatsRef.current).filter(label => nextSold.has(label));
+        // Ghế mình đã giữ nhưng server không còn ghi nhận (Admin thu hồi / hết hạn giữ)
+        const lostHold = holdingRef.current
+          ? []
+          : Array.from(selectedSeatsRef.current).filter(
+              label => !nextSold.has(label) && !heldByMe.has(label),
+            );
 
         setSeatItems(seats);
         setSoldSeats(nextSold);
         setHeldSeats(nextHeld);
-        if (unavailableSelected.length) {
+        if (unavailableSelected.length || lostHold.length) {
           const nextSelected = new Set(selectedSeatsRef.current);
           unavailableSelected.forEach(label => nextSelected.delete(label));
+          lostHold.forEach(label => nextSelected.delete(label));
           selectedSeatsRef.current = nextSelected;
           setSelectedSeats(nextSelected);
           setShowConfirm(false);
-          Alert.alert(
-            'Ghế vừa được người khác chọn',
-            `Ghế ${unavailableSelected.join(', ')} không còn trống và đã được bỏ khỏi lựa chọn của bạn.`,
-          );
+          if (unavailableSelected.length) {
+            Alert.alert(
+              'Ghế vừa được người khác chọn',
+              `Ghế ${unavailableSelected.join(', ')} không còn trống và đã được bỏ khỏi lựa chọn của bạn.`,
+            );
+          } else {
+            Alert.alert(
+              'Ghế đã bị thu hồi',
+              `Ghế ${lostHold.join(', ')} đã bị rạp thu hồi hoặc hết thời gian giữ. Vui lòng chọn lại ghế.`,
+            );
+          }
         }
         setSeatError('');
       } catch (error) {
@@ -141,6 +159,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     if (next.has(seat)) next.delete(seat);
     else next.add(seat);
     setIsHoldingSeats(true);
+    holdingRef.current = true;
     try {
       if (next.size) {
         await holdSeats({
@@ -164,6 +183,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       setHeldSeats(new Set(seats.filter(item => item.isHeld && !item.heldByMe).map(item => item.label)));
     } finally {
       setIsHoldingSeats(false);
+      holdingRef.current = false;
     }
   };
 
@@ -255,7 +275,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         </View>
 
         {/* Bottom padding */}
-        <View style={{height: 20}} />
+        <View style={styles.scrollFooterSpacer} />
       </ScrollView>
 
       {/* Checkout bar */}
@@ -566,6 +586,9 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#666688',
     fontSize: 15,
+  },
+  scrollFooterSpacer: {
+    height: 20,
   },
   modalOverlay: {
     flex: 1,

@@ -99,7 +99,7 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
   }
 
   if (loading) {
-    return <ActivityIndicator style={{marginTop: 24}} color="#005f98" />;
+    return <ActivityIndicator style={styles.loadingIndicator} color="#005f98" />;
   }
 
   if (error) {
@@ -260,6 +260,9 @@ const styles = StyleSheet.create({
     color: '#5a5a5a',
     fontSize: 13,
     flex: 1,
+  },
+  loadingIndicator: {
+    marginTop: 24,
   },
   empty: {
     marginTop: 18,

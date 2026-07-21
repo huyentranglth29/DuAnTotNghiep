@@ -593,7 +593,7 @@ function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: D
                 <TouchableOpacity
                   style={styles.editSaveBtn}
                   onPress={() => {
-                    void saveRecipient();
+                    saveRecipient().catch(() => undefined);
                   }}>
                   <Text style={styles.editSaveText}>Lưu</Text>
                 </TouchableOpacity>
@@ -603,7 +603,7 @@ function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: D
         </Modal>
 
         {/* Spacer for footer */}
-        <View style={{height: 145}} />
+        <View style={styles.footerSpacer} />
       </ScrollView>
 
       {/* === STICKY FOOTER === */}
@@ -1111,6 +1111,9 @@ const styles = StyleSheet.create({
   },
   confirmBold: {
     fontWeight: '700',
+  },
+  footerSpacer: {
+    height: 145,
   },
   confirmBtn: {
     backgroundColor: MOMO_PINK,

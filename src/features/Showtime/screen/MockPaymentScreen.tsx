@@ -147,7 +147,7 @@ function MockPaymentScreen(props: Props) {
           </View>
         </View>
 
-        <View style={{height: 135}} />
+        <View style={styles.footerSpacer} />
       </ScrollView>
 
       <View style={styles.footer}>
@@ -232,6 +232,7 @@ const styles = StyleSheet.create({
   headerTitle: {fontSize: 20, color: '#262626', fontWeight: '800'},
   headerSubtitle: {fontSize: 11, color: '#999', marginTop: 2},
   content: {padding: 16},
+  footerSpacer: {height: 135},
   timerBox: {backgroundColor: '#fff4df', borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12},
   timerText: {color: '#7d5a12', fontSize: 12},
   timerValue: {color: '#d97706', fontSize: 14, fontWeight: '900', marginLeft: 7},

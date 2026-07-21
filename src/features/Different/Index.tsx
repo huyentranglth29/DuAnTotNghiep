@@ -12,10 +12,11 @@ import MyTicketsScreen from './screens/MyTicketsScreen';
 type DifferentProps = {
   onDetailChange?: (isDetail: boolean) => void;
   onLogout: () => void;
+  initialScreen?: DifferentScreenName;
 };
 
-function Different({onDetailChange, onLogout}: DifferentProps) {
-  const [activeScreen, setActiveScreen] = useState<DifferentScreenName>('menu');
+function Different({onDetailChange, onLogout, initialScreen = 'menu'}: DifferentProps) {
+  const [activeScreen, setActiveScreen] = useState<DifferentScreenName>(initialScreen);
 
   const openScreen = (screen: DifferentScreenName) => {
     setActiveScreen(screen);

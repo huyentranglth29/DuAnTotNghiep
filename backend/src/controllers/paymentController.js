@@ -46,6 +46,16 @@ async function reservePaymentSeats({showtimeId, seats, paymentId, expiresAt, use
   }
   const missing = seats.filter(seat => !held.includes(seat));
   if (missing.length) {
+    // Khách đã giữ ghế qua holdToken nhưng hold không còn
+    // (Admin thu hồi hoặc hết hạn giữ) → không cho thanh toán, bắt chọn lại ghế
+    if (holdToken && userId) {
+      const error = new Error(
+        `Ghế ${missing.join(", ")} đã bị thu hồi hoặc hết thời gian giữ. Vui lòng chọn lại ghế.`,
+      );
+      error.status = 409;
+      error.code = "SEAT_HOLD_LOST";
+      throw error;
+    }
     await BookedSeat.insertMany(
       missing.map(seatLabel => ({
         showtimeId, seatLabel, payment: paymentId, expiresAt, status: "held",

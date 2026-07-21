@@ -14,7 +14,6 @@ import ShowtimeStatus from '../pages/showtimes/ShowtimeStatus';
 import BookingDetail from '../pages/bookings/BookingDetail';
 import BookingHistory from '../pages/bookings/BookingHistory';
 import BookingList from '../pages/bookings/BookingList';
-import BookingCancel from '../pages/bookings/BookingCancel';
 import UserList from '../pages/users/UserList';
 import RolePermission from '../pages/roles/RolePermission';
 import TicketList from '../pages/tickets/TicketList';
@@ -32,6 +31,7 @@ import PersonalInformation from '../pages/personal information/PersonalInformati
 import PaymentHistory from '../pages/payments/PaymentHistory';
 import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
+import NewsEventList from '../pages/news-events/NewsEventList';
 
 function isAuthenticated() {
   return Boolean(localStorage.getItem('filmgo_admin_token'));
@@ -74,7 +74,6 @@ function AppRoutes() {
         <Route path="bookings" element={<BookingList />} />
         <Route path="bookings/history" element={<BookingHistory />} />
         <Route path="bookings/detail" element={<BookingDetail />} />
-        <Route path="bookings/cancel" element={<BookingCancel />} />
         <Route path="payments/status" element={<PaymentStatus />} />
         <Route path="payments/history" element={<PaymentHistory />} />
         <Route path="tickets" element={<TicketList />} />
@@ -88,6 +87,7 @@ function AppRoutes() {
         <Route path="reviews" element={<ReviewList />} />
         <Route path="notifications" element={<NotificationList />} />
         <Route path="notifications/create" element={<CreateNotification />} />
+        <Route path="news-events" element={<NewsEventList />} />
         <Route path="personal-information" element={<PersonalInformation />} />
         <Route path="reports/revenue" element={<RevenueReport />} />
       </Route>

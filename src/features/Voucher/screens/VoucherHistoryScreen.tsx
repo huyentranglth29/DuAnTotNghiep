@@ -108,7 +108,7 @@ function VoucherHistoryScreen({
           <FlatList
             data={items}
             keyExtractor={item => item.walletId || item._id}
-            contentContainerStyle={{paddingBottom: 24}}
+            contentContainerStyle={styles.listContent}
             renderItem={({item}) => (
               <View style={styles.card}>
                 <Text style={styles.code}>{item.code}</Text>
@@ -180,6 +180,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e5e7eb',
+  },
+  listContent: {
+    paddingBottom: 24,
   },
   code: {
     color: VOUCHER_BLUE,

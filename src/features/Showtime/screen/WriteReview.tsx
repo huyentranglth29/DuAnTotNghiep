@@ -49,7 +49,7 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
                     </Svg>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Viết đánh giá</Text>
-                <View style={{ width: 24 }} />
+                <View style={styles.headerSpacer} />
             </View>
             <ScrollView contentContainerStyle={styles.body}>
                 <Text style={styles.title}>Viết đánh giá — {title}</Text>
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e6e6e6' },
     backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     headerTitle: { fontSize: 18, fontWeight: '900', color: '#111' },
+    headerSpacer: { width: 24 },
     body: { padding: 18, paddingBottom: 40 },
     title: { fontSize: 20, fontWeight: '900', marginBottom: 16 },
     label: { fontSize: 14, color: '#333', fontWeight: '700', marginBottom: 8 },

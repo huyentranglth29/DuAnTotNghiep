@@ -215,7 +215,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
           <TouchableOpacity
             activeOpacity={0.82}
             disabled={submitting}
-            style={[styles.submitButton, submitting && {opacity: 0.7}]}
+            style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
             onPress={handleAddVoucher}>
             <PlusIcon color="#ffffff" size={24} strokeWidth={3} />
             <Text style={styles.submitText}>
@@ -344,6 +344,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: {width: 0, height: 2},
     elevation: 4,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
   submitText: {
     marginLeft: 10,
