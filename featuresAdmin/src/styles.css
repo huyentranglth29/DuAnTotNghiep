@@ -5022,6 +5022,60 @@ a.overviewMetric.overviewClickable {
   background: var(--admin-border);
 }
 
+.adminDarkMode .reportHero p {
+  color: #b9c7d9;
+}
+
+.adminDarkMode .reportMetric {
+  border-color: #334761;
+  background:
+    radial-gradient(circle at right bottom, rgba(96, 165, 250, 0.08), transparent 42%),
+    var(--admin-surface);
+}
+
+.adminDarkMode .reportMetric .metricIcon {
+  color: #dbeafe;
+  background: #263952;
+}
+
+.adminDarkMode .reportMetric > span:not(.metricIcon),
+.adminDarkMode .reportMetric small {
+  color: #c2d0e2;
+}
+
+.adminDarkMode .reportMetric strong,
+.adminDarkMode .reportPanel h3,
+.adminDarkMode .barItemTop strong {
+  color: #f5f9ff;
+}
+
+.adminDarkMode .reportPanel {
+  border-color: #334761;
+  background: #142033;
+}
+
+.adminDarkMode .reportPanel h3::before {
+  background: #f43f5e;
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.22);
+}
+
+.adminDarkMode .barItemTop {
+  color: #d8e4f2;
+}
+
+.adminDarkMode .barItemTop span {
+  color: #c7d7ea;
+}
+
+.adminDarkMode .barTrack {
+  background: #d8e5f4;
+}
+
+.adminDarkMode .barTrack span {
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.22);
+}
+
 .adminDarkMode .customSelectOption {
   color: var(--admin-text);
 }
