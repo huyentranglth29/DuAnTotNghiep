@@ -6610,3 +6610,539 @@ a.overviewMetric.overviewClickable {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==================== Quản lý ghế — sơ đồ trực quan ==================== */
+
+.seatMapPage {
+  --seat-panel: #ffffff;
+  --seat-border: #d7dee8;
+  --seat-text: #17202a;
+  --seat-muted: #64748b;
+  --seat-board: #f8fafc;
+  --seat-available: #e2e8f0;
+  --seat-available-text: #334155;
+  display: grid;
+  gap: 16px;
+  color: var(--seat-text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.adminDarkMode .seatMapPage {
+  --seat-panel: #0f172a;
+  --seat-border: #1f2937;
+  --seat-text: #f8fafc;
+  --seat-muted: #94a3b8;
+  --seat-board: #0b1220;
+  --seat-available: #1e293b;
+  --seat-available-text: #cbd5e1;
+}
+
+.seatMapHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seatMapHeader h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.seatMapHeader p {
+  margin: 4px 0 0;
+  color: var(--seat-muted);
+  font-size: 13px;
+}
+
+.seatMapFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.seatMapFilter {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--seat-border);
+  border-radius: 10px;
+  background: var(--seat-panel);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.seatMapFilter:hover {
+  transform: translateY(-2px);
+  border-color: #6366f1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+.seatMapFilter span {
+  color: var(--seat-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.seatMapFilter select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--seat-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.seatMapFilter select:disabled {
+  color: var(--seat-muted);
+  cursor: not-allowed;
+}
+
+.adminDarkMode .seatMapFilter select option,
+.adminDarkMode .seatMapFilter select optgroup {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.seatMapLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--seat-border);
+  border-radius: 10px;
+  background: var(--seat-panel);
+  font-size: 12.5px;
+  color: var(--seat-muted);
+}
+
+.seatLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.seatLegendItem:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--seat-text);
+  transform: translateY(-1px);
+}
+
+.seatDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.seatDot--available {
+  background: var(--seat-available);
+  border: 1px solid #94a3b8;
+}
+.seatDot--held { background: #f59e0b; }
+.seatDot--sold { background: #dc2626; }
+.seatDot--checkedIn { background: #6366f1; }
+.seatDot--maintenance {
+  background: repeating-linear-gradient(
+    45deg,
+    #374151 0,
+    #374151 3px,
+    #4b5563 3px,
+    #4b5563 6px
+  );
+}
+.seatDot--vip { background: #eab308; }
+.seatDot--couple { background: #ec4899; }
+
+.seatMapError {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.seatMapBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.seatMapBody:has(.seatDetailPanel) {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+
+.seatMapBoard {
+  padding: 20px;
+  border: 1px solid var(--seat-border);
+  border-radius: 14px;
+  background: var(--seat-board);
+}
+
+.seatMapEmpty {
+  margin: 40px 0;
+  text-align: center;
+  color: var(--seat-muted);
+}
+
+.seatMapScreen {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.seatMapScreenArc {
+  width: min(70%, 560px);
+  height: 26px;
+  border-top: 3px solid var(--seat-muted);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  opacity: 0.7;
+}
+
+.seatMapScreen span {
+  color: var(--seat-muted);
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  font-weight: 600;
+}
+
+.seatMapGrid {
+  display: grid;
+  gap: 8px;
+  justify-content: center;
+}
+
+.seatMapRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seatMapRowLabel {
+  width: 18px;
+  text-align: center;
+  color: var(--seat-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.seatMapRowSeats {
+  display: flex;
+  gap: 6px;
+}
+
+.seatCell {
+  min-width: 42px;
+  height: 34px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  color: #ffffff;
+}
+
+.seatCell:hover {
+  transform: translateY(-3px) scale(1.12);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+  filter: brightness(1.12);
+  z-index: 2;
+}
+
+.seatCell.is-selected {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35);
+}
+
+.seatCell.is-dimmed {
+  opacity: 0.25;
+}
+
+.seatCell--available {
+  background: var(--seat-available);
+  color: var(--seat-available-text);
+  border-color: #94a3b8;
+}
+
+.seatCell--available.seatCell--type-vip {
+  border-color: #eab308;
+  color: #a16207;
+  box-shadow: inset 0 0 0 1px #eab308;
+}
+
+.adminDarkMode .seatCell--available.seatCell--type-vip {
+  color: #facc15;
+}
+
+.seatCell--available.seatCell--type-couple {
+  border-color: #ec4899;
+  color: #be185d;
+  box-shadow: inset 0 0 0 1px #ec4899;
+}
+
+.adminDarkMode .seatCell--available.seatCell--type-couple {
+  color: #f9a8d4;
+}
+
+.seatCell--held { background: #f59e0b; }
+.seatCell--sold { background: #dc2626; }
+.seatCell--checked_in { background: #6366f1; }
+
+.seatCell--maintenance {
+  background: repeating-linear-gradient(
+    45deg,
+    #374151 0,
+    #374151 5px,
+    #4b5563 5px,
+    #4b5563 10px
+  );
+  border-color: #4b5563;
+  color: #d1d5db;
+  text-decoration: line-through;
+}
+
+.seatMapStats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 22px;
+  margin-top: 22px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--seat-border);
+  color: var(--seat-muted);
+  font-size: 12.5px;
+}
+
+.seatMapStats strong {
+  color: var(--seat-text);
+}
+
+/* Panel thông tin ghế */
+
+.seatDetailPanel {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  max-height: calc(100vh - 100px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--seat-border);
+  border-radius: 14px;
+  background: var(--seat-panel);
+}
+
+.seatDetailHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seatDetailHead h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.seatDetailTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.seatDetailTitle strong {
+  font-size: 26px;
+}
+
+.seatStatusBadge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.seatStatusBadge--available {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--seat-muted);
+}
+.seatStatusBadge--held {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+.adminDarkMode .seatStatusBadge--held { color: #fbbf24; }
+.seatStatusBadge--sold {
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+}
+.seatStatusBadge--checked_in {
+  background: rgba(99, 102, 241, 0.16);
+  color: #4f46e5;
+}
+.adminDarkMode .seatStatusBadge--checked_in { color: #a5b4fc; }
+.seatStatusBadge--maintenance {
+  background: rgba(107, 114, 128, 0.2);
+  color: #6b7280;
+}
+
+.seatDetailGrid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.seatDetailGrid > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.seatDetailGrid dt {
+  color: var(--seat-muted);
+  font-size: 12.5px;
+}
+
+.seatDetailGrid dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.seatTypeText--vip { color: #ca8a04; }
+.adminDarkMode .seatTypeText--vip { color: #facc15; }
+.seatTypeText--couple { color: #db2777; }
+.adminDarkMode .seatTypeText--couple { color: #f9a8d4; }
+
+.seatHoldCountdown {
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+}
+
+.adminDarkMode .seatHoldCountdown {
+  color: #fbbf24;
+}
+
+.seatDetailSection {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--seat-border);
+}
+
+.seatDetailSection h4 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--seat-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.seatDetailActions {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--seat-border);
+}
+
+.seatActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--seat-border);
+  background: transparent;
+  color: var(--seat-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.seatActionBtn:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.seatActionBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.seatActionBtn--danger {
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #dc2626;
+}
+
+.seatActionBtn--danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.seatActionBtn--primary {
+  border-color: transparent;
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.seatActionBtn--primary:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.seatActionBtn--ghost {
+  border-style: dashed;
+  color: var(--seat-muted);
+}
+
+.seatTypeEditor {
+  display: flex;
+  gap: 8px;
+}
+
+.seatTypeEditor select {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--seat-border);
+  background: var(--seat-panel);
+  color: var(--seat-text);
+  font-size: 13px;
+}
+
+.seatDetailNote {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--seat-muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 1100px) {
+  .seatMapFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .seatMapBody:has(.seatDetailPanel) {
+    grid-template-columns: 1fr;
+  }
+
+  .seatDetailPanel {
+    position: static;
+    max-height: none;
+  }
+}

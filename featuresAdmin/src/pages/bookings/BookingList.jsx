@@ -86,6 +86,8 @@ function Timeline({order}) {
 
 function BookingList() {
   const {darkMode} = useAdminTheme();
+  const initialKeyword =
+    new URLSearchParams(window.location.search).get('keyword') || '';
   const [orders, setOrders] = useState([]);
   const [movies, setMovies] = useState([]);
   const [pagination, setPagination] = useState({page: 1, totalPages: 1, total: 0, limit: 10});
@@ -98,7 +100,7 @@ function BookingList() {
   const [actionReason, setActionReason] = useState('');
 
   const [draft, setDraft] = useState({
-    keyword: '',
+    keyword: initialKeyword,
     movie: '',
     date: '',
     payment: '',

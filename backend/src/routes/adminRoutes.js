@@ -29,6 +29,7 @@ const Ticket = require("../models/Ticket");
 const Voucher = require("../models/Voucher");
 const { createNotification } = require("../services/notificationService");
 const adminBooking = require("../controllers/adminBookingController");
+const adminSeatMap = require("../controllers/adminSeatMapController");
 
 const router = express.Router();
 
@@ -43,6 +44,13 @@ router.get("/reports/tickets-by-day", reports.ticketsByDay);
 router.get("/reports/seat-occupancy", reports.seatOccupancy);
 router.get("/reports/top-movies", reports.topMovies);
 router.get("/reports/voucher-stats", reports.voucherStats);
+
+// Sơ đồ ghế trực quan theo suất chiếu
+router.get("/seat-map/:showtimeId", adminSeatMap.getSeatMap);
+router.post("/seat-map/:showtimeId/release", adminSeatMap.releaseHeldSeat);
+router.post("/seat-map/seats/:seatId/lock", adminSeatMap.lockSeat);
+router.post("/seat-map/seats/:seatId/unlock", adminSeatMap.unlockSeat);
+router.post("/seat-map/seats/:seatId/type", adminSeatMap.changeSeatType);
 
 // Đơn đặt vé từ User app (QuickBooking)
 router.get("/bookings/movies", adminBooking.getOrderMovies);

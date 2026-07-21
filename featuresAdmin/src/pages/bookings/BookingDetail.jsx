@@ -28,9 +28,11 @@ function DetailItem({label, value}) {
 }
 
 function BookingDetail() {
+  const initialCode =
+    new URLSearchParams(window.location.search).get('code') || '';
   const [bookings, setBookings] = useState([]);
   const [selectedId, setSelectedId] = useState('');
-  const [keyword, setKeyword] = useState('');
+  const [keyword, setKeyword] = useState(initialCode);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
