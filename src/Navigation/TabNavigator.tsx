@@ -37,12 +37,14 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
   const [isVoucherDetail, setIsVoucherDetail] = useState(false);
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
   const [isPromotionDetail, setIsPromotionDetail] = useState(false);
+  const [openMemberDirectly, setOpenMemberDirectly] = useState(false);
 
   const handleTabPress = (tabKey: TabKey) => {
     setActiveTab(tabKey);
     setIsVoucherDetail(false);
     setIsDifferentDetail(false);
     setIsPromotionDetail(false);
+    setOpenMemberDirectly(false);
   };
 
   return (
@@ -60,6 +62,12 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
             setIsVoucherDetail,
             setIsDifferentDetail,
             setIsPromotionDetail,
+            () => {
+              setOpenMemberDirectly(true);
+              setActiveTab('different');
+              setIsDifferentDetail(true);
+            },
+            openMemberDirectly,
             async () => {
               await clearAuthSession();
               queryClient.clear();
@@ -101,6 +109,8 @@ function renderTabContent(
   setIsVoucherDetail: (isDetail: boolean) => void,
   setIsDifferentDetail: (isDetail: boolean) => void,
   setIsPromotionDetail: (isDetail: boolean) => void,
+  onOpenMember: () => void,
+  openMemberDirectly: boolean,
   onLogout: () => void,
 ) {
   if (activeTab === 'home') {
@@ -108,7 +118,7 @@ function renderTabContent(
   }
 
   if (activeTab === 'movieSchedule') {
-    return <Showtime />;
+    return <Showtime onOpenMember={onOpenMember} />;
   }
 
   if (activeTab === 'voucher') {
@@ -119,7 +129,7 @@ function renderTabContent(
     return <Promotion onDetailChange={setIsPromotionDetail} />;
   }
 
-  return <Different onDetailChange={setIsDifferentDetail} onLogout={onLogout} />;
+  return <Different initialScreen={openMemberDirectly ? 'member' : 'menu'} onDetailChange={setIsDifferentDetail} onLogout={onLogout} />;
 }
 
 function TabIcon({ name, color }: { name: TabItem['icon']; color: string }) {
