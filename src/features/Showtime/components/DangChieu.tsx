@@ -50,14 +50,17 @@ function movieIdOf(item: SuatChieuApi) {
 
 function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
   const {data, isLoading, isError, refetch, isFetching} = useMoviesDangChieu();
-  const movies = data ?? [];
+  const movies = useMemo(() => data ?? [], [data]);
   const showtimesQuery = useQuery({
     queryKey: ['lich-chieu', 'tat-ca-suat-dat-duoc'],
     queryFn: () => layDanhSachSuatChieu({bookable: true}),
     staleTime: 15_000,
     refetchOnMount: true,
   });
-  const showtimes = showtimesQuery.data ?? [];
+  const showtimes = useMemo(
+    () => showtimesQuery.data ?? [],
+    [showtimesQuery.data],
+  );
 
   const dates = useMemo(() => {
     const keys = Array.from(

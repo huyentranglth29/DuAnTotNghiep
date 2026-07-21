@@ -143,7 +143,7 @@ function TrangChu() {
 
   // State cho Đặt Vé Nhanh
   const [selectedMovie, setSelectedMovie] = useState<Phim | null>(null);
-  const [selectedCinema, setSelectedCinema] = useState<string>('FilmGo Hà Trung');
+  const selectedCinema = 'FilmGo Hà Trung';
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [showMovieDropdown, setShowMovieDropdown] = useState(false);
   const [quickMovieSearch, setQuickMovieSearch] = useState('');
@@ -167,7 +167,6 @@ function TrangChu() {
 
   // State quản lý luồng đặt vé từ chi tiết phim
   const [showBooking, setShowBooking] = useState(false);
-  const [selectedBookingTime, setSelectedBookingTime] = useState('');
   const [bookingSummary, setBookingSummary] = useState<{
     seats: string[];
     totalPrice: number;
@@ -497,7 +496,6 @@ function TrangChu() {
         } as any}
         onBack={() => setSelectedDetailMovie(null)}
         onShowtimeSelect={(showtime) => {
-          setSelectedBookingTime(showtime.startTime);
           setSelectedShowtime(showtime);
           setShowBooking(true);
         }}

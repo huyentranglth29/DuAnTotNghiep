@@ -52,7 +52,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
     staleTime: 15_000,
     refetchOnMount: true,
   });
-  const allMovies = moviesQuery.data ?? [];
+  const allMovies = useMemo(() => moviesQuery.data ?? [], [moviesQuery.data]);
   const preferredMovies = useMemo(() => {
     const hot = allMovies.filter(movie => movie.laPhimHot);
     return hot.length > 0 ? hot : allMovies;

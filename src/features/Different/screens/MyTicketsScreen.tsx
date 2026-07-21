@@ -6,7 +6,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';

@@ -2,7 +2,6 @@ import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
-  ImageBackground,
   ImageSourcePropType,
   Modal,
   ScrollView,
@@ -21,13 +20,11 @@ import {
 } from '../../../services/showtimeService';
 import {holdSeats, releaseSeats} from '../../../services/apiService';
 
-const BLUE = '#005f98';
 const MOMO_PINK = '#d82d8b';
 const COLOR_SOLD = '#555566';       // Đã đặt - xám tối
 const COLOR_SELECTED = '#d82d8b';   // Ghế bạn chọn - hồng Momo
 const COLOR_NORMAL = '#6c5fc7';     // Ghế thường - tím
 const COLOR_VIP = '#e51937';        // Ghế VIP - đỏ
-const COLOR_DISABLED = '#888899';
 const COLOR_HELD = '#a57922';
 
 type DatVeProps = {
@@ -40,9 +37,6 @@ type DatVeProps = {
   onBack: () => void;
   onContinue: (summary: {seats: string[]; totalPrice: number; holdToken: string}) => void;
 };
-
-// Row definitions: [row key, seat labels, isVip]
-type RowDef = {key: string; seats: GheSuatChieu[]};
 
 // Seats in the "center zone" (bordered)
 const CENTER_ZONE = new Set([
@@ -64,7 +58,6 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const selectedSeatsRef = useRef(new Set<string>());
   const holdTokenRef = useRef(`hold-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const continuingRef = useRef(false);
-  const duration = movie.duration ?? '109 phút';
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
   const unitPrice = showtime.price > 0 ? showtime.price : 55000;
   const totalPrice = selectedSeatList.reduce((total, seat) => {
@@ -85,6 +78,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   useEffect(() => {
     let cancelled = false;
     let refreshing = false;
+    const holdToken = holdTokenRef.current;
     setIsLoadingSeats(true);
     setSeatError('');
     setSelectedSeats(new Set());
@@ -94,7 +88,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       if (refreshing) return;
       refreshing = true;
       try {
-        const seats = await layGheTheoSuatChieu(showtime.id, holdTokenRef.current);
+        const seats = await layGheTheoSuatChieu(showtime.id, holdToken);
         if (cancelled) return;
         const nextSold = new Set(seats.filter(seat => seat.isBooked).map(seat => seat.label));
         const nextHeld = new Set(
@@ -136,7 +130,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       cancelled = true;
       clearInterval(timer);
       if (!continuingRef.current) {
-        releaseSeats({holdToken: holdTokenRef.current, showtimeId: showtime.id}).catch(() => undefined);
+        releaseSeats({holdToken, showtimeId: showtime.id}).catch(() => undefined);
       }
     };
   }, [showtime.id]);
@@ -365,11 +359,6 @@ function LegendItem({color, label, isBorder}: {color?: string; label: string; is
       <Text style={styles.legendText}>{label}</Text>
     </View>
   );
-}
-
-function getSeatPrice(seat: string) {
-  if (/^[E-H]/.test(seat)) return 66000;
-  return 55000;
 }
 
 function formatMoney(value: number) {

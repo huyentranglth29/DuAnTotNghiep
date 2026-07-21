@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {AppState} from 'react-native';
+import {AppState, AppStateStatus} from 'react-native';
 import {sendAuthHeartbeat} from '../services/voucherService';
 
 const HEARTBEAT_MS = 30 * 1000;
@@ -9,7 +9,7 @@ const HEARTBEAT_MS = 30 * 1000;
  */
 function PresenceHeartbeat() {
   useEffect(() => {
-    let timer = null;
+    let timer: ReturnType<typeof setInterval> | null = null;
     let alive = true;
 
     const ping = async () => {
@@ -33,7 +33,7 @@ function PresenceHeartbeat() {
       }
     };
 
-    const onState = nextState => {
+    const onState = (nextState: AppStateStatus) => {
       if (!alive) return;
       if (nextState === 'active') {
         start();
