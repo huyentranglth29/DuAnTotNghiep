@@ -3,6 +3,7 @@ const QuickBooking = require("../models/QuickBooking");
 const Showtime = require("../models/Showtime");
 const User = require("../models/User");
 const BookedSeat = require("../models/BookedSeat");
+const Movie = require("../models/Movie");
 const { createNotification } = require("../services/notificationService");
 
 const PAYMENT_LABEL = {
@@ -28,11 +29,18 @@ const formatShowtimeLabel = (booking, showtime) => {
   return "";
 };
 
-const mapOrder = (booking, showtimeMap = {}) => {
+const mapOrder = (booking, showtimeMap = {}, posterMap = {}) => {
   const showtime = showtimeMap[String(booking.showtimeId || "")] || null;
   const user = booking.user && typeof booking.user === "object" ? booking.user : null;
   const paymentKey = PAYMENT_LABEL[booking.status] || "cho_thanh_toan";
   const code = booking.code || `DH-${String(booking._id).slice(-6).toUpperCase()}`;
+  const movieTitle =
+    booking.movieTitle || showtime?.movie?.title || "Phim chưa xác định";
+  const moviePoster =
+    showtime?.movie?.posterUrl ||
+    showtime?.movie?.poster ||
+    posterMap[movieTitle.toLowerCase()] ||
+    "";
 
   return {
     _id: booking._id,
@@ -41,7 +49,8 @@ const mapOrder = (booking, showtimeMap = {}) => {
     customerName: user?.fullName || user?.email || "Khách FilmGo",
     customerPhone: user?.phone || "",
     customerEmail: user?.email || "",
-    movieTitle: booking.movieTitle || showtime?.movie?.title || "Phim chưa xác định",
+    movieTitle,
+    moviePoster,
     showtimeLabel: formatShowtimeLabel(booking, showtime),
     roomName: showtime?.room?.name || "",
     cinema: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
@@ -84,11 +93,32 @@ const loadShowtimeMap = async (bookings) => {
   if (!ids.length) return {};
 
   const showtimes = await Showtime.find({ _id: { $in: ids } })
-    .populate("movie", "title")
+    .populate("movie", "title poster posterUrl")
     .populate("room", "name")
     .lean();
 
   return Object.fromEntries(showtimes.map((item) => [String(item._id), item]));
+};
+
+/** Map tên phim (lowercase) → poster, cho đơn không còn liên kết suất chiếu */
+const loadPosterMap = async (bookings) => {
+  const titles = [
+    ...new Set(
+      bookings.map((item) => String(item.movieTitle || "").trim()).filter(Boolean),
+    ),
+  ];
+  if (!titles.length) return {};
+
+  const movies = await Movie.find({ title: { $in: titles } })
+    .select("title poster posterUrl")
+    .lean();
+
+  return Object.fromEntries(
+    movies.map((movie) => [
+      String(movie.title || "").toLowerCase(),
+      movie.posterUrl || movie.poster || "",
+    ]),
+  );
 };
 
 const listOrders = async (req, res) => {
@@ -150,8 +180,11 @@ const listOrders = async (req, res) => {
         .lean(),
     ]);
 
-    const showtimeMap = await loadShowtimeMap(rows);
-    const data = rows.map((row) => mapOrder(row, showtimeMap));
+    const [showtimeMap, posterMap] = await Promise.all([
+      loadShowtimeMap(rows),
+      loadPosterMap(rows),
+    ]);
+    const data = rows.map((row) => mapOrder(row, showtimeMap, posterMap));
 
     return res.json({
       success: true,
@@ -188,8 +221,11 @@ const getOrderById = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: "Không tìm thấy đơn đặt vé" });
     }
-    const showtimeMap = await loadShowtimeMap([booking]);
-    return res.json({ success: true, data: mapOrder(booking, showtimeMap) });
+    const [showtimeMap, posterMap] = await Promise.all([
+      loadShowtimeMap([booking]),
+      loadPosterMap([booking]),
+    ]);
+    return res.json({ success: true, data: mapOrder(booking, showtimeMap, posterMap) });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -287,11 +323,15 @@ const updateOrder = async (req, res) => {
     }
 
     await booking.populate("user", "fullName email phone");
-    const showtimeMap = await loadShowtimeMap([booking]);
+    const plainBooking = booking.toObject();
+    const [showtimeMap, posterMap] = await Promise.all([
+      loadShowtimeMap([plainBooking]),
+      loadPosterMap([plainBooking]),
+    ]);
     return res.json({
       success: true,
       message: "Cập nhật đơn thành công",
-      data: mapOrder(booking.toObject(), showtimeMap),
+      data: mapOrder(plainBooking, showtimeMap, posterMap),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
