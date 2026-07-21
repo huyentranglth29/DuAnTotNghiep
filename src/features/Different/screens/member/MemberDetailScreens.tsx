@@ -28,6 +28,11 @@ import {
   SelectBox,
 } from './MemberComponents';
 import { BLUE, districts, provinces } from './memberData';
+import {
+  MemberStats,
+  formatMoney,
+  loadMemberStats,
+} from './memberStats';
 
 export function PointsScreen({
   onBack,
@@ -36,6 +41,27 @@ export function PointsScreen({
   onBack: () => void;
   onHistory: () => void;
 }) {
+  const [stats, setStats] = useState<MemberStats | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadMemberStats()
+      .then(next => {
+        if (!cancelled) {
+          setStats(next);
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          setError((err as Error)?.message || 'Không tải được điểm thành viên');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <View style={styles.screen}>
       <MemberHeader
@@ -45,10 +71,27 @@ export function PointsScreen({
         onRightPress={onHistory}
       />
       <View style={styles.pointsCard}>
-        <PointRow icon="trend" color="#37a4ff" label="Tổng điểm tích luỹ" />
-        <PointRow icon="cart" color="#ff9817" label="Tổng điểm đã sử dụng" />
-        <PointRow icon="wallet" color="#4ab460" label="Điểm hiện tại" bold />
+        <PointRow
+          icon="trend"
+          color="#37a4ff"
+          label="Tổng điểm tích luỹ"
+          value={stats?.earnedPoints}
+        />
+        <PointRow
+          icon="cart"
+          color="#ff9817"
+          label="Tổng điểm đã sử dụng"
+          value={stats?.usedPoints}
+        />
+        <PointRow
+          icon="wallet"
+          color="#4ab460"
+          label="Điểm hiện tại"
+          value={stats?.currentPoints}
+          bold
+        />
       </View>
+      {!!error && <Text style={styles.memberStatsError}>{error}</Text>}
     </View>
   );
 }
@@ -75,20 +118,54 @@ export function TransactionHistoryScreen({ onBack }: { onBack: () => void }) {
 }
 
 export function MemberCardDetailScreen({ onBack }: { onBack: () => void }) {
+  const [stats, setStats] = useState<MemberStats | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    loadMemberStats()
+      .then(next => {
+        if (!cancelled) {
+          setStats(next);
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          setError((err as Error)?.message || 'Không tải được thẻ thành viên');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <View style={styles.screen}>
       <MemberHeader title="THẺ THÀNH VIÊN" onBack={onBack} />
       <View style={styles.cardDetail}>
         <View style={styles.memberCard}>
           <View style={styles.cardTitleRow}>
-            <Text style={styles.memberCardTitle}>Khách hàng STANDARD</Text>
+            <Text style={styles.memberCardTitle}>
+              Khách hàng {stats?.tierName || 'STANDARD'}
+            </Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Đang sử dụng</Text>
             </View>
           </View>
-          <Text style={styles.cardInfo}>Số thẻ: 9002000004094001</Text>
-          <Text style={styles.cardInfo}>Ngày đăng ký: 30/06/2026</Text>
+          <Text style={styles.cardInfo}>
+            Số thẻ: {stats?.memberId || 'Đang cập nhật'}
+          </Text>
+          <Text style={styles.cardInfo}>
+            Ngày đăng ký: {stats?.registeredAt || 'Đang cập nhật'}
+          </Text>
+          <Text style={styles.cardInfo}>
+            Tổng chi tiêu: {formatMoney(stats?.totalSpent || 0)}
+          </Text>
+          <Text style={styles.cardInfo}>
+            Điểm hiện tại: {(stats?.currentPoints || 0).toLocaleString('vi-VN')}
+          </Text>
         </View>
+        {!!error && <Text style={styles.memberStatsError}>{error}</Text>}
       </View>
     </View>
   );
@@ -225,7 +302,7 @@ export function AccountInfoScreen({ onBack }: { onBack: () => void }) {
         province: draft.province,
         district: draft.district,
         address: draft.address.trim(),
-      });
+      }) as any;
       applyUser(response?.user);
       setEditing(false);
       Alert.alert('Thành công', 'Đã lưu thông tin cá nhân');
@@ -476,11 +553,13 @@ function PointRow({
   icon,
   color,
   label,
+  value = 0,
   bold,
 }: {
   icon: 'trend' | 'cart' | 'wallet';
   color: string;
   label: string;
+  value?: number;
   bold?: boolean;
 }) {
   return (
@@ -489,7 +568,9 @@ function PointRow({
         <MemberIcon name={icon} color={color} />
       </View>
       <Text style={[styles.pointLabel, bold && styles.bold]}>{label}</Text>
-      <Text style={[styles.pointValue, bold && styles.green]}>0</Text>
+      <Text style={[styles.pointValue, bold && styles.green]}>
+        {Number(value || 0).toLocaleString('vi-VN')}
+      </Text>
     </View>
   );
 }
@@ -578,6 +659,14 @@ const styles = StyleSheet.create({
     color: '#242424',
     fontSize: 25,
     fontWeight: '900',
+  },
+  memberStatsError: {
+    color: '#dc2626',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    marginHorizontal: 20,
+    marginTop: 12,
   },
   bold: {
     fontWeight: '900',

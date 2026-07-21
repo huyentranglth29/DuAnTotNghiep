@@ -14,6 +14,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { MovieBookingInfo } from '../components/MovieName';
 import CommentsList from '../components/CommentsList';
 import ChonGio, {SelectedShowtimeInfo} from '../components/ChonGio';
+import {getNewsEvents} from '../../../services/apiService';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
@@ -23,24 +24,80 @@ type MovieNameDetailProps = {
   onShowtimeSelect?: (showtime: SelectedShowtimeInfo) => void;
 };
 
-const promotions = [
+type NewsEventApi = {
+  _id?: string;
+  id?: string;
+  title?: string;
+  summary?: string;
+  content?: string;
+  category?: string;
+  publishDate?: string;
+  createdAt?: string;
+};
+
+type MoviePromotion = {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  publishedAt?: string;
+  color: string;
+};
+
+const fallbackPromotions: MoviePromotion[] = [
   {
+    id: 'summer-deal',
     title: 'ĐÓN SIÊU HÈ - SIÊU DEAL SỐC',
+    summary: 'Tặng combo bắp nước cho khách hàng xem phim trong dịp hè.',
+    content: 'Tặng combo bắp nước cho khách hàng xem phim trong dịp hè.',
     color: '#8ddbf1',
   },
   {
+    id: 'golden-army',
     title: 'QUỶ VÀNG ĐỔ BỘ - GIÁ NHÍ HỜI TO',
+    summary: 'Combo nước và bắp giá tốt cho các suất chiếu gia đình.',
+    content: 'Combo nước và bắp giá tốt cho các suất chiếu gia đình.',
     color: '#51311f',
   },
   {
+    id: 'filmgo-vivu',
     title: 'BẮT MOOD DELULU - TỚI FILMGO VI VU',
+    summary: 'Vé xem phim và combo đồng giá cho thành viên FilmGo.',
+    content: 'Vé xem phim và combo đồng giá cho thành viên FilmGo.',
     color: '#bde874',
   },
   {
+    id: 'student-fire',
     title: 'SĨ TỬ BUNG LỤA - LỰA ƯU ĐÃI TO',
+    summary: 'Ưu đãi mùa thi dành riêng cho học sinh, sinh viên.',
+    content: 'Ưu đãi mùa thi dành riêng cho học sinh, sinh viên.',
     color: '#f8d87a',
   },
 ];
+
+const promoColors = fallbackPromotions.map(item => item.color);
+
+const formatPromotionDate = (value?: string) => {
+  if (!value) {
+    return '';
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('vi-VN');
+};
+
+const mapNewsEventToPromotion = (
+  item: NewsEventApi,
+  index: number,
+): MoviePromotion => ({
+  id: String(item._id || item.id || `promotion-${index}`),
+  title: item.title || fallbackPromotions[index % fallbackPromotions.length].title,
+  summary: item.summary || item.content || 'Ưu đãi FilmGo',
+  content: item.content || item.summary || 'Thông tin khuyến mãi đang được cập nhật.',
+  publishedAt: formatPromotionDate(item.publishDate || item.createdAt),
+  color: promoColors[index % promoColors.length],
+});
 
 function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
   const duration = movie.duration ?? '109 phút';
@@ -51,6 +108,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const [selectedShowtime, setSelectedShowtime] = useState<SelectedShowtimeInfo | null>(null);
+  const [moviePromotions, setMoviePromotions] = useState<MoviePromotion[]>(fallbackPromotions);
 
   useEffect(() => {
     let timer: any;
@@ -64,6 +122,32 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
     }
     return () => clearInterval(timer);
   }, [showTrailerModal, isPlaying]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getNewsEvents()
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        const list = Array.isArray(response) ? response : [];
+        const promos = list
+          .filter((item: NewsEventApi) => item.category === 'khuyen_mai')
+          .slice(0, 4)
+          .map(mapNewsEventToPromotion);
+        setMoviePromotions(promos.length ? promos : fallbackPromotions);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMoviePromotions(fallbackPromotions);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formatTime = (pct: number) => {
     const totalSec = Math.round((pct / 100) * 150); // 150 giây = 2m30s
@@ -84,6 +168,15 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
       });
       Alert.alert('Thông báo', 'Vui lòng chọn khung giờ chiếu hôm nay ở bên dưới!');
     }
+  };
+
+  const showPromotionDetail = (promo: MoviePromotion) => {
+    const lines = [
+      promo.summary,
+      promo.publishedAt ? `Ngày đăng: ${promo.publishedAt}` : '',
+      promo.content,
+    ].filter(Boolean);
+    Alert.alert(promo.title, lines.join('\n\n'));
   };
 
   return (
@@ -183,19 +276,31 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
 
         <View style={styles.promotionHeader}>
           <Text style={styles.sectionTitle}>KHUYẾN MÃI</Text>
-          <TouchableOpacity activeOpacity={0.75} style={styles.allButton}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={styles.allButton}
+            onPress={() =>
+              Alert.alert(
+                'Khuyến mãi',
+                `${moviePromotions.length} ưu đãi đang được hiển thị từ FilmGo.`,
+              )
+            }>
             <Text style={styles.allButtonText}>Tất cả</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.promotionList}>
-          {promotions.map(promo => (
-            <View key={promo.title} style={styles.promotionCard}>
+          {moviePromotions.map(promo => (
+            <TouchableOpacity
+              key={promo.id}
+              activeOpacity={0.82}
+              style={styles.promotionCard}
+              onPress={() => showPromotionDetail(promo)}>
               <View style={[styles.promotionThumb, { backgroundColor: promo.color }]}>
                 <Text style={styles.promotionThumbText}>FilmGo</Text>
               </View>
               <Text style={styles.promotionTitle}>{promo.title}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -279,7 +384,7 @@ const styles = StyleSheet.create({
     paddingBottom: 82,
   },
   hero: {
-    height: 300,
+    height: 252,
   },
   heroImage: {
     resizeMode: 'cover',
@@ -303,35 +408,37 @@ const styles = StyleSheet.create({
   },
   topTitle: {
     color: '#ffffff',
-    fontSize: 24,
+    flex: 1,
+    fontSize: 20,
     fontWeight: '500',
   },
   playButton: {
     position: 'absolute',
     left: '50%',
-    top: 156,
-    marginLeft: -32,
+    top: 132,
+    marginLeft: -30,
   },
   infoBlock: {
     flexDirection: 'row',
-    marginTop: -68,
-    paddingHorizontal: 18,
+    marginTop: -46,
+    paddingHorizontal: 16,
   },
   poster: {
-    width: 124,
-    height: 192,
+    width: 104,
+    height: 160,
     borderRadius: 5,
     backgroundColor: '#dfe3e7',
   },
   titleBlock: {
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 8,
-    paddingLeft: 16,
+    paddingBottom: 6,
+    paddingLeft: 14,
   },
   movieTitle: {
     color: '#111111',
-    fontSize: 23,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '900',
   },
   agePill: {
@@ -349,38 +456,38 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   detailsGrid: {
-    columnGap: 18,
+    columnGap: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 22,
-    paddingTop: 52,
+    paddingHorizontal: 16,
+    paddingTop: 36,
     rowGap: 8,
   },
   detailLabel: {
     color: '#111111',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '900',
-    width: '36%',
+    width: '34%',
   },
   detailValue: {
     color: '#363636',
-    fontSize: 16,
-    lineHeight: 23,
-    width: '56%',
+    fontSize: 14,
+    lineHeight: 21,
+    width: '60%',
   },
   description: {
     color: '#333333',
     fontSize: 15,
     lineHeight: 22,
-    paddingHorizontal: 22,
-    paddingTop: 28,
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
   promotionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingTop: 28,
   },
   sectionTitle: {
     color: '#111111',
@@ -470,7 +577,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   showtimeSection: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 16,
     paddingTop: 24,
   },
   showtimeSubtitle: {
@@ -513,13 +620,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trailerHeader: {
-    height: 60,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     backgroundColor: '#1a1a1a',
     position: 'absolute',
-    top: 40,
+    top: 24,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -546,11 +653,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    paddingHorizontal: 16,
+    paddingTop: 82,
   },
   videoPlayerScreen: {
-    width: '80%',
-    height: '50%',
+    width: '100%',
+    maxWidth: 420,
+    aspectRatio: 16 / 10,
     backgroundColor: '#1a1a1a',
     borderRadius: 12,
     justifyContent: 'center',
@@ -584,13 +693,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   videoControls: {
-    width: '90%',
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: 'rgba(0,0,0,0.8)',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 18,
   },
   playPauseBtn: {
     width: 44,

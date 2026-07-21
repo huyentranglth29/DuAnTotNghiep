@@ -171,7 +171,12 @@ function MockPaymentScreen(props: Props) {
             <View style={styles.sheetHandle} />
             <View style={styles.invoiceHeader}>
               <Text style={styles.invoiceTitle}>Chi tiết hóa đơn</Text>
-              <TouchableOpacity onPress={() => setShowInvoice(false)}><Text style={styles.closeText}>✕</Text></TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.75}
+                style={styles.closeIconButton}
+                onPress={() => setShowInvoice(false)}>
+                <Text style={styles.closeText}>✕</Text>
+              </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.invoiceBox}>
@@ -273,9 +278,10 @@ const styles = StyleSheet.create({
   modalOverlay: {flex: 1, backgroundColor: 'rgba(0,0,0,0.52)', justifyContent: 'flex-end'},
   invoiceSheet: {maxHeight: '86%', backgroundColor: '#f8f7fb', borderTopLeftRadius: 23, borderTopRightRadius: 23, paddingTop: 9},
   sheetHandle: {width: 45, height: 5, borderRadius: 3, backgroundColor: '#d4d4d4', alignSelf: 'center'},
-  invoiceHeader: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 17, borderBottomWidth: 1, borderBottomColor: '#eee'},
+  invoiceHeader: {position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 17, paddingHorizontal: 58, borderBottomWidth: 1, borderBottomColor: '#eee'},
   invoiceTitle: {fontSize: 20, color: '#333', fontWeight: '900'},
-  closeText: {position: 'absolute', right: -120, top: -10, color: '#333', fontSize: 20},
+  closeIconButton: {position: 'absolute', right: 14, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eeeeee'},
+  closeText: {color: '#333', fontSize: 18, lineHeight: 22, fontWeight: '800'},
   invoiceBox: {backgroundColor: '#fff', borderRadius: 14, margin: 14, paddingHorizontal: 14},
   invoiceRow: {minHeight: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#f0f0f0'},
   invoiceLabel: {flex: 1, color: '#888', fontSize: 12, marginRight: 10},

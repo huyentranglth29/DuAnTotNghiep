@@ -45,8 +45,6 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
     setIsPromotionDetail(false);
   };
 
-  const isHomeTab = activeTab === 'home';
-
   return (
     <SafeAreaView
       style={styles.safeArea}

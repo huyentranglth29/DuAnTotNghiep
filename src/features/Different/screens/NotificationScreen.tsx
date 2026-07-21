@@ -36,10 +36,11 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
     queryKey: ['notifications'],
     queryFn: getNotifications,
   });
+  const {refetch} = notificationsQuery;
 
   useEffect(() => {
-    void notificationsQuery.refetch();
-  }, []);
+    void refetch();
+  }, [refetch]);
 
   const list = Array.isArray(notificationsQuery.data)
     ? notificationsQuery.data

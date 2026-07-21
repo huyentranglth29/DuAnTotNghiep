@@ -40,7 +40,7 @@ function getRelease(value?: string) {
 
 function SapChieu({onMoviePress}: SapChieuProps) {
   const {data, isLoading, isError, refetch, isFetching} = useMoviesSapChieu();
-  const movies = data ?? [];
+  const movies = useMemo(() => data ?? [], [data]);
   const genres = useMemo(
     () => [
       'Tất cả',

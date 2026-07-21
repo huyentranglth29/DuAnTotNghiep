@@ -102,7 +102,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
         contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
           <View style={styles.heroIconCircle}>
-            <GiftIcon color={VOUCHER_TEXT} size={68} strokeWidth={3.5} />
+            <GiftIcon color={VOUCHER_TEXT} size={48} strokeWidth={3.2} />
           </View>
           <Text style={styles.title}>Thêm voucher mới</Text>
           <Text style={styles.subtitle}>
@@ -217,7 +217,7 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
             disabled={submitting}
             style={[styles.submitButton, submitting && {opacity: 0.7}]}
             onPress={handleAddVoucher}>
-            <PlusIcon color="#ffffff" size={31} strokeWidth={3} />
+            <PlusIcon color="#ffffff" size={24} strokeWidth={3} />
             <Text style={styles.submitText}>
               {submitting ? 'Đang thêm...' : 'Thêm voucher'}
             </Text>
@@ -234,56 +234,56 @@ const styles = StyleSheet.create({
     backgroundColor: VOUCHER_SCREEN_BG,
   },
   content: {
-    paddingHorizontal: 27,
-    paddingTop: 37,
+    paddingHorizontal: 18,
+    paddingTop: 22,
     paddingBottom: 34,
   },
   heroCard: {
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 22,
-    paddingTop: 37,
-    paddingBottom: 38,
+    paddingHorizontal: 18,
+    paddingTop: 24,
+    paddingBottom: 26,
     shadowColor: '#000000',
     shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: {width: 0, height: 9},
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 5},
     elevation: 2,
   },
   heroIconCircle: {
-    width: 122,
-    height: 122,
-    borderRadius: 61,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff5ea',
   },
   title: {
-    marginTop: 28,
+    marginTop: 18,
     color: VOUCHER_TEXT,
-    fontSize: 31,
-    lineHeight: 38,
+    fontSize: 23,
+    lineHeight: 30,
     fontWeight: '900',
     textAlign: 'center',
   },
   subtitle: {
     marginTop: 10,
     color: VOUCHER_MUTED,
-    fontSize: 18,
-    lineHeight: 26,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   formCard: {
-    marginTop: 37,
-    borderRadius: 20,
+    marginTop: 20,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 31,
-    paddingVertical: 32,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
     shadowColor: '#000000',
     shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: {width: 0, height: 9},
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 5},
     elevation: 2,
   },
   fieldWrap: {},
@@ -299,14 +299,14 @@ const styles = StyleSheet.create({
     color: ERROR_COLOR,
   },
   inputRow: {
-    height: 92,
+    height: 58,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: VOUCHER_BORDER,
-    borderRadius: 16,
-    paddingHorizontal: 21,
-    marginBottom: 26,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    marginBottom: 18,
     backgroundColor: '#ffffff',
   },
   inputRowFocus: {
@@ -319,10 +319,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    marginLeft: 18,
+    marginLeft: 12,
     color: VOUCHER_TEXT,
-    fontSize: 23,
-    lineHeight: 29,
+    fontSize: 16,
+    lineHeight: 22,
     paddingVertical: 0,
   },
   errorText: {
@@ -333,11 +333,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   submitButton: {
-    height: 78,
+    height: 54,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: 10,
     backgroundColor: VOUCHER_BLUE,
     shadowColor: '#000000',
     shadowOpacity: 0.2,
@@ -346,10 +346,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   submitText: {
-    marginLeft: 14,
+    marginLeft: 10,
     color: '#ffffff',
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
   },
 });

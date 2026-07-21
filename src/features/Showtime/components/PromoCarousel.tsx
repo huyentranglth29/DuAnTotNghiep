@@ -8,13 +8,27 @@ import {
   Text,
   View,
 } from 'react-native';
+import {getActiveVouchers} from '../../../services/voucherService';
+import {FilmGoVoucher} from '../../Voucher/types';
 
 const SLIDE_WIDTH = Dimensions.get('window').width - 28;
 const isTestEnvironment =
   (globalThis as {process?: {env?: {NODE_ENV?: string}}}).process?.env
     ?.NODE_ENV === 'test';
 
-const promos = [
+type CarouselPromo = {
+  key: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  highlight: string;
+  accent: string;
+  soft: string;
+  deep: string;
+  emoji: string;
+};
+
+const fallbackPromos: CarouselPromo[] = [
   {
     key: 'combo',
     badge: 'ƯU ĐÃI',
@@ -50,12 +64,89 @@ const promos = [
   },
 ];
 
+const tones = [
+  {accent: '#0ea5e9', soft: '#e0f2fe', deep: '#0369a1', emoji: '🍿'},
+  {accent: '#f97316', soft: '#ffedd5', deep: '#c2410c', emoji: '🎟'},
+  {accent: '#8b5cf6', soft: '#ede9fe', deep: '#6d28d9', emoji: '🥤'},
+  {accent: '#16a34a', soft: '#dcfce7', deep: '#166534', emoji: '★'},
+];
+
+const money = (value?: number) =>
+  `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+
+const voucherHighlight = (voucher: FilmGoVoucher) => {
+  if (voucher.discountType === 'percent') {
+    return `${Number(voucher.discountValue || 0)}%`;
+  }
+  const value = Number(voucher.discountValue || 0);
+  return value >= 1000 ? `-${Math.round(value / 1000)}K` : `-${value}`;
+};
+
+const voucherSubtitle = (voucher: FilmGoVoucher) => {
+  const minOrder = Number(voucher.minOrderValue || 0);
+  const maxDiscount = Number(voucher.maxDiscount || 0);
+  if (minOrder > 0 && maxDiscount > 0) {
+    return `Đơn từ ${money(minOrder)} · tối đa ${money(maxDiscount)}`;
+  }
+  if (minOrder > 0) {
+    return `Áp dụng cho đơn từ ${money(minOrder)}`;
+  }
+  if (maxDiscount > 0) {
+    return `Giảm tối đa ${money(maxDiscount)}`;
+  }
+  return voucher.description || 'Ưu đãi đang mở tại FilmGo';
+};
+
+const mapVoucherToPromo = (
+  voucher: FilmGoVoucher,
+  index: number,
+): CarouselPromo => {
+  const tone = tones[index % tones.length];
+  return {
+    key: voucher._id || voucher.code || `voucher-${index}`,
+    badge: 'VOUCHER',
+    title: voucher.code || 'Ưu đãi FilmGo',
+    subtitle: voucherSubtitle(voucher),
+    highlight: voucherHighlight(voucher),
+    ...tone,
+  };
+};
+
 function PromoCarousel() {
   const scrollRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [promos, setPromos] = useState<CarouselPromo[]>(fallbackPromos);
 
   useEffect(() => {
-    if (isTestEnvironment) {
+    let cancelled = false;
+
+    getActiveVouchers()
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        const list = Array.isArray(response) ? response : [];
+        const activePromos = list
+          .filter(item => Number(item.remaining ?? 1) > 0)
+          .slice(0, 4)
+          .map(mapVoucherToPromo);
+        setPromos(activePromos.length ? activePromos : fallbackPromos);
+        setActiveIndex(0);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPromos(fallbackPromos);
+          setActiveIndex(0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isTestEnvironment || promos.length <= 1) {
       return undefined;
     }
 
@@ -71,7 +162,7 @@ function PromoCarousel() {
     }, 3200);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [promos.length]);
 
   const handleMomentumEnd = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -139,28 +230,28 @@ const styles = StyleSheet.create({
   },
   banner: {
     width: SLIDE_WIDTH,
-    height: 138,
-    borderRadius: 18,
+    height: 124,
+    borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
   },
   glow: {
     position: 'absolute',
-    right: -40,
-    top: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    opacity: 0.22,
+    right: -18,
+    top: -26,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    opacity: 0.18,
   },
   bannerInner: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   bannerTextWrap: {
     flex: 1,
@@ -180,7 +271,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   bannerTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   bannerSubTitle: {
@@ -191,24 +282,24 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     marginTop: 6,
-    fontSize: 34,
+    fontSize: 26,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    letterSpacing: 0,
   },
   mascotCircle: {
-    width: 78,
-    height: 78,
-    borderRadius: 24,
+    width: 62,
+    height: 62,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: {width: 0, height: 6},
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 2,
   },
   mascotText: {
-    fontSize: 34,
+    fontSize: 26,
   },
   dotsRow: {
     flexDirection: 'row',

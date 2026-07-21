@@ -27,7 +27,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
 
 const MOMO_PINK = '#d82d8b';
-const MOMO_DARK = '#a61f69';
 const TEXT_DARK = '#1a1a1a';
 const TEXT_MUTED = '#888888';
 const BG_GRAY = '#f4f4f6';
