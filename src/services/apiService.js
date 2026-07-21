@@ -119,7 +119,9 @@ export const register = async ({ fullName, email, password, phone }) => {
  * GET /reviews?movieId=123
  */
 export const getReviews = async (movieId) => {
-  return apiClient.get('/reviews', { params: { movieId } });
+  return apiClient.get('/api/reviews', {
+    params: { movie: movieId, status: 'approved' },
+  });
 };
 
 /**
@@ -128,7 +130,11 @@ export const getReviews = async (movieId) => {
  * body: { movieId, rating, text, tags }
  */
 export const postReview = async (payload) => {
-  return apiClient.post('/reviews', payload);
+  return apiClient.post('/api/reviews', {
+    ...payload,
+    movie: payload.movie || payload.movieId,
+    comment: payload.comment || payload.text,
+  });
 };
 
 /**
