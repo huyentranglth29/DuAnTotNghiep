@@ -320,18 +320,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContent: {
-    padding: 16,
+    padding: 14,
     paddingBottom: 40,
   },
   ticketCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 18,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    marginBottom: 22,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 14,
     overflow: 'hidden',
   },
   ticketCardInactive: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   ticketTop: {
-    padding: 20,
+    padding: 16,
   },
   ticketCinema: {
     fontSize: 13,
@@ -391,11 +391,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   ticketTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: 'bold',
     color: '#111111',
     marginTop: 8,
-    lineHeight: 28,
+    lineHeight: 25,
   },
   ticketGenre: {
     fontSize: 12,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#eeeeee',
-    marginVertical: 16,
+    marginVertical: 12,
   },
   infoRow: {
     flexDirection: 'row',
@@ -429,9 +429,9 @@ const styles = StyleSheet.create({
   paymentMethodLine: {color: '#777777', fontSize: 11, marginTop: 14, fontWeight: '600'},
   comboTicketBox: {
     backgroundColor: '#fff5f7',
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 16,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
   },
   comboTicketHeader: {flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8},
   comboTicketTitle: {color: '#5d2530', fontSize: 12, fontWeight: '800'},
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   ticketBottom: {
     backgroundColor: '#fafafa',
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
   },
   codeLabel: {
@@ -484,11 +484,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   codeVal: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: 'bold',
     color: '#e51937',
     marginTop: 4,
-    letterSpacing: 3,
+    letterSpacing: 2,
   },
   barcodeContainer: {
     marginTop: 14,
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   errorIcon: {
-    fontSize: 48,
+    fontSize: 38,
   },
   errorText: {
     fontSize: 14,
@@ -525,9 +525,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   retryBtn: {
-    marginTop: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+    marginTop: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 26,
     backgroundColor: '#005f98',
     borderRadius: 10,
   },
@@ -539,17 +539,17 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 120,
-    paddingHorizontal: 32,
+    paddingTop: 72,
+    paddingHorizontal: 28,
   },
   emptyIcon: {
-    fontSize: 64,
+    fontSize: 44,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333333',
-    marginTop: 16,
+    marginTop: 12,
   },
   emptySubText: {
     fontSize: 13,

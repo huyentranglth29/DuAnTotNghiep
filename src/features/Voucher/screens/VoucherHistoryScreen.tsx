@@ -152,14 +152,14 @@ function EmptyHistoryIcon({
   name: 'history' | 'check' | 'clock';
 }) {
   if (name === 'check') {
-    return <CheckCircleIcon color="#c9c9c9" size={76} strokeWidth={4} />;
+    return <CheckCircleIcon color="#c9c9c9" size={52} strokeWidth={3.5} />;
   }
 
   if (name === 'clock') {
-    return <ClockIcon color="#c9c9c9" size={76} strokeWidth={4} />;
+    return <ClockIcon color="#c9c9c9" size={52} strokeWidth={3.5} />;
   }
 
-  return <HistoryIcon color="#c9c9c9" size={78} strokeWidth={4} />;
+  return <HistoryIcon color="#c9c9c9" size={54} strokeWidth={3.5} />;
 }
 
 const styles = StyleSheet.create({
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 36,
+    paddingBottom: 28,
   },
   card: {
     marginBottom: 10,
@@ -198,55 +198,55 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     alignItems: 'center',
-    borderRadius: 19,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
-    paddingHorizontal: 32,
-    paddingTop: 36,
-    paddingBottom: 38,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 30,
     shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    shadowOffset: {width: 0, height: 8},
-    elevation: 5,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 2,
   },
   iconCircle: {
-    width: 126,
-    height: 126,
-    borderRadius: 63,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f4f4f4',
   },
   emptyTitle: {
-    marginTop: 25,
+    marginTop: 18,
     color: VOUCHER_TEXT,
-    fontSize: 25,
-    lineHeight: 32,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '900',
     textAlign: 'center',
   },
   emptyDescription: {
     marginTop: 8,
     color: VOUCHER_MUTED,
-    fontSize: 18,
-    lineHeight: 25,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   refreshButton: {
     alignSelf: 'stretch',
-    height: 74,
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 28,
-    borderRadius: 31,
+    marginTop: 22,
+    borderRadius: 10,
     backgroundColor: VOUCHER_BLUE,
   },
   refreshText: {
     marginLeft: 11,
     color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
   },
 });
