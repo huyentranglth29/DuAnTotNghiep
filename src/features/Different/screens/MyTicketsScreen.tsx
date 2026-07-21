@@ -79,12 +79,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
           {[1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2].map((val, idx) => (
             <View
               key={idx}
-              style={{
-                width: val,
-                height: 44,
-                backgroundColor: '#111111',
-                marginRight: 2,
-              }}
+              style={[styles.barcodeLine, {width: val}]}
             />
           ))}
         </View>
@@ -137,14 +132,14 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
             </View>
           </View>
 
-          <View style={[styles.infoRow, { marginTop: 14 }]}>
+          <View style={[styles.infoRow, styles.infoRowSpaced]}>
             <View style={styles.infoCol}>
               <Text style={styles.infoLabel}>GHẾ</Text>
               <Text style={styles.infoVal}>{item.seats?.join(', ') || '—'}</Text>
             </View>
             <View style={styles.infoCol}>
               <Text style={styles.infoLabel}>TỔNG TIỀN</Text>
-              <Text style={[styles.infoVal, { color: '#e51937' }]}>
+              <Text style={[styles.infoVal, styles.infoPrice]}>
                 {Number(item.totalPrice).toLocaleString('vi-VN')}đ
               </Text>
             </View>
@@ -410,6 +405,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  infoRowSpaced: {
+    marginTop: 14,
+  },
   infoCol: {
     width: '48%',
   },
@@ -424,6 +422,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#222222',
     marginTop: 3,
+  },
+  infoPrice: {
+    color: '#e51937',
   },
   paymentMethodLine: {color: '#777777', fontSize: 11, marginTop: 14, fontWeight: '600'},
   comboTicketBox: {
@@ -496,6 +497,11 @@ const styles = StyleSheet.create({
   barcodeLines: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  barcodeLine: {
+    height: 44,
+    backgroundColor: '#111111',
+    marginRight: 2,
   },
   ticketNote: {
     fontSize: 11,

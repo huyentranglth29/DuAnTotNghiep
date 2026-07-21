@@ -258,11 +258,9 @@ function TrangChu() {
               <View
                 style={[
                   styles.ageBadge,
-                  {
-                    backgroundColor: item.nhanTuoi.includes('18')
-                      ? '#e51937'
-                      : '#ffa000',
-                  },
+                  item.nhanTuoi.includes('18')
+                    ? styles.ageBadgeAdult
+                    : styles.ageBadgeGeneral,
                 ]}>
                 <Text style={styles.ageText}>{item.nhanTuoi}</Text>
               </View>
@@ -398,9 +396,9 @@ function TrangChu() {
             {!!item.nhanTuoi && (
               <View style={[
                 styles.searchResultAgeBadge,
-                {
-                  backgroundColor: item.nhanTuoi.includes('18') ? '#e51937' : '#ffa000',
-                }
+                item.nhanTuoi.includes('18')
+                  ? styles.ageBadgeAdult
+                  : styles.ageBadgeGeneral,
               ]}>
                 <Text style={styles.ageText}>{item.nhanTuoi}</Text>
               </View>
@@ -539,7 +537,7 @@ function TrangChu() {
         <View style={styles.header}>
           <View>
             <Text style={styles.logoText}>
-              Film<Text style={{color: '#e51937'}}>Go</Text>
+              Film<Text style={styles.logoAccent}>Go</Text>
             </Text>
             <Text style={styles.locationText}>📍 Hà Trung, Thanh Hóa</Text>
           </View>
@@ -548,7 +546,7 @@ function TrangChu() {
               style={styles.iconBtn}
               onPress={() => {
                 setShowNotifications(true);
-                void notificationsQuery.refetch();
+                notificationsQuery.refetch().catch(() => undefined);
               }}>
               <Text style={styles.headerIcon}>🔔</Text>
               {unreadNotifications > 0 && (
@@ -593,7 +591,7 @@ function TrangChu() {
                 else setSelectedNews(item);
               }}>
                 <Text style={styles.notificationType}>{item.type === 'voucher' ? '🎟️' : item.type === 'phim' ? '🎬' : item.type === 'dat_ve' ? '🎫' : item.type === 'thanh_toan' ? '💳' : '🔔'}</Text>
-                <View style={{flex: 1}}><Text style={[styles.notificationItemTitle, item.isRead && styles.notificationReadTitle]}>{item.title}</Text><Text style={[styles.notificationContent, item.isRead && styles.notificationReadContent]} numberOfLines={3}>{item.content}</Text><Text style={styles.notificationTime}>{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</Text></View>
+                <View style={styles.notificationTextWrap}><Text style={[styles.notificationItemTitle, item.isRead && styles.notificationReadTitle]}>{item.title}</Text><Text style={[styles.notificationContent, item.isRead && styles.notificationReadContent]} numberOfLines={3}>{item.content}</Text><Text style={styles.notificationTime}>{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</Text></View>
                 {!item.isRead && <View style={styles.unreadDot} />}
               </TouchableOpacity>
             )}
@@ -745,13 +743,9 @@ function TrangChu() {
           </View>
 
           {/* Top bán chạy (Best Sellers) */}
-          <View
-            style={[
-              styles.section,
-              {backgroundColor: '#fff9fa', paddingVertical: 14},
-            ]}>
+          <View style={[styles.section, styles.bestSellerSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, {color: '#e51937'}]}>
+              <Text style={[styles.sectionTitle, styles.sectionTitleHot]}>
                 TOP BÁN CHẠY
               </Text>
               <Text style={styles.badgeHot}>BÁN CHẠY</Text>
@@ -830,7 +824,7 @@ function TrangChu() {
           </View>
 
           {/* Tin tức / Sự kiện */}
-          <View style={[styles.section, {marginBottom: 30}]}>
+          <View style={[styles.section, styles.newsSection]}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>TIN TỨC & SỰ KIỆN</Text>
             </View>
@@ -999,6 +993,7 @@ const styles = StyleSheet.create({
   notificationUnread: {backgroundColor: '#eef8ff', borderColor: '#9dd8f7'},
   notificationRead: {backgroundColor: '#ffffff', borderColor: '#e5e7eb'},
   notificationType: {fontSize: 20},
+  notificationTextWrap: {flex: 1},
   notificationItemTitle: {fontSize: 16, fontWeight: '800', color: '#1f2937'},
   notificationReadTitle: {fontWeight: '700', color: '#667085'},
   notificationContent: {fontSize: 13, lineHeight: 19, color: '#667085', marginTop: 4},
@@ -1026,6 +1021,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     color: '#005f98',
+  },
+  logoAccent: {
+    color: '#e51937',
   },
   locationText: {
     fontSize: 12,
@@ -1310,6 +1308,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginBottom: 10,
   },
+  bestSellerSection: {
+    backgroundColor: '#fff9fa',
+    paddingVertical: 14,
+  },
+  newsSection: {
+    marginBottom: 30,
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1321,6 +1326,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     color: '#1a1a1a',
+  },
+  sectionTitleHot: {
+    color: '#e51937',
   },
   seeAllText: {
     fontSize: 13,
@@ -1368,6 +1376,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
+  },
+  ageBadgeAdult: {
+    backgroundColor: '#e51937',
+  },
+  ageBadgeGeneral: {
+    backgroundColor: '#ffa000',
   },
   ageText: {
     color: '#ffffff',

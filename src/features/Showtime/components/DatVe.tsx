@@ -255,7 +255,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         </View>
 
         {/* Bottom padding */}
-        <View style={{height: 20}} />
+        <View style={styles.scrollFooterSpacer} />
       </ScrollView>
 
       {/* Checkout bar */}
@@ -566,6 +566,9 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#666688',
     fontSize: 15,
+  },
+  scrollFooterSpacer: {
+    height: 20,
   },
   modalOverlay: {
     flex: 1,

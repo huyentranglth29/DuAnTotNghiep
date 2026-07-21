@@ -44,7 +44,7 @@ function KetQuaTimKiem({tuKhoa, trangThai, onMoviePress}: KetQuaTimKiemProps) {
   if (ketQua.error) {
     return (
       <View style={styles.centerBox}>
-        <Text style={styles.errorText}>Không thể tìm phim. Kiểm tra mock-api.</Text>
+        <Text style={styles.errorText}>Không thể tìm phim. Kiểm tra kết nối backend.</Text>
         <TouchableOpacity activeOpacity={0.75} onPress={() => ketQua.refetch()}>
           <Text style={styles.retryText}>Thử lại</Text>
         </TouchableOpacity>

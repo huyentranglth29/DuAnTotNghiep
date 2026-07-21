@@ -39,7 +39,7 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
   const {refetch} = notificationsQuery;
 
   useEffect(() => {
-    void refetch();
+    refetch().catch(() => undefined);
   }, [refetch]);
 
   const list = Array.isArray(notificationsQuery.data)
