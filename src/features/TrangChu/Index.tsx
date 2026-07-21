@@ -662,7 +662,7 @@ function TrangChu() {
 
           {/* Quick Booking */}
           <View style={styles.quickBookCard}>
-            <Text style={styles.quickBookHeader}>⚡ ĐẶT VÉ NHANH</Text>
+            <Text style={styles.quickBookHeader}>ĐẶT VÉ NHANH</Text>
 
             {/* Dropdown Phim */}
             <View style={styles.dropdownContainer}>
@@ -684,7 +684,7 @@ function TrangChu() {
             <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownLabel}>Rạp chiếu</Text>
               <View style={styles.fixedCinemaBox}>
-                <Text style={styles.fixedCinemaText}>📍 FilmGo Hà Trung (Thanh Hóa)</Text>
+                <Text style={styles.fixedCinemaText}>FilmGo Hà Trung (Thanh Hóa)</Text>
               </View>
             </View>
 
@@ -725,7 +725,7 @@ function TrangChu() {
           {/* Đang chiếu (Now Showing) */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎬 PHIM ĐANG CHIẾU</Text>
+              <Text style={styles.sectionTitle}>PHIM ĐANG CHIẾU</Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Xem tất cả', 'Mở danh sách Phim đang chiếu')
@@ -754,7 +754,7 @@ function TrangChu() {
             ]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, {color: '#e51937'}]}>
-                🔥 TOP BÁN CHẠY
+                TOP BÁN CHẠY
               </Text>
               <Text style={styles.badgeHot}>BÁN CHẠY</Text>
             </View>
@@ -774,7 +774,7 @@ function TrangChu() {
           {/* Sắp chiếu (Coming Soon) */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⏳ PHIM SẮP CHIẾU</Text>
+              <Text style={styles.sectionTitle}>PHIM SẮP CHIẾU</Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Xem tất cả', 'Mở danh sách Phim sắp chiếu')
@@ -798,7 +798,7 @@ function TrangChu() {
           {/* Ưu đãi / Voucher */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎁 VOUCHER ƯU ĐÃI</Text>
+              <Text style={styles.sectionTitle}>VOUCHER ƯU ĐÃI</Text>
             </View>
             <FlatList
               data={listVouchers}
@@ -816,7 +816,7 @@ function TrangChu() {
           {/* Combo bắp nước */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🍿 COMBO BẮP NƯỚC</Text>
+              <Text style={styles.sectionTitle}>COMBO BẮP NƯỚC</Text>
             </View>
             <FlatList
               data={listProducts}
@@ -834,7 +834,7 @@ function TrangChu() {
           {/* Tin tức / Sự kiện */}
           <View style={[styles.section, {marginBottom: 30}]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📰 TIN TỨC & SỰ KIỆN</Text>
+              <Text style={styles.sectionTitle}>TIN TỨC & SỰ KIỆN</Text>
             </View>
             <FlatList
               data={listNews}
@@ -992,15 +992,15 @@ function TrangChu() {
 
 const styles = StyleSheet.create({
   notificationScreen: {flex: 1, backgroundColor: '#f5f7fa'},
-  notificationHeader: {height: 76, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', backgroundColor: '#006ba6'},
-  notificationBack: {fontSize: 44, lineHeight: 46, color: '#fff', paddingRight: 12},
-  notificationTitle: {flex: 1, color: '#fff', fontSize: 21, fontWeight: '900'},
+  notificationHeader: {height: 64, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#006ba6'},
+  notificationBack: {fontSize: 32, lineHeight: 36, color: '#fff', paddingRight: 12},
+  notificationTitle: {flex: 1, color: '#fff', fontSize: 18, fontWeight: '900'},
   notificationReadAll: {color: '#fff', fontWeight: '700', fontSize: 13},
   notificationList: {padding: 14, paddingBottom: 40},
-  notificationItem: {flexDirection: 'row', gap: 12, padding: 15, marginBottom: 10, borderRadius: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb'},
+  notificationItem: {flexDirection: 'row', gap: 10, padding: 13, marginBottom: 10, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb'},
   notificationUnread: {backgroundColor: '#eef8ff', borderColor: '#9dd8f7'},
   notificationRead: {backgroundColor: '#ffffff', borderColor: '#e5e7eb'},
-  notificationType: {fontSize: 25},
+  notificationType: {fontSize: 20},
   notificationItemTitle: {fontSize: 16, fontWeight: '800', color: '#1f2937'},
   notificationReadTitle: {fontWeight: '700', color: '#667085'},
   notificationContent: {fontSize: 13, lineHeight: 19, color: '#667085', marginTop: 4},
@@ -1054,12 +1054,12 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   bannerContainer: {
-    height: 180,
+    height: 164,
     backgroundColor: '#ffffff',
   },
   bannerSlide: {
     width: SCREEN_WIDTH,
-    height: 180,
+    height: 164,
     position: 'relative',
   },
   bannerImage: {
@@ -1086,15 +1086,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   quickBookCard: {
-    margin: 16,
-    padding: 16,
+    marginHorizontal: 14,
+    marginTop: 14,
+    marginBottom: 12,
+    padding: 14,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 2,
     zIndex: 5,
   },
   fixedCinemaBox: {
@@ -1113,10 +1115,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quickBookHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '900',
     color: '#1a1a1a',
-    marginBottom: 12,
+    marginBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
     paddingBottom: 8,
@@ -1307,19 +1309,19 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    marginBottom: 12,
+    paddingVertical: 14,
+    marginBottom: 10,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: '#1a1a1a',
   },
   seeAllText: {
@@ -1345,12 +1347,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   movieCard: {
-    width: 140,
+    width: 132,
     marginRight: 12,
   },
   posterContainer: {
-    width: 140,
-    height: 200,
+    width: 132,
+    height: 188,
     borderRadius: 8,
     backgroundColor: '#eaeaea',
     position: 'relative',
@@ -1423,8 +1425,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   productCard: {
-    width: 260,
-    height: 100,
+    width: 250,
+    height: 96,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     borderRadius: 8,
@@ -1476,8 +1478,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   voucherCard: {
-    width: 220,
-    height: 80,
+    width: 212,
+    height: 76,
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#ffe0b2',
@@ -1487,7 +1489,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   voucherLeft: {
-    width: 70,
+    width: 66,
     backgroundColor: '#ffa726',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1519,20 +1521,20 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   newsCard: {
-    width: 270,
-    borderRadius: 14,
+    width: 258,
+    borderRadius: 10,
     marginRight: 12,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
     shadowColor: '#000000',
     shadowOffset: {width: 0, height: 3},
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   newsImage: {
     width: '100%',
-    height: 145,
+    height: 132,
     resizeMode: 'cover',
   },
   newsContent: {
