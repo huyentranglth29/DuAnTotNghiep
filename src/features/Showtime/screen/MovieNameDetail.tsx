@@ -14,7 +14,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { MovieBookingInfo } from '../components/MovieName';
 import CommentsList from '../components/CommentsList';
 import ChonGio, {SelectedShowtimeInfo} from '../components/ChonGio';
-import {getNewsEvents} from '../../../services/apiService';
+import {getNewsEvents, getReviews} from '../../../services/apiService';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
@@ -42,6 +42,33 @@ type MoviePromotion = {
   content: string;
   publishedAt?: string;
   color: string;
+};
+
+type MovieReview = {
+  id: string;
+  author: string;
+  date: string;
+  rating?: number;
+  text: string;
+  tags?: string[];
+  images?: any[];
+  likes?: number;
+  replies?: number;
+};
+
+type ReviewApi = {
+  _id?: string;
+  id?: string;
+  user?: {
+    fullName?: string;
+    name?: string;
+    email?: string;
+  };
+  rating?: number;
+  comment?: string;
+  text?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const fallbackPromotions: MoviePromotion[] = [
@@ -99,6 +126,28 @@ const mapNewsEventToPromotion = (
   color: promoColors[index % promoColors.length],
 });
 
+const formatReviewDate = (value?: string) => {
+  if (!value) {
+    return '';
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString('vi-VN');
+};
+
+const mapApiReview = (item: ReviewApi, index: number): MovieReview => ({
+  id: String(item._id || item.id || `review-${index}`),
+  author: item.user?.fullName || item.user?.name || item.user?.email || 'Khách FilmGo',
+  date: formatReviewDate(item.createdAt || item.updatedAt),
+  rating: typeof item.rating === 'number' ? item.rating : undefined,
+  text: item.comment || item.text || 'Người dùng chưa để lại nội dung.',
+  tags: [],
+  images: [],
+  likes: 0,
+  replies: 0,
+});
+
 function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
   const duration = movie.duration ?? '109 phút';
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
@@ -109,6 +158,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
   const [progress, setProgress] = useState(0);
   const [selectedShowtime, setSelectedShowtime] = useState<SelectedShowtimeInfo | null>(null);
   const [moviePromotions, setMoviePromotions] = useState<MoviePromotion[]>(fallbackPromotions);
+  const [movieReviews, setMovieReviews] = useState<MovieReview[]>([]);
 
   useEffect(() => {
     let timer: any;
@@ -148,6 +198,35 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!movie.id) {
+      setMovieReviews([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    getReviews(movie.id)
+      .then(response => {
+        if (cancelled) {
+          return;
+        }
+        const list = Array.isArray(response) ? response : [];
+        setMovieReviews(list.map(mapApiReview));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMovieReviews([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [movie.id]);
 
   const formatTime = (pct: number) => {
     const totalSec = Math.round((pct / 100) * 150); // 150 giây = 2m30s
@@ -308,7 +387,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           <Text style={styles.writeReviewText}>Viết đánh giá</Text>
         </TouchableOpacity>
 
-        <CommentsList />
+        <CommentsList comments={movieReviews} />
       </ScrollView>
 
       {/* Modal Phát Trailer Giả Lập */}
@@ -334,7 +413,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           <ImageBackground
             source={movie.poster}
             style={styles.trailerVideoArea}
-            imageStyle={{opacity: 0.25}}
+            imageStyle={styles.trailerVideoImage}
           >
             <View style={styles.videoPlayerScreen}>
               <Image source={movie.poster} style={styles.trailerPosterSmall} />
@@ -655,6 +734,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 82,
+  },
+  trailerVideoImage: {
+    opacity: 0.25,
   },
   videoPlayerScreen: {
     width: '100%',
