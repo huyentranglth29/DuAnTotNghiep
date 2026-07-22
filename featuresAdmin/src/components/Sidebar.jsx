@@ -1,4 +1,5 @@
 import {NavLink, useNavigate} from 'react-router-dom';
+import axiosClient from '../api/axiosClient';
 
 const menuItems = [
   {to: '/', label: 'Tổng quan'},
@@ -50,7 +51,12 @@ const menuItems = [
 function Sidebar() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await axiosClient.post('/auth/offline', {});
+    } catch {
+      // Mất mạng — vẫn đăng xuất local
+    }
     localStorage.removeItem('filmgo_admin_logged_in');
     localStorage.removeItem('filmgo_admin_token');
     localStorage.removeItem('filmgo_admin_user');
