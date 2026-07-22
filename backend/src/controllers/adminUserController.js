@@ -23,15 +23,9 @@ const mapProvider = (authProvider) =>
 
 const onlineSince = () => new Date(Date.now() - ONLINE_WINDOW_MS);
 
-const isUserOnline = (doc) => {
-  if (!doc?.lastSeen) return false;
-  if (
-    doc.forcedOfflineAt &&
-    new Date(doc.forcedOfflineAt).getTime() >= new Date(doc.lastSeen).getTime()
-  ) {
-    return false;
-  }
-  return new Date(doc.lastSeen).getTime() >= Date.now() - ONLINE_WINDOW_MS;
+const isUserOnline = (lastSeen) => {
+  if (!lastSeen) return false;
+  return new Date(lastSeen).getTime() >= Date.now() - ONLINE_WINDOW_MS;
 };
 
 /** Chưa soft-delete (kể cả user cũ không có field deleted) */
@@ -65,11 +59,6 @@ const lockedStatusMatch = {status: "blocked"};
 
 const onlineMatch = () => ({
   lastSeen: {$gte: onlineSince()},
-  $or: [
-    {forcedOfflineAt: null},
-    {forcedOfflineAt: {$exists: false}},
-    {$expr: {$lt: ["$forcedOfflineAt", "$lastSeen"]}},
-  ],
 });
 
 const formatUser = (doc, extras = {}) => {
@@ -77,7 +66,7 @@ const formatUser = (doc, extras = {}) => {
   const raw = doc.toObject ? doc.toObject() : {...doc};
   delete raw.password;
   const accountStatus = raw.status === "blocked" ? "blocked" : "active";
-  const online = accountStatus !== "blocked" && isUserOnline(raw);
+  const online = accountStatus !== "blocked" && isUserOnline(raw.lastSeen);
   return {
     ...raw,
     authProvider: mapProvider(raw.authProvider),
