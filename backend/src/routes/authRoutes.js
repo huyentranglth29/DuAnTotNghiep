@@ -10,6 +10,7 @@ const {
   profile,
   updateProfile,
   heartbeat,
+  goOffline,
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -29,5 +30,6 @@ router.post("/set-password", authMiddleware, setPassword);
 router.get("/profile", authMiddleware, profile);
 router.put("/profile", authMiddleware, updateProfile);
 router.post("/heartbeat", authMiddleware, heartbeat);
+router.post("/offline", authMiddleware, goOffline);
 
 module.exports = router;

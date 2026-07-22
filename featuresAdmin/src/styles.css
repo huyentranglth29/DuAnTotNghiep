@@ -6399,11 +6399,29 @@ a.overviewMetric.overviewClickable {
   background: rgba(148, 163, 184, 0.16);
 }
 
+.userStatusCell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.userLastSeen {
+  color: var(--muted, #64748b);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .adminDarkMode .userBadge--online {
   color: #86efac;
 }
 
 .adminDarkMode .userBadge--offline {
+  color: #94a3b8;
+}
+
+.adminDarkMode .userLastSeen {
   color: #94a3b8;
 }
 

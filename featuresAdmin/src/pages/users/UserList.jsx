@@ -97,14 +97,38 @@ function ProviderBadge({provider}) {
   );
 }
 
-function StatusBadge({status, isOnline}) {
+function formatLastActive(lastSeen) {
+  if (!lastSeen) return 'Chưa hoạt động';
+  const at = new Date(lastSeen).getTime();
+  if (Number.isNaN(at)) return 'Chưa hoạt động';
+
+  const diffMs = Math.max(0, Date.now() - at);
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Vừa xong';
+  if (minutes < 60) return `${minutes} phút trước`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+
+  return formatDateTime(lastSeen);
+}
+
+function StatusBadge({status, isOnline, lastSeen}) {
   if (status === 'blocked') {
     return <span className="userBadge userBadge--danger">Bị khóa</span>;
   }
   if (isOnline) {
     return <span className="userBadge userBadge--online">Đang online</span>;
   }
-  return <span className="userBadge userBadge--offline">Offline</span>;
+  return (
+    <span className="userStatusCell" title={lastSeen ? formatDateTime(lastSeen) : ''}>
+      <span className="userBadge userBadge--offline">Offline</span>
+      <small className="userLastSeen">{formatLastActive(lastSeen)}</small>
+    </span>
+  );
 }
 
 function RoleBadge({role}) {
@@ -528,7 +552,11 @@ function UserList() {
                       <td>{user.totalTickets ?? 0}</td>
                       <td>{formatVnd(user.totalSpent)}</td>
                       <td>
-                        <StatusBadge status={user.status} isOnline={user.isOnline} />
+                        <StatusBadge
+                          status={user.status}
+                          isOnline={user.isOnline}
+                          lastSeen={user.lastSeen}
+                        />
                       </td>
                       <td>
                         <RoleBadge role={user.role} />
@@ -631,7 +659,11 @@ function UserList() {
               <Avatar user={selected} size={64} />
               <div>
                 <strong>{selected.fullName || '—'}</strong>
-                <StatusBadge status={selected.status} isOnline={selected.isOnline} />
+                <StatusBadge
+                  status={selected.status}
+                  isOnline={selected.isOnline}
+                  lastSeen={selected.lastSeen}
+                />
                 <p>{selected.email}</p>
               </div>
             </div>
