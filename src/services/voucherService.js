@@ -4,17 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const AUTH_TOKEN_KEY = '@filmgo_auth_token';
 export const AUTH_USER_KEY = '@filmgo_auth_user';
 
-/** Chặn heartbeat khi đang / đã đăng xuất */
-let presenceEnabled = true;
-
-export function disablePresence() {
-  presenceEnabled = false;
-}
-
-export function enablePresence() {
-  presenceEnabled = true;
-}
-
 const unwrap = payload => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return payload.data;
@@ -29,7 +18,6 @@ export async function restoreAuthSession() {
   }
 
   setAuthToken(token);
-  enablePresence();
 
   try {
     // Token cũ / user đã bị seed lại → xóa session để tránh "Người dùng không tồn tại"
@@ -45,7 +33,6 @@ export async function saveAuthSession({token, user}) {
   if (token) {
     await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
     setAuthToken(token);
-    enablePresence();
   }
   if (user) {
     await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
@@ -53,20 +40,6 @@ export async function saveAuthSession({token, user}) {
 }
 
 export async function clearAuthSession() {
-  // 1) Chặn heartbeat ngay
-  disablePresence();
-
-  // 2) Báo offline lên server (còn token)
-  try {
-    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) {
-      setAuthToken(token);
-      await apiClient.post('/api/auth/offline', {});
-    }
-  } catch {
-    // Mất mạng / token lỗi — vẫn tiếp tục đăng xuất local
-  }
-
   try {
     const {GoogleSignin} = require('@react-native-google-signin/google-signin');
     await GoogleSignin.signOut();
@@ -136,7 +109,6 @@ export async function updateAuthProfile(payload) {
 
 /** Ping online để Admin biết user đang hoạt động */
 export async function sendAuthHeartbeat() {
-  if (!presenceEnabled) return null;
   return apiClient.post('/api/auth/heartbeat', {});
 }
 

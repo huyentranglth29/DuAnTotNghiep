@@ -88,11 +88,6 @@ const userSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
-    /** Đặt khi đăng xuất — chặn heartbeat in-flight ghi đè online */
-    forcedOfflineAt: {
-      type: Date,
-      default: null,
-    },
     lockedReason: {
       type: String,
       trim: true,
