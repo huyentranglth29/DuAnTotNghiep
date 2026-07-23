@@ -49,6 +49,8 @@ type DatVeDetailProps = {
     roomType?: string;
   };
   onClose: () => void;
+  /** Sau thanh toán thành công — mở màn Vé của tôi */
+  onPaymentSuccess?: () => void;
 };
 
 type ComboProduct = {
@@ -91,7 +93,15 @@ function formatBookingDate(iso?: string) {
   }
 }
 
-function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: DatVeDetailProps) {
+function DatVeDetail({
+  movie,
+  seats,
+  totalPrice,
+  holdToken,
+  showtime,
+  onClose,
+  onPaymentSuccess,
+}: DatVeDetailProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
@@ -238,7 +248,12 @@ function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: D
           Alert.alert(
             '🎉 Thanh toán thành công!',
             `Vé phim "${movie.title}" đã được phát hành.`,
-            [{text: 'Xong', onPress: onClose}],
+            [
+              {
+                text: 'Xem vé của tôi',
+                onPress: () => (onPaymentSuccess ? onPaymentSuccess() : onClose()),
+              },
+            ],
           );
         } else if (['that_bai', 'het_han', 'da_huy'].includes(payment.status)) {
           stopped = true;
@@ -256,7 +271,7 @@ function DatVeDetail({movie, seats, totalPrice, holdToken, showtime, onClose}: D
       stopped = true;
       clearInterval(timer);
     };
-  }, [movie.title, onClose, paymentId]);
+  }, [movie.title, onClose, onPaymentSuccess, paymentId]);
 
   const runMockResult = async (
     id: string,

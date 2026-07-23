@@ -31,6 +31,30 @@ const LEGEND = [
   {key: 'couple', label: 'Couple', className: 'seatDot--couple'},
 ];
 
+function SeatMapFilter({label, children}) {
+  const openSelect = event => {
+    const select = event.currentTarget.querySelector('select');
+    if (!select || select.disabled || event.target === select) return;
+    select.focus();
+    if (typeof select.showPicker === 'function') {
+      try {
+        select.showPicker();
+      } catch {
+        select.click();
+      }
+    } else {
+      select.click();
+    }
+  };
+
+  return (
+    <label className="seatMapFilter" onClick={openSelect}>
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
 const PAYMENT_LABEL = {
   momo: 'Ví MoMo',
   vnpay: 'VNPay',
@@ -295,8 +319,7 @@ function SeatManagement() {
       </header>
 
       <div className="seatMapFilters">
-        <label className="seatMapFilter">
-          <span>Chọn phim</span>
+        <SeatMapFilter label="Chọn phim">
           <select
             value={movieId}
             onChange={event => {
@@ -311,10 +334,9 @@ function SeatManagement() {
               </option>
             ))}
           </select>
-        </label>
+        </SeatMapFilter>
 
-        <label className="seatMapFilter">
-          <span>Chọn phòng</span>
+        <SeatMapFilter label="Chọn phòng">
           <select value={roomId} onChange={event => setRoomId(event.target.value)}>
             <option value="">Tất cả phòng</option>
             {rooms.map(room => (
@@ -323,10 +345,9 @@ function SeatManagement() {
               </option>
             ))}
           </select>
-        </label>
+        </SeatMapFilter>
 
-        <label className="seatMapFilter">
-          <span>Chọn suất chiếu</span>
+        <SeatMapFilter label="Chọn suất chiếu">
           <select
             value={showtimeId}
             disabled={!movieId}
@@ -349,17 +370,16 @@ function SeatManagement() {
                 ))
               : null}
           </select>
-        </label>
+        </SeatMapFilter>
 
-        <label className="seatMapFilter">
-          <span>Loại ghế</span>
+        <SeatMapFilter label="Loại ghế">
           <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)}>
             <option value="all">Tất cả</option>
             <option value="normal">Thường</option>
             <option value="vip">VIP</option>
             <option value="couple">Couple</option>
           </select>
-        </label>
+        </SeatMapFilter>
       </div>
 
       <div className="seatMapLegend">

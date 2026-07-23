@@ -59,6 +59,7 @@ const movieSchema = new mongoose.Schema(
         "now-showing",
         "featured",
         "ended",
+        "stopped",
       ],
       default: "coming_soon",
     },

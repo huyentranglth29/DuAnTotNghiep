@@ -9,6 +9,7 @@ const dashboardApi = {
   getTicketsByDay: params => axiosClient.get('/admin/reports/tickets-by-day', {params}),
   getSeatOccupancy: params => axiosClient.get('/admin/reports/seat-occupancy', {params}),
   getTopMovies: params => axiosClient.get('/admin/reports/top-movies', {params}),
+  getMovieRevenue: params => axiosClient.get('/admin/reports/movie-revenue', {params}),
 };
 
 export default dashboardApi;

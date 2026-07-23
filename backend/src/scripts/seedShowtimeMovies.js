@@ -230,7 +230,7 @@ const moviesData = [
     posterUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=400',
     backdropUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800',
     status: 'coming-soon',
-    ageRating: 'K',
+    ageRating: 'P',
     isHot: false,
     rating: 0,
     price: 75000,

@@ -34,6 +34,7 @@ import {Phim} from '../../types/phim';
 import MovieNameDetail from '../Showtime/screen/MovieNameDetail';
 import DatVe from '../Showtime/components/DatVe';
 import DatVeDetail from '../Showtime/screen/DatVeDetail';
+import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
 import {
   formatGio,
   layDanhSachSuatChieu,
@@ -175,6 +176,7 @@ function TrangChu() {
     totalPrice: number;
     holdToken: string;
   } | null>(null);
+  const [xemVe, setXemVe] = useState(false);
   const [selectedShowtime, setSelectedShowtime] = useState<{
     id: string;
     startTime: string;
@@ -464,8 +466,19 @@ function TrangChu() {
           setSelectedDetailMovie(null);
           setSelectedShowtime(null);
         }}
+        onPaymentSuccess={() => {
+          setBookingSummary(null);
+          setShowBooking(false);
+          setSelectedDetailMovie(null);
+          setSelectedShowtime(null);
+          setXemVe(true);
+        }}
       />
     );
+  }
+
+  if (xemVe) {
+    return <MyTicketsScreen onBack={() => setXemVe(false)} />;
   }
 
   // Nếu đang ở màn hình chọn ghế

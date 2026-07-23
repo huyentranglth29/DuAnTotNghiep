@@ -5,6 +5,7 @@ import Dashboard from '../pages/dashboard/Dashboard';
 import MovieList from '../pages/movies/MovieList';
 import MovieAdd from '../pages/movies/MovieAdd';
 import MovieEdit from '../pages/movies/MovieEdit';
+import MovieRevenue from '../pages/movies/MovieRevenue';
 import RoomList from '../pages/rooms/RoomList';
 import SeatManagement from '../pages/seats/SeatManagement';
 import ShowtimeList from '../pages/showtimes/ShowtimeList';
@@ -12,7 +13,6 @@ import ShowtimeAdd from '../pages/showtimes/ShowtimeAdd';
 import CreateShowtime from '../pages/showtimes/CreateShowtime';
 import ShowtimeStatus from '../pages/showtimes/ShowtimeStatus';
 import BookingDetail from '../pages/bookings/BookingDetail';
-import BookingHistory from '../pages/bookings/BookingHistory';
 import BookingList from '../pages/bookings/BookingList';
 import UserList from '../pages/users/UserList';
 import RolePermission from '../pages/roles/RolePermission';
@@ -64,6 +64,7 @@ function AppRoutes() {
         <Route path="movies" element={<MovieList />} />
         <Route path="movies/add" element={<MovieAdd />} />
         <Route path="movies/:id/edit" element={<MovieEdit />} />
+        <Route path="movies/:id/revenue" element={<MovieRevenue />} />
         <Route path="rooms" element={<RoomList />} />
         <Route path="seats" element={<SeatManagement />} />
         <Route path="showtimes" element={<ShowtimeList />} />
@@ -72,7 +73,6 @@ function AppRoutes() {
         <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
-        <Route path="bookings/history" element={<BookingHistory />} />
         <Route path="bookings/detail" element={<BookingDetail />} />
         <Route path="payments/status" element={<PaymentStatus />} />
         <Route path="payments/history" element={<PaymentHistory />} />

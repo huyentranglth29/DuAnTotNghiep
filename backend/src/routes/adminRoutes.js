@@ -44,6 +44,7 @@ router.get("/reports/tickets-by-day", reports.ticketsByDay);
 router.get("/reports/seat-occupancy", reports.seatOccupancy);
 router.get("/reports/top-movies", reports.topMovies);
 router.get("/reports/voucher-stats", reports.voucherStats);
+router.get("/reports/movie-revenue", reports.movieRevenue);
 
 // Sơ đồ ghế trực quan theo suất chiếu
 router.get("/seat-map/:showtimeId", adminSeatMap.getSeatMap);
