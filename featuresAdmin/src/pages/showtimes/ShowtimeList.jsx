@@ -37,6 +37,13 @@ function ShowtimeList() {
   });
   const [timelineDate, setTimelineDate] = useState(toDateInputValue(new Date()));
 
+  useEffect(() => {
+    const movieFromUrl = new URLSearchParams(window.location.search).get('movie') || '';
+    if (movieFromUrl) {
+      setFilters(current => ({...current, movie: movieFromUrl}));
+    }
+  }, []);
+
   const loadData = async () => {
     setLoading(true);
     setError('');

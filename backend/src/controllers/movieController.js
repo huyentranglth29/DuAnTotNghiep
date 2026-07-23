@@ -10,6 +10,7 @@ const STATUS_FROM_CLIENT = {
   "now-showing": ["now_showing", "now-showing", "featured"],
   featured: ["featured"],
   ended: ["ended"],
+  stopped: ["stopped"],
 };
 
 const STATUS_TO_CLIENT = {
@@ -19,6 +20,7 @@ const STATUS_TO_CLIENT = {
   "now-showing": "now-showing",
   featured: "featured",
   ended: "ended",
+  stopped: "stopped",
 };
 
 function normalizeGenre(genre) {
