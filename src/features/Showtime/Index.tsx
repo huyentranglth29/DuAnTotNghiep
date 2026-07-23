@@ -157,6 +157,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
         dangTim={dangTim && !anThanhTim}
         tuKhoaDebounced={tuKhoaDebounced}
         onMovieFlowChange={setAnThanhTim}
+        onGoToMyTickets={() => setXemVe(true)}
       />
     </ScrollView>
   );

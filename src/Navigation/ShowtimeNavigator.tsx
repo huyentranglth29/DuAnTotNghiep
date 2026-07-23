@@ -22,12 +22,14 @@ type ShowtimeNavigatorProps = {
   dangTim: boolean;
   tuKhoaDebounced: string;
   onMovieFlowChange?: (inFlow: boolean) => void;
+  onGoToMyTickets?: () => void;
 };
 
 function ShowtimeNavigator({
   dangTim,
   tuKhoaDebounced,
   onMovieFlowChange,
+  onGoToMyTickets,
 }: ShowtimeNavigatorProps) {
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
@@ -76,6 +78,15 @@ function ShowtimeNavigator({
         holdToken={bookingSummary.holdToken}
         showtime={selectedShowtime}
         onClose={() => setBookingSummary(null)}
+        onPaymentSuccess={() => {
+          setBookingSummary(null);
+          setSelectedShowtime(null);
+          setShowBooking(false);
+          setSelectedMovie(null);
+          setShowMovieDetail(false);
+          setShowWriteReview(false);
+          onGoToMyTickets?.();
+        }}
       />
     );
   }

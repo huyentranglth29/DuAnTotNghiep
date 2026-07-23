@@ -20,7 +20,6 @@ const menuItems = [
     label: 'Đơn đặt vé',
     children: [
       {to: '/bookings', label: 'Quản lý đơn đặt vé'},
-      {to: '/bookings/history', label: 'Lịch sử đặt vé'},
       {to: '/bookings/detail', label: 'Chi tiết đơn'},
     ],
   },
