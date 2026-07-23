@@ -7,6 +7,7 @@ const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
 const QuickBooking = require("../models/QuickBooking");
+const Review = require("../models/Review");
 
 const paidBookingMatch = {
   $or: [{ paymentStatus: "paid" }, { status: "paid" }],
@@ -613,6 +614,311 @@ const voucherStats = async (req, res) => {
   }
 };
 
+/** Thống kê doanh thu chi tiết theo 1 phim (đúng nghiệp vụ rạp) */
+const movieRevenue = async (req, res) => {
+  try {
+    const movieId = String(req.query.movieId || "").trim();
+    const movieTitleQuery = String(req.query.movie || "").trim();
+    const { from, to } = getRange(req);
+
+    let movie = null;
+    if (movieId && isObjectId(movieId)) {
+      movie = await Movie.findById(movieId).lean();
+    }
+    if (!movie && movieTitleQuery) {
+      movie = await Movie.findOne({
+        title: {
+          $regex: `^${movieTitleQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+          $options: "i",
+        },
+      }).lean();
+    }
+    if (!movie) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy phim" });
+    }
+
+    const showtimes = await Showtime.find({
+      movie: movie._id,
+      startTime: { $gte: from, $lte: to },
+      status: { $ne: "cancelled" },
+    })
+      .populate("room", "name totalSeats type")
+      .sort({ startTime: 1 })
+      .lean();
+
+    const showtimeIds = showtimes.map((item) => String(item._id));
+    const showtimeObjectIds = showtimes.map((item) => item._id);
+    const showtimeMap = new Map(showtimes.map((item) => [String(item._id), item]));
+
+    // Doanh thu theo ngày chiếu (startTime suất), không theo ngày tạo đơn
+    const [quickBookings, legacyBookings, bookedSeats, reviews] = await Promise.all([
+      showtimeIds.length
+        ? QuickBooking.find({
+            status: "paid",
+            showtimeId: { $in: showtimeIds },
+          }).lean()
+        : QuickBooking.find({
+            status: "paid",
+            movieTitle: movie.title,
+            createdAt: { $gte: from, $lte: to },
+          }).lean(),
+      showtimeObjectIds.length
+        ? Booking.find({
+            ...paidBookingMatch,
+            showtime: { $in: showtimeObjectIds },
+          }).lean()
+        : Promise.resolve([]),
+      showtimeIds.length
+        ? BookedSeat.find({
+            showtimeId: { $in: showtimeIds },
+            status: "booked",
+          }).lean()
+        : Promise.resolve([]),
+      Review.find({ movie: movie._id }).select("rating").lean().catch(() => []),
+    ]);
+
+    const validQuick = quickBookings.filter((booking) => {
+      if (booking.showtimeId) return showtimeMap.has(String(booking.showtimeId));
+      return booking.movieTitle === movie.title;
+    });
+
+    let totalRevenue = 0;
+    let totalTickets = 0;
+    let totalOrders = 0;
+
+    const dayMap = new Map();
+    const showtimeRevenueMap = new Map();
+    const roomMap = new Map();
+    const hourMap = new Map();
+    const seatRowMap = new Map();
+
+    const bumpSeatRow = (label) => {
+      const row = String(label || "").replace(/\d+/g, "").toUpperCase() || "?";
+      seatRowMap.set(row, (seatRowMap.get(row) || 0) + 1);
+    };
+
+    const bumpDay = (dateKey, revenue, tickets) => {
+      const current = dayMap.get(dateKey) || { date: dateKey, revenue: 0, tickets: 0, bookings: 0 };
+      current.revenue += revenue;
+      current.tickets += tickets;
+      current.bookings += 1;
+      dayMap.set(dateKey, current);
+    };
+
+    const bumpShowtime = (sid, revenue, tickets) => {
+      if (!sid) return;
+      const current = showtimeRevenueMap.get(sid) || {
+        showtimeId: sid,
+        revenue: 0,
+        tickets: 0,
+        bookings: 0,
+      };
+      current.revenue += revenue;
+      current.tickets += tickets;
+      current.bookings += 1;
+      showtimeRevenueMap.set(sid, current);
+    };
+
+    const bumpRoom = (roomName, revenue, tickets) => {
+      const key = roomName || "Chưa rõ phòng";
+      const current = roomMap.get(key) || { room: key, revenue: 0, tickets: 0 };
+      current.revenue += revenue;
+      current.tickets += tickets;
+      roomMap.set(key, current);
+    };
+
+    const bumpHour = (hour, revenue, tickets) => {
+      const current = hourMap.get(hour) || { hour, revenue: 0, tickets: 0, showtimes: 0 };
+      current.revenue += revenue;
+      current.tickets += tickets;
+      hourMap.set(hour, current);
+    };
+
+    validQuick.forEach((booking) => {
+      const revenue = Number(booking.totalPrice || 0);
+      const tickets = seatCount(booking);
+      const showtime = showtimeMap.get(String(booking.showtimeId || ""));
+      const dateKey = showtime?.startTime
+        ? new Date(showtime.startTime).toISOString().slice(0, 10)
+        : new Date(booking.createdAt).toISOString().slice(0, 10);
+
+      totalRevenue += revenue;
+      totalTickets += tickets;
+      totalOrders += 1;
+      bumpDay(dateKey, revenue, tickets);
+      if (showtime) {
+        bumpShowtime(String(showtime._id), revenue, tickets);
+        bumpRoom(showtime.room?.name, revenue, tickets);
+        bumpHour(new Date(showtime.startTime).getHours(), revenue, tickets);
+      }
+    });
+
+    legacyBookings.forEach((booking) => {
+      const revenue = Number(booking.totalPrice || 0);
+      const tickets = seatCount(booking);
+      const showtime = showtimeMap.get(String(booking.showtime || ""));
+      const dateKey = showtime?.startTime
+        ? new Date(showtime.startTime).toISOString().slice(0, 10)
+        : new Date(booking.createdAt).toISOString().slice(0, 10);
+
+      totalRevenue += revenue;
+      totalTickets += tickets;
+      totalOrders += 1;
+      bumpDay(dateKey, revenue, tickets);
+      if (showtime) {
+        bumpShowtime(String(showtime._id), revenue, tickets);
+        bumpRoom(showtime.room?.name, revenue, tickets);
+        bumpHour(new Date(showtime.startTime).getHours(), revenue, tickets);
+      }
+    });
+
+    // Ưu tiên ghế booked thật; fallback ghế trên đơn nếu chưa có BookedSeat
+    if (bookedSeats.length) {
+      bookedSeats.forEach((item) => bumpSeatRow(item.seatLabel));
+    } else {
+      validQuick.forEach((booking) => (booking.seats || []).forEach(bumpSeatRow));
+      legacyBookings.forEach((booking) =>
+        (booking.seats || booking.seatLabels || []).forEach(bumpSeatRow),
+      );
+    }
+
+    let capacity = 0;
+    let soldSeats = 0;
+    const bookedByShowtime = new Map();
+    bookedSeats.forEach((item) => {
+      const key = String(item.showtimeId);
+      bookedByShowtime.set(key, (bookedByShowtime.get(key) || 0) + 1);
+    });
+
+    showtimes.forEach((showtime) => {
+      const totalSeats = Number(showtime.room?.totalSeats || 0);
+      const sold = bookedByShowtime.get(String(showtime._id)) || 0;
+      capacity += totalSeats;
+      soldSeats += sold;
+      const hour = new Date(showtime.startTime).getHours();
+      const hourItem = hourMap.get(hour) || { hour, revenue: 0, tickets: 0, showtimes: 0 };
+      hourItem.showtimes += 1;
+      hourMap.set(hour, hourItem);
+    });
+
+    const occupancyRate = capacity > 0 ? Math.round((soldSeats / capacity) * 100) : 0;
+
+    // Đủ mọi ngày trong khoảng lọc (ngày không bán = 0) để biểu đồ đúng nghiệp vụ
+    const revenueByDay = [];
+    const cursor = new Date(from);
+    cursor.setHours(0, 0, 0, 0);
+    const endDay = new Date(to);
+    endDay.setHours(0, 0, 0, 0);
+    while (cursor <= endDay) {
+      const dateKey = cursor.toISOString().slice(0, 10);
+      revenueByDay.push(
+        dayMap.get(dateKey) || { date: dateKey, revenue: 0, tickets: 0, bookings: 0 },
+      );
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const revenueByShowtime = [...showtimeRevenueMap.values()]
+      .map((item) => {
+        const showtime = showtimeMap.get(item.showtimeId);
+        const start = showtime?.startTime ? new Date(showtime.startTime) : null;
+        const label = start
+          ? `${start.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })} · ${start.toLocaleDateString("vi-VN")}`
+          : item.showtimeId;
+        return {
+          ...item,
+          label,
+          roomName: showtime?.room?.name || "",
+          percent: totalRevenue > 0 ? Math.round((item.revenue / totalRevenue) * 1000) / 10 : 0,
+        };
+      })
+      .sort((a, b) => b.revenue - a.revenue);
+
+    const revenueByRoom = [...roomMap.values()]
+      .map((item) => ({
+        ...item,
+        percent: totalRevenue > 0 ? Math.round((item.revenue / totalRevenue) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    const topHourSlots = [...hourMap.values()]
+      .map((item) => {
+        const start = String(item.hour).padStart(2, "0");
+        const end = String((item.hour + 2) % 24).padStart(2, "0");
+        const slotCapacity = showtimes
+          .filter((showtime) => new Date(showtime.startTime).getHours() === item.hour)
+          .reduce((sum, showtime) => sum + Number(showtime.room?.totalSeats || 0), 0);
+        const occupancy =
+          slotCapacity > 0 ? Math.round((item.tickets / slotCapacity) * 100) : 0;
+        return {
+          label: `${start}:00 - ${end}:00`,
+          hour: item.hour,
+          revenue: item.revenue,
+          tickets: item.tickets,
+          showtimes: item.showtimes,
+          occupancy,
+        };
+      })
+      .sort((a, b) => b.occupancy - a.occupancy || b.tickets - a.tickets)
+      .slice(0, 6);
+
+    const seatRows = [...seatRowMap.entries()]
+      .map(([row, count]) => ({
+        label: `Hàng ${row}`,
+        row,
+        tickets: count,
+        percent: totalTickets > 0 ? Math.round((count / totalTickets) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.tickets - a.tickets)
+      .slice(0, 8);
+
+    const ratingValues = (reviews || [])
+      .map((item) => Number(item.rating || 0))
+      .filter((n) => n > 0);
+    const ratingAvg =
+      ratingValues.length > 0
+        ? Math.round((ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length) * 10) / 10
+        : Number(movie.rating || 0);
+
+    return ok(res, {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      movie: {
+        id: movie._id,
+        title: movie.title,
+        posterUrl: movie.posterUrl || movie.poster || "",
+        genre: movie.genre,
+        duration: movie.duration,
+        director: movie.director || "",
+        cast: movie.cast || [],
+        synopsis: movie.synopsis || movie.description || "",
+        ageRating: movie.ageRating || "",
+        status: movie.status,
+        releaseDate: movie.releaseDate || null,
+        rating: ratingAvg,
+        ratingCount: ratingValues.length,
+      },
+      summary: {
+        totalRevenue,
+        totalTickets,
+        totalOrders,
+        totalShowtimes: showtimes.length,
+        occupancyRate,
+        averageOrder: totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
+      },
+      revenueByDay,
+      revenueByShowtime,
+      revenueByRoom,
+      topHourSlots,
+      seatRows,
+    });
+  } catch (error) {
+    return fail(res, error);
+  }
+};
+
 module.exports = {
   revenueByDay,
   revenueByMovie,
@@ -621,4 +927,5 @@ module.exports = {
   seatOccupancy,
   topMovies,
   voucherStats,
+  movieRevenue,
 };

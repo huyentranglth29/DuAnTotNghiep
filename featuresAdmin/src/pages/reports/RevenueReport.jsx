@@ -52,6 +52,7 @@ function RevenueReport() {
     () => reports.ticketsByDay.reduce((total, item) => total + Number(item.tickets || 0), 0),
     [reports.ticketsByDay],
   );
+
   const metrics = [
     {
       label: 'Doanh thu',
