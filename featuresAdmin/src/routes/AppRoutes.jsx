@@ -15,7 +15,6 @@ import ShowtimeStatus from '../pages/showtimes/ShowtimeStatus';
 import BookingDetail from '../pages/bookings/BookingDetail';
 import BookingList from '../pages/bookings/BookingList';
 import UserList from '../pages/users/UserList';
-import RolePermission from '../pages/roles/RolePermission';
 import TicketList from '../pages/tickets/TicketList';
 import ElectronicTicket from '../pages/tickets/ElectronicTicket';
 import GenerateQR from '../pages/tickets/GenerateQR';
@@ -60,7 +59,6 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route index element={<Dashboard />} />
         <Route path="users" element={<UserList />} />
-        <Route path="roles" element={<RolePermission />} />
         <Route path="movies" element={<MovieList />} />
         <Route path="movies/add" element={<MovieAdd />} />
         <Route path="movies/:id/edit" element={<MovieEdit />} />

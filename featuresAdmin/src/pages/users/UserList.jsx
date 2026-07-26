@@ -7,8 +7,10 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Shield,
   Unlock,
   UserCheck,
+  UserRound,
   Users,
   X,
 } from 'lucide-react';
@@ -53,6 +55,22 @@ const STAT_CARDS = [
     tone: 'blue',
     Icon: Users,
     filter: {provider: '', status: '', role: '', online: ''},
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    valueKey: 'adminUsers',
+    tone: 'violet',
+    Icon: Shield,
+    filter: {provider: '', status: '', role: 'admin', online: ''},
+  },
+  {
+    key: 'user',
+    label: 'User',
+    valueKey: 'customerUsers',
+    tone: 'cyan',
+    Icon: UserRound,
+    filter: {provider: '', status: '', role: 'user', online: ''},
   },
   {
     key: 'active',
@@ -409,7 +427,9 @@ function UserList() {
         <header className="userManageHeader">
           <div>
             <h2>Quản lý người dùng</h2>
-            <p>Theo dõi tài khoản Email / Google, trạng thái và chi tiêu thực tế từ MongoDB.</p>
+            <p>
+              Theo dõi tài khoản, vai trò Admin/User, trạng thái khóa và chi tiêu từ MongoDB.
+            </p>
           </div>
           <div className="userManageActions">
             <button type="button" className="userBtnGhost" onClick={exportExcel}>

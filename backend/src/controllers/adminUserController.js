@@ -215,7 +215,7 @@ const getUserStats = async (_req, res) => {
       {$set: {status: "active"}},
     );
 
-    const [totalUsers, activeUsers, lockedUsers, googleUsers, emailUsers] =
+    const [totalUsers, activeUsers, lockedUsers, googleUsers, emailUsers, adminUsers, customerUsers] =
       await Promise.all([
         User.countDocuments(notDeletedMatch),
         User.countDocuments({
@@ -224,6 +224,8 @@ const getUserStats = async (_req, res) => {
         User.countDocuments({$and: [notDeletedMatch, lockedStatusMatch]}),
         User.countDocuments({$and: [notDeletedMatch, googleProviderMatch]}),
         User.countDocuments({$and: [notDeletedMatch, emailProviderMatch]}),
+        User.countDocuments({$and: [notDeletedMatch, {role: "admin"}]}),
+        User.countDocuments({$and: [notDeletedMatch, {role: "user"}]}),
       ]);
 
     return success(res, "Thống kê người dùng", {
@@ -233,6 +235,8 @@ const getUserStats = async (_req, res) => {
       lockedUsers,
       googleUsers,
       emailUsers,
+      adminUsers,
+      customerUsers,
       onlineWindowSec: ONLINE_WINDOW_MS / 1000,
     });
   } catch (error) {
