@@ -6175,6 +6175,14 @@ a.overviewMetric.overviewClickable {
   background: #a855f7;
 }
 
+.userStatIcon--violet {
+  background: #7c3aed;
+}
+
+.userStatIcon--cyan {
+  background: #06b6d4;
+}
+
 .userStatText {
   display: grid;
   gap: 4px;

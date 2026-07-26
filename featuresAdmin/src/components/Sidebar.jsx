@@ -3,7 +3,6 @@ import {NavLink, useNavigate} from 'react-router-dom';
 const menuItems = [
   {to: '/', label: 'Tổng quan'},
   {to: '/users', label: 'Người dùng'},
-  {to: '/roles', label: 'Phân quyền'},
   {to: '/movies', label: 'Phim'},
   {to: '/rooms', label: 'Phòng chiếu'},
   {to: '/seats', label: 'Ghế'},
