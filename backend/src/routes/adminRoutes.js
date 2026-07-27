@@ -27,9 +27,60 @@ const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
 const Voucher = require("../models/Voucher");
+const QuickBooking = require("../models/QuickBooking");
+const Payment = require("../models/Payment");
 const { createNotification } = require("../services/notificationService");
 const adminBooking = require("../controllers/adminBookingController");
 const adminSeatMap = require("../controllers/adminSeatMapController");
+
+const startOfTodayVN = () => {
+  const key = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return new Date(`${key}T00:00:00+07:00`);
+};
+
+const enrichProductsWithSoldToday = async (items = []) => {
+  const start = startOfTodayVN();
+  const soldMap = new Map();
+
+  const addCombo = (combo) => {
+    const id = String(combo?.product?._id || combo?.product || "");
+    if (!id) return;
+    soldMap.set(id, (soldMap.get(id) || 0) + Number(combo.quantity || 0));
+  };
+
+  const [quickBookings, payments] = await Promise.all([
+    QuickBooking.find({
+      status: "paid",
+      createdAt: { $gte: start },
+      "combos.0": { $exists: true },
+    })
+      .select("combos")
+      .lean(),
+    Payment.find({
+      status: "da_thanh_toan",
+      $or: [{ paidAt: { $gte: start } }, { updatedAt: { $gte: start } }],
+      "bookingData.combos.0": { $exists: true },
+    })
+      .select("bookingData.combos")
+      .lean(),
+  ]);
+
+  quickBookings.forEach((row) => (row.combos || []).forEach(addCombo));
+  payments.forEach((row) => (row.bookingData?.combos || []).forEach(addCombo));
+
+  return items.map((item) => {
+    const id = String(item._id || item.id || "");
+    return {
+      ...item,
+      soldToday: soldMap.get(id) || 0,
+    };
+  });
+};
 
 const router = express.Router();
 
@@ -105,7 +156,16 @@ const resources = {
     }),
   }),
   products: createAdminCrudController(Product, {
-    keywordFields: ["name", "description"],
+    keywordFields: ["name", "description", "category"],
+    enrichList: enrichProductsWithSoldToday,
+    afterCreate: product => createNotification({
+      title: `Sản phẩm mới: ${product.name}`,
+      content: `${product.name} vừa được thêm vào quầy bắp nước FilmGo.`,
+      type: "chung",
+      entityId: product._id,
+      action: "xem_san_pham",
+      image: product.image,
+    }),
   }),
   tickets: createAdminCrudController(Ticket, {
     populate: [

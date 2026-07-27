@@ -97,6 +97,7 @@ const createAdminCrudController = (Model, options = {}) => {
   const keywordFields = options.keywordFields || [];
   const afterCreate = options.afterCreate;
   const prepareBody = options.prepareBody;
+  const enrichList = options.enrichList;
 
   const applyPopulate = (query) => {
     if (!populate) return query;
@@ -119,7 +120,13 @@ const createAdminCrudController = (Model, options = {}) => {
         Model.countDocuments(filter),
       ]);
 
-      return success(res, "Lấy danh sách thành công", sanitize(items), {
+      const sanitized = sanitize(items);
+      const data =
+        typeof enrichList === "function"
+          ? await enrichList(sanitized, req)
+          : sanitized;
+
+      return success(res, "Lấy danh sách thành công", data, {
         page,
         limit,
         total,

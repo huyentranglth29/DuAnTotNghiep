@@ -7,7 +7,6 @@ controller.getAll = async (req, res, next) => {
   try {
     const products = await Product.find({
       isActive: true,
-      image: { $not: /example\.com/i },
     }).sort({ createdAt: -1 });
     return res.json(products);
   } catch (error) {

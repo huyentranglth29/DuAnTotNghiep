@@ -141,7 +141,7 @@ function PaymentHistory() {
       <div className="pageTitle">
         <h2>Xem lịch sử thanh toán</h2>
         <button type="button" onClick={loadData}>
-          Tải lại
+          Làm mới
         </button>
       </div>
 

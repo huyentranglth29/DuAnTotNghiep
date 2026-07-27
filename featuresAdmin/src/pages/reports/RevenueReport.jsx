@@ -1,5 +1,5 @@
-import {useEffect, useMemo, useState} from 'react';
-import {BarChart3, ReceiptText, Ticket, WalletCards} from 'lucide-react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
+import {BarChart3, ReceiptText, RefreshCw, Ticket, WalletCards} from 'lucide-react';
 import dashboardApi from '../../api/dashboardApi';
 import {DataBars, PageTitle} from '../../components/AdminUi';
 import {formatVnd} from '../../utils/adminFormatters';
@@ -14,35 +14,45 @@ function RevenueReport() {
     occupancy: [],
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([
-      dashboardApi.getStats(),
-      dashboardApi.getRevenueByDay(),
-      dashboardApi.getRevenueByMovie(),
-      dashboardApi.getRevenueByRoom(),
-      dashboardApi.getTicketsByDay(),
-      dashboardApi.getSeatOccupancy(),
-    ])
-      .then(([
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [
         statsResponse,
         revenueByDayResponse,
         revenueByMovieResponse,
         revenueByRoomResponse,
         ticketsByDayResponse,
         occupancyResponse,
-      ]) => {
-        setStats(statsResponse.data || statsResponse);
-        setReports({
-          revenueByDay: revenueByDayResponse.data || [],
-          revenueByMovie: revenueByMovieResponse.data || [],
-          revenueByRoom: revenueByRoomResponse.data || [],
-          ticketsByDay: ticketsByDayResponse.data || [],
-          occupancy: occupancyResponse.data || [],
-        });
-      })
-      .catch(err => setError(err.message || 'Không tải được báo cáo.'));
+      ] = await Promise.all([
+        dashboardApi.getStats(),
+        dashboardApi.getRevenueByDay(),
+        dashboardApi.getRevenueByMovie(),
+        dashboardApi.getRevenueByRoom(),
+        dashboardApi.getTicketsByDay(),
+        dashboardApi.getSeatOccupancy(),
+      ]);
+      setStats(statsResponse.data || statsResponse);
+      setReports({
+        revenueByDay: revenueByDayResponse.data || [],
+        revenueByMovie: revenueByMovieResponse.data || [],
+        revenueByRoom: revenueByRoomResponse.data || [],
+        ticketsByDay: ticketsByDayResponse.data || [],
+        occupancy: occupancyResponse.data || [],
+      });
+    } catch (err) {
+      setError(err.message || 'Không tải được báo cáo.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const averageOrder = stats?.totalBookings
     ? Math.round((stats.totalRevenue || 0) / stats.totalBookings)
@@ -87,8 +97,14 @@ function RevenueReport() {
   return (
     <section className="reportPage">
       <div className="reportHero">
-        <PageTitle title="Thống kê doanh thu" />
-        <p>Theo dõi doanh thu, số vé và tỷ lệ lấp đầy từ dữ liệu đặt vé thật trong hệ thống.</p>
+        <div>
+          <PageTitle title="Thống kê doanh thu" />
+          <p>Theo dõi doanh thu, số vé và tỷ lệ lấp đầy từ dữ liệu đặt vé thật trong hệ thống.</p>
+        </div>
+        <button type="button" className="ghost" onClick={loadData} disabled={loading}>
+          <RefreshCw size={15} />
+          {loading ? 'Đang tải...' : 'Làm mới'}
+        </button>
       </div>
       {error && <p className="reportError">{error}</p>}
       <div className="metricGrid reportMetricGrid">

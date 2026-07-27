@@ -53,9 +53,14 @@ function ShowtimeStatus() {
           <h2>Quản lý trạng thái suất chiếu</h2>
           <p>Đổi trạng thái lên lịch / đã chiếu / đã hủy</p>
         </div>
-        <Link className="primaryAction" to="/showtimes">
-          Về danh sách
-        </Link>
+        <div className="showtimeHeaderActions">
+          <button type="button" className="ghost" onClick={loadData}>
+            Làm mới
+          </button>
+          <Link className="primaryAction" to="/showtimes">
+            Về danh sách
+          </Link>
+        </div>
       </div>
 
       {error && <p className="inlineError">{error}</p>}

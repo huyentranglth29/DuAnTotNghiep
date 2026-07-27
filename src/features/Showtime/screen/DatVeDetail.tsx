@@ -185,9 +185,7 @@ function DatVeDetail({
     : Array.isArray((productsQuery.data as any)?.data)
       ? (productsQuery.data as any).data
       : [];
-  const products = productList.filter(
-    item => item?.isActive && !String(item?.image || '').includes('example.com'),
-  );
+  const products = productList.filter(item => item?.isActive !== false);
   const selectedCombos: SelectedCombo[] = products
     .map(item => ({...item, quantity: comboQuantities[String(item._id)] || 0}))
     .filter(item => item.quantity > 0);

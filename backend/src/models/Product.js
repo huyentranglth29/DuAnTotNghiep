@@ -12,6 +12,12 @@ const productSchema = new mongoose.Schema(
 
     description: String,
 
+    category: {
+      type: String,
+      enum: ["combo", "popcorn", "drink", "snack"],
+      default: "snack",
+    },
+
     isActive: {
       type: Boolean,
       default: true,

@@ -249,9 +249,14 @@ function ShowtimeList() {
           <h2>Danh sách suất chiếu</h2>
           <p>Quản lý và điều phối các lịch chiếu phim tại tất cả các cụm rạp</p>
         </div>
-        <Link className="primaryAction" to="/showtimes/create">
-          + Tạo suất chiếu mới
-        </Link>
+        <div className="showtimeHeaderActions">
+          <button type="button" className="ghost" onClick={() => loadData()}>
+            Làm mới
+          </button>
+          <Link className="primaryAction" to="/showtimes/create">
+            + Tạo suất chiếu mới
+          </Link>
+        </div>
       </div>
 
       <div className="showtimeViewTabs" role="tablist">

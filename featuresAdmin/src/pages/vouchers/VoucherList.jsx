@@ -372,6 +372,9 @@ function VoucherList() {
               Lọc
             </button>
           </form>
+          <button type="button" className="voucherGhostBtn" onClick={loadAll}>
+            Làm mới
+          </button>
           <button type="button" className="voucherPrimaryBtn" onClick={openCreate}>
             + Tạo Voucher mới
           </button>
