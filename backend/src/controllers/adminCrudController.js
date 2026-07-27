@@ -96,11 +96,15 @@ const createAdminCrudController = (Model, options = {}) => {
   const populate = options.populate || "";
   const keywordFields = options.keywordFields || [];
   const afterCreate = options.afterCreate;
+  const prepareBody = options.prepareBody;
 
   const applyPopulate = (query) => {
     if (!populate) return query;
     return query.populate(populate);
   };
+
+  const resolveBody = (body) =>
+    typeof prepareBody === "function" ? prepareBody(body) || body : body;
 
   const getAll = async (req, res) => {
     try {
@@ -145,7 +149,7 @@ const createAdminCrudController = (Model, options = {}) => {
 
   const create = async (req, res) => {
     try {
-      const item = new Model(req.body);
+      const item = new Model(resolveBody(req.body));
       await item.save();
       if (afterCreate) await afterCreate(item, req);
       const created = await applyPopulate(Model.findById(item._id));
@@ -169,7 +173,7 @@ const createAdminCrudController = (Model, options = {}) => {
         return error(res, 404, `${Model.modelName} không tồn tại`);
       }
 
-      item.set(req.body);
+      item.set(resolveBody(req.body));
       await item.save();
       const updated = await applyPopulate(Model.findById(item._id));
 

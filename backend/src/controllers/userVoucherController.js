@@ -13,6 +13,15 @@ const ok = (res, data, message = "OK", status = 200) =>
 const fail = (res, status, message) =>
   res.status(status).json({ success: false, message });
 
+/** YYYY-MM-DD theo giờ Việt Nam — tránh lệch UTC khi so ngày bắt đầu/kết thúc */
+const toVNDateKey = (value) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+
 const publicVoucher = (voucher) => ({
   _id: voucher._id,
   code: voucher.code,
@@ -30,8 +39,9 @@ const publicVoucher = (voucher) => ({
 const isVoucherCurrentlyValid = (voucher, now = new Date()) => {
   if (!voucher) return false;
   if (voucher.status !== "active") return false;
-  if (voucher.startDate && new Date(voucher.startDate) > now) return false;
-  if (voucher.endDate && new Date(voucher.endDate) < now) return false;
+  const today = toVNDateKey(now);
+  if (voucher.startDate && toVNDateKey(voucher.startDate) > today) return false;
+  if (voucher.endDate && toVNDateKey(voucher.endDate) < today) return false;
   return true;
 };
 
@@ -71,26 +81,33 @@ const getUsedCount = async (voucherId) => {
 const listActive = async (req, res) => {
   try {
     const now = new Date();
-    const vouchers = await Voucher.find({
-      status: "active",
-      startDate: { $lte: now },
-      endDate: { $gte: now },
-    })
+    // Lấy theo status rồi lọc ngày theo lịch VN (tránh lệch UTC với input type=date)
+    const vouchers = await Voucher.find({ status: "active" })
       .sort({ createdAt: -1 })
       .lean();
 
     const data = await Promise.all(
-      vouchers.map(async (v) => {
-        const usedCount = await getUsedCount(v._id);
-        return {
-          ...publicVoucher(v),
-          usedCount,
-          remaining: Math.max(0, Number(v.quantity || 0) - usedCount),
-        };
-      })
+      vouchers
+        .filter((v) => isVoucherCurrentlyValid(v, now))
+        .map(async (v) => {
+          const usedCount = await getUsedCount(v._id);
+          const quantity = Number(v.quantity || 0);
+          // quantity = 0 → không giới hạn (giống validate/checkout)
+          const remaining =
+            quantity > 0 ? Math.max(0, quantity - usedCount) : null;
+          return {
+            ...publicVoucher(v),
+            usedCount,
+            remaining,
+            unlimited: quantity <= 0,
+          };
+        })
     );
 
-    return ok(res, data);
+    return ok(
+      res,
+      data.filter((item) => item.remaining === null || item.remaining > 0)
+    );
   } catch (error) {
     return fail(res, 500, error.message);
   }

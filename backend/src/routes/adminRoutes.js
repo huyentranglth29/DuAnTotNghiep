@@ -86,6 +86,18 @@ const resources = {
   }),
   vouchers: createAdminCrudController(Voucher, {
     keywordFields: ["code", "description", "status"],
+    prepareBody: (body = {}) => {
+      const next = { ...body };
+      const startKey = String(next.startDate || "").slice(0, 10);
+      const endKey = String(next.endDate || "").slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(startKey)) {
+        next.startDate = new Date(`${startKey}T00:00:00+07:00`);
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(endKey)) {
+        next.endDate = new Date(`${endKey}T23:59:59.999+07:00`);
+      }
+      return next;
+    },
     afterCreate: voucher => createNotification({
       title: `Voucher mới: ${voucher.code}`,
       content: `${voucher.description || "Ưu đãi mới từ FilmGo"}. Nhận ngay trước khi hết lượt!`,
