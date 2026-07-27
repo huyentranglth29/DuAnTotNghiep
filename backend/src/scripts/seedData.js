@@ -137,7 +137,7 @@ const vouchers = [
 const products = [
   {
     name: "Bắp rang bơ",
-    image: "https://example.com/products/popcorn.jpg",
+    image: "https://images.unsplash.com/photo-1578849278619-e73505e9610f?q=80&w=400",
     price: 55000,
     stock: 100,
     description: "Bắp rang bơ size vừa.",
@@ -145,7 +145,7 @@ const products = [
   },
   {
     name: "Nước ngọt",
-    image: "https://example.com/products/soda.jpg",
+    image: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?q=80&w=400",
     price: 30000,
     stock: 120,
     description: "Nước ngọt ly lớn.",
@@ -153,7 +153,7 @@ const products = [
   },
   {
     name: "Combo FilmGo",
-    image: "https://example.com/products/combo.jpg",
+    image: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?q=80&w=400",
     price: 85000,
     stock: 80,
     description: "Một bắp và hai nước.",

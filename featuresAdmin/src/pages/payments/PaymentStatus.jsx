@@ -135,7 +135,7 @@ function PaymentStatus() {
       <div className="pageTitle">
         <h2>Theo dõi trạng thái thanh toán</h2>
         <button type="button" onClick={loadData}>
-          Tải lại
+          Làm mới
         </button>
       </div>
 

@@ -208,7 +208,7 @@ function AdminListPage({
           setPage(1);
           loadData(1, '');
         }}>
-          Tải lại
+          Làm mới
         </button>
       </form>
 

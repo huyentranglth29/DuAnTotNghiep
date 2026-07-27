@@ -6,6 +6,7 @@ import {
   Clapperboard,
   Download,
   Percent,
+  RefreshCw,
   Star,
   Ticket,
   WalletCards,
@@ -428,6 +429,9 @@ function MovieRevenue() {
           </label>
           <button type="button" className="movieBtnGhost" onClick={() => loadData(from, to)}>
             <CalendarDays size={15} /> Áp dụng
+          </button>
+          <button type="button" className="movieBtnGhost" onClick={() => loadData(from, to)}>
+            <RefreshCw size={15} /> Làm mới
           </button>
           <button type="button" className="movieBtnPrimary" onClick={exportCsv} disabled={!data}>
             <Download size={15} /> Xuất báo cáo

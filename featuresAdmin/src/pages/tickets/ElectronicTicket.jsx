@@ -121,7 +121,7 @@ function ElectronicTicket() {
       <div className="pageTitle">
         <h2>Xem vé điện tử</h2>
         <button type="button" onClick={loadData}>
-          Tải lại
+          Làm mới
         </button>
       </div>
 

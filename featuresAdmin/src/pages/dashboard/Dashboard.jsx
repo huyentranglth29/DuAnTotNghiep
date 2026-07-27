@@ -77,14 +77,18 @@ function Dashboard() {
     }
   })();
 
-  useEffect(() => {
+  const loadOverview = (date = selectedDate) => {
     setLoading(true);
     setError('');
-    dashboardApi
-      .getOverview({date: selectedDate})
+    return dashboardApi
+      .getOverview({date})
       .then(response => setOverview(response?.data || response))
       .catch(err => setError(err.message || 'Không tải được dữ liệu tổng quan.'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadOverview(selectedDate);
   }, [selectedDate]);
 
   const chart = useMemo(
@@ -106,8 +110,8 @@ function Dashboard() {
       <section className="overviewState">
         <h2>Không tải được Tổng quan</h2>
         <p>{error || 'Backend chưa trả về dữ liệu.'}</p>
-        <button type="button" onClick={() => window.location.reload()}>
-          Tải lại
+        <button type="button" onClick={() => loadOverview()}>
+          Làm mới
         </button>
       </section>
     );
@@ -218,6 +222,14 @@ function Dashboard() {
               onChange={event => setSelectedDate(event.target.value)}
             />
           </label>
+          <button
+            type="button"
+            className="overviewIconButton"
+            aria-label="Làm mới dữ liệu"
+            title="Làm mới"
+            onClick={() => loadOverview()}>
+            ↻
+          </button>
           <Link
             className="overviewIconButton"
             to="/notifications"

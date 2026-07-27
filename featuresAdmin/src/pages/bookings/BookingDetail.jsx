@@ -99,7 +99,7 @@ function BookingDetail() {
       <div className="pageTitle">
         <h2>Xem chi tiết đơn đặt vé</h2>
         <button type="button" onClick={loadData}>
-          Tải lại
+          Làm mới
         </button>
       </div>
 
