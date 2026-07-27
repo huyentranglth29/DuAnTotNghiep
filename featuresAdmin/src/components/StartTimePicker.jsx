@@ -154,11 +154,11 @@ function StartTimePicker({
 
       {value && !selectedAvailable ? (
         <small className="startTimeHint conflict">
-          Khung giờ này đang trùng lịch — hãy chọn giờ sáng hơn
+          Giờ này trùng suất khác hoặc chưa đủ 15 phút vệ sinh — chọn khung trống khác
         </small>
       ) : (
         <small className="startTimeHint">
-          Giờ mờ = đã trùng / không đủ 15 phút vệ sinh
+          Giờ mờ = trùng suất khác / chưa đủ 15 phút vệ sinh (không giới hạn 23h)
         </small>
       )}
 

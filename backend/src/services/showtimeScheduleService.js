@@ -1,8 +1,10 @@
 const Showtime = require("../models/Showtime");
 
 const CLEANUP_MINUTES = 15;
-const DAY_OPEN_HOUR = 8;
-const DAY_CLOSE_HOUR = 23;
+// Không khóa đóng cửa 23h — cho phép suất đêm; chỉ chặn khi trùng phòng + 15 phút vệ sinh
+const DAY_OPEN_HOUR = 0;
+/** Cho phép phim kết thúc sang sáng hôm sau (giờ VN). */
+const DAY_CLOSE_NEXT_HOUR = 6;
 
 function parseDurationMinutes(duration) {
   if (typeof duration === "number" && Number.isFinite(duration)) {
@@ -41,15 +43,19 @@ function getVietnamDayBounds(date) {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return null;
   }
+  const openAt = new Date(
+    `${date}T${String(DAY_OPEN_HOUR).padStart(2, "0")}:00:00+07:00`,
+  );
+  // Hết khoảng trống = 06:00 sáng hôm sau → suất 22h–23h vẫn tạo được
+  const closeAt = new Date(`${date}T00:00:00+07:00`);
+  closeAt.setDate(closeAt.getDate() + 1);
+  closeAt.setHours(DAY_CLOSE_NEXT_HOUR, 0, 0, 0);
+
   return {
     dayStart: new Date(`${date}T00:00:00+07:00`),
     dayEnd: new Date(`${date}T23:59:59.999+07:00`),
-    openAt: new Date(
-      `${date}T${String(DAY_OPEN_HOUR).padStart(2, "0")}:00:00+07:00`,
-    ),
-    closeAt: new Date(
-      `${date}T${String(DAY_CLOSE_HOUR).padStart(2, "0")}:00:00+07:00`,
-    ),
+    openAt,
+    closeAt,
   };
 }
 
