@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import {VOUCHER_BLUE, VOUCHER_TEXT} from '../constants';
-import {GiftIcon, HistoryIcon, PlusIcon} from '../components/VoucherActionIcons';
+import {GiftIcon, HelpIcon, HistoryIcon, PlusIcon} from '../components/VoucherActionIcons';
 import {FilmGoVoucher, formatVoucherValue} from '../types';
 import {
   getActiveVouchers,
@@ -23,11 +23,13 @@ import {
 type MyVoucherScreenProps = {
   onAddVoucher: () => void;
   onOpenHistory: () => void;
+  onOpenGuide: () => void;
 };
 
 function MyVoucherScreen({
   onAddVoucher,
   onOpenHistory,
+  onOpenGuide,
 }: MyVoucherScreenProps) {
   const [items, setItems] = useState<FilmGoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,12 @@ function MyVoucherScreen({
         setItems(mineList);
         const active = await getActiveVouchers();
         const ownedIds = new Set(mineList.map(item => String(item._id)));
-        setAvailableItems((Array.isArray(active) ? active : []).filter(item => !ownedIds.has(String(item._id)) && Number(item.remaining ?? 1) > 0));
+        setAvailableItems((Array.isArray(active) ? active : []).filter(item => {
+          const remaining = item.remaining;
+          const stillAvailable =
+            remaining == null || item.unlimited === true || Number(remaining) > 0;
+          return !ownedIds.has(String(item._id)) && stillAvailable;
+        }));
       } else {
         setGuestMode(true);
         const active = await getActiveVouchers();
@@ -89,6 +96,12 @@ function MyVoucherScreen({
         <TouchableOpacity
           activeOpacity={0.75}
           style={styles.headerIconButton}
+          onPress={onOpenGuide}>
+          <HelpIcon color="#ffffff" size={30} strokeWidth={2.6} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.75}
+          style={styles.headerIconButton}
           onPress={onAddVoucher}>
           <PlusIcon color="#ffffff" size={31} strokeWidth={3} />
         </TouchableOpacity>
@@ -117,6 +130,9 @@ function MyVoucherScreen({
             {error ||
               'Bạn hãy nhận voucher miễn phí hoặc thêm voucher mới nhé'}
           </Text>
+          <TouchableOpacity style={styles.guideLink} onPress={onOpenGuide}>
+            <Text style={styles.guideLinkText}>Xem hướng dẫn dùng voucher</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
             <Text style={styles.retryText}>Thử lại</Text>
           </TouchableOpacity>
@@ -278,8 +294,19 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'center',
   },
+  guideLink: {
+    marginTop: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  guideLinkText: {
+    color: VOUCHER_BLUE,
+    fontSize: 15,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
   retryBtn: {
-    marginTop: 18,
+    marginTop: 10,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,

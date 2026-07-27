@@ -277,3 +277,18 @@ export function RefreshIcon({color}: IconProps) {
     </Svg>
   );
 }
+
+export function HelpIcon({color, size = 30, strokeWidth = 2.6}: SizedIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <Circle cx={16} cy={16} r={12} stroke={color} strokeWidth={strokeWidth} />
+      <Path
+        d="M12.8 12.2c0-2 1.5-3.4 3.4-3.4s3.4 1.3 3.4 3.2c0 1.5-.8 2.3-2 3.1-1 .7-1.5 1.3-1.5 2.4"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <Circle cx={16} cy={22.2} r={1.4} fill={color} />
+    </Svg>
+  );
+}

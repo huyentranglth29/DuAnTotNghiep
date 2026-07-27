@@ -24,7 +24,12 @@ const emptyForm = {
 
 function toDateInput(value) {
   if (!value) return '';
-  return new Date(value).toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(value));
 }
 
 function LineChart({points}) {
@@ -480,7 +485,7 @@ function VoucherList() {
                   </td>
                   <td>{formatDate(item.startDate)}</td>
                   <td>{formatDate(item.endDate)}</td>
-                  <td>{item.quantity ?? 0}</td>
+                  <td>{item.quantity > 0 ? item.quantity : 'Không giới hạn'}</td>
                   <td>{item.usedCount ?? 0}</td>
                   <td>
                     <span className={`voucherStatus voucherStatus--${item.status}`}>
@@ -580,9 +585,13 @@ function VoucherList() {
             <input
               type="number"
               min="0"
+              placeholder="0 = không giới hạn"
               value={form.quantity}
               onChange={e => setForm(f => ({...f, quantity: e.target.value}))}
             />
+            <small style={{display: 'block', marginTop: 4, color: '#6b7280'}}>
+              Để 0 hoặc trống = không giới hạn lượt nhận/dùng
+            </small>
           </label>
           <label>
             Ngày bắt đầu

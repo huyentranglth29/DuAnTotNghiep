@@ -51,14 +51,16 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const [seatItems, setSeatItems] = useState<GheSuatChieu[]>([]);
   const [soldSeats, setSoldSeats] = useState(new Set<string>());
   const [heldSeats, setHeldSeats] = useState(new Set<string>());
-  const [isHoldingSeats, setIsHoldingSeats] = useState(false);
   const [isLoadingSeats, setIsLoadingSeats] = useState(true);
   const [seatError, setSeatError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSyncingHold, setIsSyncingHold] = useState(false);
   const selectedSeatsRef = useRef(new Set<string>());
   const holdTokenRef = useRef(`hold-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const continuingRef = useRef(false);
   const holdingRef = useRef(false);
+  const holdInFlightRef = useRef(false);
+  const pendingHoldRef = useRef<Set<string> | null>(null);
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
   const unitPrice = showtime.price > 0 ? showtime.price : 55000;
   const totalPrice = selectedSeatList.reduce((total, seat) => {
@@ -153,38 +155,81 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     };
   }, [showtime.id]);
 
-  const handleSeatPress = async (seat: string) => {
-    if (isLoadingSeats || seatError || soldSeats.has(seat) || heldSeats.has(seat) || isHoldingSeats) return;
+  const syncSeatHold = async () => {
+    if (holdInFlightRef.current) return;
+    holdInFlightRef.current = true;
+    holdingRef.current = true;
+    setIsSyncingHold(true);
+    try {
+      while (pendingHoldRef.current) {
+        const seatsToHold = pendingHoldRef.current;
+        pendingHoldRef.current = null;
+        try {
+          if (seatsToHold.size) {
+            await holdSeats({
+              showtimeId: showtime.id,
+              seatLabels: Array.from(seatsToHold),
+              holdToken: holdTokenRef.current,
+            });
+          } else {
+            await releaseSeats({
+              holdToken: holdTokenRef.current,
+              showtimeId: showtime.id,
+            });
+          }
+        } catch (error) {
+          Alert.alert(
+            'Ghế không còn trống',
+            (error as Error)?.message ||
+              'Ghế vừa được người khác giữ. Vui lòng chọn ghế khác.',
+          );
+          const seats = await layGheTheoSuatChieu(
+            showtime.id,
+            holdTokenRef.current,
+          ).catch(() => [] as GheSuatChieu[]);
+          const nextSold = new Set(
+            seats.filter(item => item.isBooked).map(item => item.label),
+          );
+          const nextHeld = new Set(
+            seats
+              .filter(item => item.isHeld && !item.heldByMe)
+              .map(item => item.label),
+          );
+          const heldByMe = new Set(
+            seats.filter(item => item.heldByMe).map(item => item.label),
+          );
+          setSeatItems(seats);
+          setSoldSeats(nextSold);
+          setHeldSeats(nextHeld);
+          selectedSeatsRef.current = heldByMe;
+          setSelectedSeats(heldByMe);
+          pendingHoldRef.current = null;
+          break;
+        }
+      }
+    } finally {
+      holdInFlightRef.current = false;
+      holdingRef.current = false;
+      if (pendingHoldRef.current) {
+        syncSeatHold();
+      } else {
+        setIsSyncingHold(false);
+      }
+    }
+  };
+
+  const handleSeatPress = (seat: string) => {
+    if (isLoadingSeats || seatError || soldSeats.has(seat) || heldSeats.has(seat)) {
+      return;
+    }
     const next = new Set(selectedSeatsRef.current);
     if (next.has(seat)) next.delete(seat);
     else next.add(seat);
-    setIsHoldingSeats(true);
-    holdingRef.current = true;
-    try {
-      if (next.size) {
-        await holdSeats({
-          showtimeId: showtime.id,
-          seatLabels: Array.from(next),
-          holdToken: holdTokenRef.current,
-        });
-      } else {
-        await releaseSeats({holdToken: holdTokenRef.current, showtimeId: showtime.id});
-      }
-      selectedSeatsRef.current = next;
-      setSelectedSeats(next);
-    } catch (error) {
-      Alert.alert(
-        'Ghế không còn trống',
-        (error as Error)?.message || 'Ghế vừa được người khác giữ. Vui lòng chọn ghế khác.',
-      );
-      const seats = await layGheTheoSuatChieu(showtime.id, holdTokenRef.current).catch(() => []);
-      setSeatItems(seats);
-      setSoldSeats(new Set(seats.filter(item => item.isBooked).map(item => item.label)));
-      setHeldSeats(new Set(seats.filter(item => item.isHeld && !item.heldByMe).map(item => item.label)));
-    } finally {
-      setIsHoldingSeats(false);
-      holdingRef.current = false;
-    }
+    // Cập nhật UI ngay, gọi API giữ ghế ở nền (tránh chờ ~1–2s mỗi lần bấm)
+    selectedSeatsRef.current = next;
+    setSelectedSeats(next);
+    pendingHoldRef.current = new Set(next);
+    syncSeatHold();
   };
 
   return (
@@ -244,7 +289,7 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
                   <TouchableOpacity
                     key={seat}
                     activeOpacity={isSold ? 1 : 0.7}
-                    disabled={isSold || isHeld || isLoadingSeats || Boolean(seatError) || isHoldingSeats}
+                    disabled={isSold || isHeld || isLoadingSeats || Boolean(seatError)}
                     onPress={() => handleSeatPress(seat)}
                     style={[
                       styles.seat,
@@ -288,9 +333,12 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
             </View>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.continueBtn}
+              style={[styles.continueBtn, isSyncingHold && styles.continueBtnDisabled]}
+              disabled={isSyncingHold}
               onPress={() => setShowConfirm(true)}>
-              <Text style={styles.continueBtnText}>Tiếp tục</Text>
+              <Text style={styles.continueBtnText}>
+                {isSyncingHold ? 'Đang giữ ghế...' : 'Tiếp tục'}
+              </Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -568,6 +616,9 @@ const styles = StyleSheet.create({
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  continueBtnDisabled: {
+    opacity: 0.7,
   },
   continueBtnText: {
     color: '#ffffff',

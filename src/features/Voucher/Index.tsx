@@ -1,10 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import AddVoucherScreen from './screens/AddVoucherScreen';
 import MyVoucherScreen from './screens/MyVoucherScreen';
+import VoucherGuideScreen from './screens/VoucherGuideScreen';
 import VoucherHistoryScreen from './screens/VoucherHistoryScreen';
 import {VoucherHistoryFilter} from './types';
 
-type VoucherRoute = 'myVoucher' | 'addVoucher' | 'history';
+type VoucherRoute = 'myVoucher' | 'addVoucher' | 'history' | 'guide';
 
 type VoucherProps = {
   onDetailChange?: (isDetail: boolean) => void;
@@ -33,10 +34,15 @@ function Voucher({onDetailChange}: VoucherProps) {
     );
   }
 
+  if (route === 'guide') {
+    return <VoucherGuideScreen onBack={() => setRoute('myVoucher')} />;
+  }
+
   return (
     <MyVoucherScreen
       onAddVoucher={() => setRoute('addVoucher')}
       onOpenHistory={() => setRoute('history')}
+      onOpenGuide={() => setRoute('guide')}
     />
   );
 }

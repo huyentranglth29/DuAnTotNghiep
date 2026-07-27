@@ -141,6 +141,21 @@ export function mapGoogleSignInError(error) {
   }
 
   if (
+    code === 'NETWORK_ERROR' ||
+    message === 'NETWORK_ERROR' ||
+    message.includes('NETWORK_ERROR')
+  ) {
+    return (
+      'Emulator/máy không resolve được DNS Google (accounts.google.com).\n' +
+      '1) Tắt VPN / antivirus lọc DNS trên PC\n' +
+      '2) Đổi DNS máy Windows sang 8.8.8.8\n' +
+      '3) Android Studio → Device Manager → Cold Boot Now\n' +
+      '4) Hoặc chạy máy thật thay emulator\n' +
+      '5) Tạm dùng email/mật khẩu để vào app'
+    );
+  }
+
+  if (
     message.includes('statusCodes') ||
     message.includes('RNGoogleSignin') ||
     message.includes('TurboModuleRegistry') ||
