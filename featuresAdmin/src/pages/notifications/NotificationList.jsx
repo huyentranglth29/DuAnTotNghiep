@@ -9,6 +9,8 @@ function NotificationList() {
       api={notificationApi}
       addTo="/notifications/create"
       addLabel="+ Tạo thông báo"
+      hideCreate
+      hideActions
       searchPlaceholder="Tìm kiếm thông báo..."
       fields={[
         {name: 'title', label: 'Tiêu đề', required: true},

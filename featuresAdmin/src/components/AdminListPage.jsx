@@ -13,6 +13,8 @@ function AdminListPage({
   fields = [],
   fieldOptions = {},
   normalizeSubmit,
+  hideCreate = false,
+  hideActions = false,
 }) {
   const [items, setItems] = useState([]);
   const [keyword, setKeyword] = useState('');
@@ -165,23 +167,25 @@ function AdminListPage({
     }
   };
 
-  const tableColumns = [
-    ...columns,
-    {
-      key: 'actions',
-      title: 'Hành động',
-      render: item => (
-        <div className="actionGroup">
-          <button type="button" onClick={() => openEdit(item)} disabled={fields.length === 0}>
-            Sửa
-          </button>
-          <button type="button" onClick={() => handleDelete(item)}>
-            Xóa
-          </button>
-        </div>
-      ),
-    },
-  ];
+  const tableColumns = hideActions
+    ? columns
+    : [
+        ...columns,
+        {
+          key: 'actions',
+          title: 'Hành động',
+          render: item => (
+            <div className="actionGroup">
+              <button type="button" onClick={() => openEdit(item)} disabled={fields.length === 0}>
+                Sửa
+              </button>
+              <button type="button" onClick={() => handleDelete(item)}>
+                Xóa
+              </button>
+            </div>
+          ),
+        },
+      ];
 
   const totalPages = pagination?.totalPages || 1;
 
@@ -189,11 +193,12 @@ function AdminListPage({
     <section>
       <div className="pageTitle">
         <h2>{title}</h2>
-        {fields.length > 0 ? (
-          <button type="button" onClick={openCreate}>{addLabel}</button>
-        ) : (
-          addTo && <Link to={addTo}>{addLabel}</Link>
-        )}
+        {!hideCreate &&
+          (fields.length > 0 ? (
+            <button type="button" onClick={openCreate}>{addLabel}</button>
+          ) : (
+            addTo && <Link to={addTo}>{addLabel}</Link>
+          ))}
       </div>
 
       <form className="toolbar" onSubmit={handleSearch}>
