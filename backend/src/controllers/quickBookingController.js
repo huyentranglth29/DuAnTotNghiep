@@ -1,5 +1,7 @@
 const QuickBooking = require("../models/QuickBooking");
 const BookedSeat = require("../models/BookedSeat");
+const Showtime = require("../models/Showtime");
+const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
 
 const normalizeSeats = (seats) =>
   [...new Set((Array.isArray(seats) ? seats : []).map((seat) =>
@@ -58,6 +60,15 @@ const create = async (req, res, next) => {
         message: "Thiếu thông tin bắt buộc: showtimeId, movieTitle, seats, totalPrice",
       });
     }
+
+    const showtime = await Showtime.findById(normalizedShowtimeId).select("startTime endTime status");
+    if (!showtime) {
+      return res.status(404).json({
+        success: false,
+        message: "Suất chiếu không tồn tại hoặc đã ngừng bán",
+      });
+    }
+    assertShowtimeBookable(showtime);
 
     const code = "FG-" + Math.floor(100000 + Math.random() * 900000);
 

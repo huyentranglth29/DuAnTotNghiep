@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   Image,
   ImageSourcePropType,
@@ -249,6 +249,13 @@ function DatVeDetail({
   const roomName = showtime?.roomName ?? 'Phòng chiếu 07';
   const startTime = formatBookingTime(showtime?.startTime);
   const bookingDate = formatBookingDate(showtime?.startTime);
+  const showtimeBookable = useMemo(() => {
+    if (!showtime?.startTime) {
+      return true;
+    }
+    const start = new Date(showtime.startTime).getTime();
+    return Number.isFinite(start) && start > Date.now();
+  }, [showtime?.startTime]);
 
   useEffect(() => {
     if (selectedVoucher && subtotal < Number(selectedVoucher.minOrderValue || 0)) {
@@ -410,6 +417,13 @@ function DatVeDetail({
   };
 
   const handleContinuePayment = () => {
+    if (!showtimeBookable) {
+      Alert.alert(
+        'Suất chiếu đã quá giờ',
+        'Phim đã bắt đầu chiếu nên không thể tiếp tục đặt vé. Vui lòng chọn suất khác.',
+      );
+      return;
+    }
     if (!requestAuth(
       {
         title: 'Đăng nhập để tiếp tục',
@@ -786,11 +800,14 @@ function DatVeDetail({
         </View>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={[styles.footerBtn, isProcessing && styles.footerBtnDisabled]}
+          style={[
+            styles.footerBtn,
+            (isProcessing || !showtimeBookable) && styles.footerBtnDisabled,
+          ]}
           onPress={handleContinuePayment}
-          disabled={isProcessing}>
+          disabled={isProcessing || !showtimeBookable}>
           <Text style={styles.footerBtnText}>
-            {footerButtonText}
+            {!showtimeBookable ? 'Suất chiếu đã quá giờ' : footerButtonText}
           </Text>
         </TouchableOpacity>
       </View>

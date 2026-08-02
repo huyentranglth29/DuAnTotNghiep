@@ -235,6 +235,27 @@ function findEarliestStartInGaps(gaps, preferredStart = null) {
   return null;
 }
 
+function isShowtimeBookable(showtime, now = new Date()) {
+  if (!showtime) {
+    return false;
+  }
+
+  const startTime = new Date(showtime.startTime || 0).getTime();
+  return showtime.status === "scheduled" && startTime > new Date(now).getTime();
+}
+
+function assertShowtimeBookable(showtime, now = new Date()) {
+  if (isShowtimeBookable(showtime, now)) {
+    return;
+  }
+
+  const error = new Error("Suất chiếu đã bắt đầu hoặc không còn mở bán");
+  error.status = 409;
+  error.statusCode = 409;
+  error.code = "SHOWTIME_NOT_BOOKABLE";
+  throw error;
+}
+
 /**
  * Lịch trong ngày của phòng: suất hiện có, khoảng trống, giờ gợi ý.
  */
@@ -421,4 +442,6 @@ module.exports = {
   buildConflictMessage,
   formatConflictPayload,
   formatTimeVN,
+  isShowtimeBookable,
+  assertShowtimeBookable,
 };
