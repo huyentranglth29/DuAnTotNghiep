@@ -10,14 +10,18 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  Linking,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
 import {useQuery} from '@tanstack/react-query';
 import MockPaymentScreen from './MockPaymentScreen';
+import PayosPaymentScreen from './PayosPaymentScreen';
 import {
   cancelPayment,
   completeMockPayment,
   createMockPayment,
+  createPayosPayment,
+  createVnpayPayment,
   failMockPayment,
   getPaymentStatus,
   getProducts,
@@ -30,6 +34,28 @@ const MOMO_PINK = '#d82d8b';
 const TEXT_DARK = '#1a1a1a';
 const TEXT_MUTED = '#888888';
 const BG_GRAY = '#f4f4f6';
+
+type PaymentMethod = 'payos' | 'vnpay' | 'mock';
+
+const PAYMENT_METHODS: {
+  id: PaymentMethod;
+  title: string;
+  description: string;
+  badge: string;
+}[] = [
+  {
+    id: 'payos',
+    title: 'Quét QR',
+    description: 'Quét mã bằng app ngân hàng',
+    badge: 'QR',
+  },
+  {
+    id: 'vnpay',
+    title: 'Thanh toán VNPay',
+    description: 'Thanh toán qua cổng VNPay',
+    badge: 'VNP',
+  },
+];
 
 type DatVeDetailProps = {
   movie: {
@@ -105,7 +131,13 @@ function DatVeDetail({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
-  const [paymentInfo, setPaymentInfo] = useState<{amount: number; expiresAt: string} | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<{
+    amount: number;
+    expiresAt: string;
+    qrCode?: string;
+    orderCode?: string;
+  } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('payos');
   const [comboQuantities, setComboQuantities] = useState<Record<string, number>>({});
   const [selectedVoucher, setSelectedVoucher] = useState<FilmGoVoucher | null>(null);
   const [recipient, setRecipient] = useState({
@@ -291,44 +323,97 @@ function DatVeDetail({
     }
   };
 
+  const buildPaymentPayload = () => ({
+    showtimeId: showtime?.id,
+    movieTitle: movie.title,
+    movieDuration: movie.duration,
+    movieGenre: movie.genre,
+    seats: seats,
+    holdToken,
+    totalPrice: totalPrice,
+    combos: selectedCombos.map(item => ({
+      productId: item._id,
+      quantity: item.quantity,
+    })),
+    voucherCode: selectedVoucher?.code,
+    cinema: 'FilmGo Hà Trung (Thanh Hóa)',
+    bookingDate: new Date().toLocaleDateString('vi-VN'),
+    bookingTime: startTime,
+  });
+
   const handleContinuePayment = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     try {
-      const response = await createMockPayment({
-        showtimeId: showtime?.id,
-        movieTitle: movie.title,
-        movieDuration: movie.duration,
-        movieGenre: movie.genre,
-        seats: seats,
-        holdToken,
-        totalPrice: totalPrice,
-        combos: selectedCombos.map(item => ({
-          productId: item._id,
-          quantity: item.quantity,
-        })),
-        voucherCode: selectedVoucher?.code,
-        cinema: 'FilmGo Hà Trung (Thanh Hóa)',
-        bookingDate: new Date().toLocaleDateString('vi-VN'),
-        bookingTime: startTime,
-      }) as any;
+      const payload = buildPaymentPayload();
+      if (paymentMethod === 'mock') {
+        const response = await createMockPayment(payload) as any;
+        const payment = response?.data ?? response;
+        if (!payment?.paymentId) {
+          throw new Error('Backend không tạo được giao dịch mô phỏng');
+        }
+        setPaymentId(payment.paymentId);
+        setPaymentInfo({
+          amount: Number(payment.amount || orderTotal),
+          expiresAt: String(payment.expiresAt),
+        });
+        setShowPaymentScreen(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      if (paymentMethod === 'vnpay') {
+        const response = await createVnpayPayment(payload) as any;
+        const payment = response?.data ?? response;
+        if (!payment?.paymentId || !payment?.paymentUrl) {
+          throw new Error('Backend không tạo được link VNPay Sandbox');
+        }
+        setPaymentId(payment.paymentId);
+        setPaymentInfo({
+          amount: Number(payment.amount || orderTotal),
+          expiresAt: String(payment.expiresAt),
+          orderCode: String(payment.orderCode || ''),
+        });
+        await Linking.openURL(String(payment.paymentUrl));
+        Alert.alert(
+          'Đã mở VNPay Sandbox',
+          'Sau khi thanh toán test xong, quay lại app. Hệ thống sẽ tự kiểm tra và phát hành vé nếu giao dịch thành công.',
+        );
+        setIsProcessing(false);
+        return;
+      }
+
+      const response = await createPayosPayment(payload) as any;
       const payment = response?.data ?? response;
       if (!payment?.paymentId) {
-        throw new Error('Backend không tạo được giao dịch mô phỏng');
+        throw new Error('Không tạo được giao dịch thanh toán');
       }
       setPaymentId(payment.paymentId);
+      if (!payment.qrCode) {
+        throw new Error('Chưa nhận được mã QR thanh toán');
+      }
       setPaymentInfo({
         amount: Number(payment.amount || orderTotal),
         expiresAt: String(payment.expiresAt),
+        qrCode: String(payment.qrCode),
+        orderCode: String(payment.orderCode || ''),
       });
       setShowPaymentScreen(true);
       setIsProcessing(false);
     } catch (e) {
-      console.log('❌ Lỗi lưu vé:', e);
-      Alert.alert('Không thể đặt ghế', (e as Error)?.message || 'Đặt vé thất bại, vui lòng thử lại.');
+      const methodName = paymentMethod === 'vnpay' ? 'VNPay Sandbox' : paymentMethod === 'mock' ? 'thanh toán thử' : 'thanh toán';
+      Alert.alert('Không thể mở thanh toán', (e as Error)?.message || `Vui lòng kiểm tra cấu hình ${methodName} và thử lại.`);
       setIsProcessing(false);
     }
   };
+
+  const footerButtonText = isProcessing
+    ? 'Đang tạo giao dịch...'
+    : paymentMethod === 'vnpay'
+      ? 'Thanh toán qua VNPay Sandbox'
+      : paymentMethod === 'mock'
+        ? 'Thanh toán thử nội bộ'
+        : 'Thanh toán';
 
   const handlePaymentBack = async () => {
     const id = paymentId;
@@ -358,6 +443,31 @@ function DatVeDetail({
       {cancelable: false},
     );
   };
+
+  if (showPaymentScreen && paymentInfo?.qrCode) {
+    return (
+      <PayosPaymentScreen
+        movieTitle={movie.title}
+        showtime={`${bookingDate} - ${startTime}`}
+        cinema="FilmGo Hà Trung (Thanh Hóa)"
+        room={roomName}
+        seats={seats}
+        ticketTotal={totalPrice}
+        combos={selectedCombos}
+        totalAmount={paymentInfo.amount}
+        voucherCode={selectedVoucher?.code}
+        voucherDiscount={voucherDiscount}
+        expiresAt={paymentInfo.expiresAt}
+        qrCode={paymentInfo.qrCode}
+        orderCode={paymentInfo.orderCode}
+        isProcessing={isProcessing}
+        customerName={recipientName}
+        customerPhone={recipient.phone || 'Chưa có SĐT'}
+        customerEmail={recipient.email || 'Chưa có email'}
+        onBack={handlePaymentBack}
+      />
+    );
+  }
 
   if (showPaymentScreen && paymentInfo) {
     return (
@@ -412,9 +522,8 @@ function DatVeDetail({
           <View style={styles.warningBanner}>
             <Text style={styles.warningIcon}>💬</Text>
             <Text style={styles.warningText}>
-              Bạn ơi, vé đã mua sẽ{' '}
-              <Text style={styles.warningBold}>không thể hoàn, huỷ, đổi vé.</Text>
-              {' '}Bạn nhớ kiểm tra kỹ thông tin nha!
+              Bạn ơi, sau khi thanh toán thành công, vé sẽ được phát hành
+              tự động. Bạn nhớ kiểm tra kỹ thông tin nha!
             </Text>
           </View>
 
@@ -557,6 +666,29 @@ function DatVeDetail({
           </TouchableOpacity>
         </View>
 
+        <Text style={styles.sectionLabel}>Chọn phương thức thanh toán</Text>
+        <View style={styles.paymentMethodList}>
+          {PAYMENT_METHODS.map(method => {
+            const selected = paymentMethod === method.id;
+            return (
+              <TouchableOpacity
+                key={method.id}
+                activeOpacity={0.82}
+                disabled={isProcessing}
+                style={[styles.paymentMethodCard, selected && styles.paymentMethodCardSelected]}
+                onPress={() => setPaymentMethod(method.id)}>
+                <View style={styles.paymentMethodBadge}>
+                  <Text style={styles.paymentMethodBadgeText}>{method.badge}</Text>
+                </View>
+                <View style={styles.paymentMethodCopy}>
+                  <Text style={styles.paymentMethodTitle}>{method.title}</Text>
+                  <Text style={styles.paymentMethodDescription}>{method.description}</Text>
+                </View>
+                <View style={[styles.paymentRadio, selected && styles.paymentRadioSelected]} />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
         <Modal
           visible={editVisible}
           transparent
@@ -644,7 +776,7 @@ function DatVeDetail({
           onPress={handleContinuePayment}
           disabled={isProcessing}>
           <Text style={styles.footerBtnText}>
-            {isProcessing ? 'Đang giữ ghế và combo...' : 'Tiếp tục thanh toán'}
+            {footerButtonText}
           </Text>
         </TouchableOpacity>
       </View>
@@ -960,18 +1092,30 @@ const styles = StyleSheet.create({
     color: MOMO_PINK,
     fontWeight: '600',
   },
+  paymentMethodList: {gap: 10, marginBottom: 8},
   paymentMethodCard: {
-    minHeight: 76,
+    minHeight: 74,
     backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: MOMO_PINK,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
+  paymentMethodCardSelected: {borderColor: MOMO_PINK, backgroundColor: '#fff7fc'},
+  paymentMethodBadge: {
+    width: 48,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#f0f7ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  paymentMethodBadgeText: {color: '#1769aa', fontSize: 13, fontWeight: '900'},
+  paymentMethodCopy: {flex: 1},
   paymentMethodTitle: {
     color: TEXT_DARK,
     fontSize: 16,
@@ -986,11 +1130,12 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    borderWidth: 5,
-    borderColor: MOMO_PINK,
+    borderWidth: 2,
+    borderColor: '#b0b0b0',
     backgroundColor: '#ffffff',
     marginLeft: 10,
   },
+  paymentRadioSelected: {borderWidth: 5, borderColor: MOMO_PINK},
   sandboxNote: {
     color: TEXT_MUTED,
     fontSize: 12,

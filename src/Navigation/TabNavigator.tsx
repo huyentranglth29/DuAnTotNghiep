@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useMemo, useRef, useState } from 'react';
+import { Animated, Image, Modal, PanResponder, Pressable, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { G, Line, Path, Rect } from 'react-native-svg';
 import Different from '../features/Different/Index';
 import Promotion from '../features/Promotion/Index';
@@ -10,6 +10,8 @@ import VoucherNavigator from './VoucherNavigator';
 import { MAU_CHU_DE } from '../theme/cinemaNoir';
 import {useQueryClient} from '@tanstack/react-query';
 import {clearAuthSession} from '../services/voucherService';
+import CustomerAiScreen from '../features/CustomerAi/CustomerAiScreen';
+import iconAi from '../assets/logo/iconai.jpg';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
@@ -25,7 +27,7 @@ type TabItem = {
 
 const tabs: TabItem[] = [
   { key: 'home', label: 'Trang chủ', icon: 'home' },
-  { key: 'movieSchedule', label: 'Lịch chiếu\ntheo phim', icon: 'flag' },
+  { key: 'movieSchedule', label: 'Lịch chiếu', icon: 'flag' },
   { key: 'voucher', label: 'Voucher', icon: 'ticket' },
   { key: 'member', label: 'Ưu đãi', icon: 'gift' },
   { key: 'different', label: 'Khác', icon: 'grid' },
@@ -33,11 +35,14 @@ const tabs: TabItem[] = [
 
 function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const aiFabOffset = useRef(new Animated.ValueXY({x: 0, y: 0})).current;
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [isVoucherDetail, setIsVoucherDetail] = useState(false);
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
   const [isPromotionDetail, setIsPromotionDetail] = useState(false);
   const [openMemberDirectly, setOpenMemberDirectly] = useState(false);
+  const [showCustomerAi, setShowCustomerAi] = useState(false);
 
   const handleTabPress = (tabKey: TabKey) => {
     setActiveTab(tabKey);
@@ -46,6 +51,39 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
     setIsPromotionDetail(false);
     setOpenMemberDirectly(false);
   };
+
+  const aiFabPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+        onPanResponderGrant: () => {
+          aiFabOffset.stopAnimation();
+        },
+        onPanResponderMove: Animated.event(
+          [null, {dx: aiFabOffset.x, dy: aiFabOffset.y}],
+          {useNativeDriver: false},
+        ),
+        onPanResponderRelease: () => {
+          Animated.spring(aiFabOffset, {
+            toValue: {x: 0, y: 0},
+            useNativeDriver: true,
+            speed: 16,
+            bounciness: 7,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(aiFabOffset, {
+            toValue: {x: 0, y: 0},
+            useNativeDriver: true,
+            speed: 16,
+            bounciness: 7,
+          }).start();
+        },
+      }),
+    [aiFabOffset],
+  );
 
   return (
     <SafeAreaView
@@ -99,6 +137,41 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
             })}
           </View>
         )}
+
+        {!showCustomerAi && (
+          <Animated.View
+            {...aiFabPanResponder.panHandlers}
+            style={[
+              styles.aiFab,
+              {bottom: Math.max(insets.bottom + 92, 92)},
+              {
+                transform: [
+                  {translateX: aiFabOffset.x},
+                  {translateY: aiFabOffset.y},
+                ],
+              },
+            ]}
+          >
+            <Pressable
+              style={styles.aiFabPressable}
+              android_ripple={{color: 'rgba(255,255,255,0.25)', borderless: true}}
+              accessibilityRole="button"
+              accessibilityLabel="Mở trợ lý FilmGo AI"
+              onPress={() => setShowCustomerAi(true)}>
+              <Image source={iconAi} style={styles.aiFabImage} />
+            </Pressable>
+          </Animated.View>
+        )}
+
+        <Modal
+          visible={showCustomerAi}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={() => setShowCustomerAi(false)}>
+          <View style={styles.aiFullScreen}>
+            <CustomerAiScreen onClose={() => setShowCustomerAi(false)} />
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -209,25 +282,65 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabBar: {
-    minHeight: 104,
+    height: 78,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#eceff1',
     flexDirection: 'row',
-    paddingTop: 13,
+    alignItems: 'flex-start',
+    paddingTop: 8,
     paddingHorizontal: 10,
     backgroundColor: '#ffffff',
   },
   tabItem: {
     flex: 1,
+    height: 58,
     alignItems: 'center',
+    justifyContent: 'flex-start',
     minWidth: 0,
   },
   tabLabel: {
-    marginTop: 6,
-    fontSize: 14,
-    lineHeight: 18,
+    width: '100%',
+    minHeight: 20,
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 16,
     textAlign: 'center',
     fontWeight: '400',
+    textAlignVertical: 'top',
+  },
+  aiFab: {
+    position: 'absolute',
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    zIndex: 999,
+    elevation: 18,
+    shadowColor: '#001426',
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+  },
+  aiFabPressable: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  aiFabImage: {
+    width: 56,
+    height: 56,
+    resizeMode: 'cover',
+  },
+  aiFullScreen: {
+    flex: 1,
+    backgroundColor: '#f4f6fa',
   },
 });
 

@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import {
   formatGio,
-  formatNgayNgan,
   layDanhSachSuatChieu,
   SuatChieuApi,
 } from '../../../services/showtimeService';
@@ -76,15 +75,23 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
   const groups = useMemo(() => {
     const map = new Map<
       string,
-      {roomName: string; roomType: string; showtimes: SuatChieuApi[]}
+      {dateLabel: string; roomName: string; roomType: string; showtimes: SuatChieuApi[]}
     >();
 
     items.forEach(item => {
+      const date = new Date(item.startTime);
+      const dateLabel = Number.isNaN(date.getTime())
+        ? 'Ngày chiếu'
+        : date.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            day: '2-digit',
+            month: '2-digit',
+          });
       const roomName = item.room?.name || 'Phòng chiếu';
       const roomType = item.room?.type || '2D';
-      const key = `${roomName}|${roomType}`;
+      const key = `${dateLabel}|${roomName}|${roomType}`;
       if (!map.has(key)) {
-        map.set(key, {roomName, roomType, showtimes: []});
+        map.set(key, {dateLabel, roomName, roomType, showtimes: []});
       }
       map.get(key)!.showtimes.push(item);
     });
@@ -109,8 +116,9 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
   if (groups.length === 0) {
     return (
       <Text style={styles.empty}>
-        Chưa có suất chiếu Admin cho ngày này. Hãy tạo suất trên Admin hoặc chọn
-        ngày khác.
+        {selectedDateKey
+          ? 'Chưa có suất chiếu còn đặt được cho ngày đã chọn.'
+          : 'Phim này chưa có suất chiếu còn đặt được. Vui lòng quay lại sau.'}
       </Text>
     );
   }
@@ -119,9 +127,10 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
     <View style={styles.showtimeList}>
       {groups.map(group => (
         <View
-          key={`${group.roomName}-${group.roomType}`}
+          key={`${group.dateLabel}-${group.roomName}-${group.roomType}`}
           style={styles.showtimeCard}>
           <Text style={styles.cinemaName}>FilmGo Hà Trung (Thanh Hóa)</Text>
+          <Text style={styles.dateLabel}>{group.dateLabel}</Text>
           <Text style={styles.roomType}>
             {group.roomName} · {group.roomType}
           </Text>
@@ -152,9 +161,6 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
                     })
                   }>
                   <Text style={[styles.timeText, selected && styles.selectedText]}>{formatGio(item.startTime)}</Text>
-                  <Text style={[styles.timeDate, selected && styles.selectedText]}>
-                    {formatNgayNgan(item.startTime)}
-                  </Text>
                   <Text style={[styles.seatText, selected && styles.selectedPrice]}>
                     {Number(item.price).toLocaleString('vi-VN')}đ
                   </Text>
@@ -200,7 +206,14 @@ const styles = StyleSheet.create({
     color: '#1d1d1d',
     fontSize: 17,
     fontWeight: '900',
-    marginTop: 9,
+    marginTop: 5,
+  },
+  dateLabel: {
+    color: '#005f98',
+    fontSize: 14,
+    fontWeight: '800',
+    marginTop: 8,
+    textTransform: 'capitalize',
   },
   timeRow: {
     flexDirection: 'row',

@@ -32,6 +32,7 @@ const Payment = require("../models/Payment");
 const { createNotification } = require("../services/notificationService");
 const adminBooking = require("../controllers/adminBookingController");
 const adminSeatMap = require("../controllers/adminSeatMapController");
+const adminAi = require("../controllers/adminAiController");
 
 const startOfTodayVN = () => {
   const key = new Intl.DateTimeFormat("en-CA", {
@@ -88,6 +89,8 @@ router.use(authMiddleware, adminMiddleware);
 
 router.get("/dashboard", getDashboard);
 router.get("/dashboard/overview", getAdminOverview);
+router.get("/ai/context", adminAi.getAdminAiContextSummary);
+router.post("/ai/chat", adminAi.chatWithAdminAi);
 router.get("/reports/revenue-by-day", reports.revenueByDay);
 router.get("/reports/revenue-by-movie", reports.revenueByMovie);
 router.get("/reports/revenue-by-room", reports.revenueByRoom);

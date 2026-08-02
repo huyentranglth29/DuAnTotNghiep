@@ -20,21 +20,10 @@ const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const seatHoldRoutes = require("./routes/seatHoldRoutes");
 const newsEventRoutes = require("./routes/newsEventRoutes");
+const customerAiRoutes = require("./routes/customerAiRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
 
 dotenv.config();
-
-connectDB().then(async () => {
-  await releaseExpiredPayments().catch((error) =>
-    console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
-  );
-  const cleanupTimer = setInterval(() => {
-    releaseExpiredPayments().catch((error) =>
-      console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
-    );
-  }, 60 * 1000);
-  cleanupTimer.unref();
-});
 
 const app = express();
 
@@ -66,6 +55,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/news-events", newsEventRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/seat-holds", seatHoldRoutes);
+app.use("/api/customer-ai", customerAiRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {
@@ -80,8 +70,20 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+  connectDB().then(async () => {
+    await releaseExpiredPayments().catch((error) =>
+      console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
+    );
+    const cleanupTimer = setInterval(() => {
+      releaseExpiredPayments().catch((error) =>
+        console.error("❌ Không thể dọn giao dịch hết hạn:", error.message)
+      );
+    }, 60 * 1000);
+    cleanupTimer.unref();
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
   });
 }
 

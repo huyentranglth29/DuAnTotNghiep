@@ -31,6 +31,7 @@ import PaymentHistory from '../pages/payments/PaymentHistory';
 import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
 import NewsEventList from '../pages/news-events/NewsEventList';
+import InternalAiAssistant from '../pages/ai/InternalAiAssistant';
 
 function isAuthenticated() {
   return Boolean(localStorage.getItem('filmgo_admin_token'));
@@ -86,6 +87,7 @@ function AppRoutes() {
         <Route path="notifications" element={<NotificationList />} />
         <Route path="notifications/create" element={<CreateNotification />} />
         <Route path="news-events" element={<NewsEventList />} />
+        <Route path="ai-assistant" element={<InternalAiAssistant />} />
         <Route path="personal-information" element={<PersonalInformation />} />
         <Route path="reports/revenue" element={<RevenueReport />} />
       </Route>

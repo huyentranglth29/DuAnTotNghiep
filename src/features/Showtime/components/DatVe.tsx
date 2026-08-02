@@ -102,7 +102,8 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         );
         const unavailableSelected = Array.from(selectedSeatsRef.current).filter(label => nextSold.has(label));
         // Ghế mình đã giữ nhưng server không còn ghi nhận (Admin thu hồi / hết hạn giữ)
-        const lostHold = holdingRef.current
+        const hasSyncedHold = selectedSeatsRef.current.size === 0 || heldByMe.size > 0;
+        const lostHold = holdingRef.current || !hasSyncedHold
           ? []
           : Array.from(selectedSeatsRef.current).filter(
               label => !nextSold.has(label) && !heldByMe.has(label),

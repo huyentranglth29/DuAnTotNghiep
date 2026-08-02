@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 const Payment = require("../models/Payment");
 const BookedSeat = require("../models/BookedSeat");
 const QuickBooking = require("../models/QuickBooking");
@@ -11,6 +12,7 @@ const { buildQuery, sign, verify, formatVnpDate } = require("../utils/vnpay");
 const { createNotification } = require("../services/notificationService");
 
 const HOLD_MINUTES = 15;
+const PAYOS_API_URL = "https://api-merchant.payos.vn";
 const STATUS_LABELS = {
   cho_thanh_toan: "Đang chờ thanh toán",
   da_thanh_toan: "Thành công",
@@ -198,12 +200,100 @@ async function restoreComboStock(payment) {
   await payment.save();
 }
 
+function buildSortedQuery(params) {
+  return Object.keys(params)
+    .filter((key) => params[key] !== undefined && params[key] !== null)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+}
+
+function signPayos(params) {
+  if (!process.env.PAYOS_CHECKSUM_KEY) {
+    const error = new Error("PAYOS_CHECKSUM_KEY chưa được cấu hình");
+    error.status = 503;
+    throw error;
+  }
+  return crypto
+    .createHmac("sha256", process.env.PAYOS_CHECKSUM_KEY)
+    .update(buildSortedQuery(params))
+    .digest("hex");
+}
+
+function getPayosConfig() {
+  const config = {
+    clientId: process.env.PAYOS_CLIENT_ID,
+    apiKey: process.env.PAYOS_API_KEY,
+    checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+    returnUrl: process.env.PAYOS_RETURN_URL,
+    cancelUrl: process.env.PAYOS_CANCEL_URL || process.env.PAYOS_RETURN_URL,
+  };
+  const missing = Object.entries(config)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+  if (missing.length) {
+    const error = new Error(`PayOS chưa được cấu hình: ${missing.join(", ")}`);
+    error.status = 503;
+    throw error;
+  }
+  return config;
+}
+
+async function payosFetch(pathname, options = {}) {
+  const config = getPayosConfig();
+  const response = await fetch(`${PAYOS_API_URL}${pathname}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "x-client-id": config.clientId,
+      "x-api-key": config.apiKey,
+      ...(options.headers || {}),
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.code !== "00") {
+    const error = new Error(payload.desc || payload.message || "PayOS xử lý thất bại");
+    error.status = response.status || 502;
+    error.data = payload;
+    throw error;
+  }
+  return payload;
+}
+
+function makePayosOrderCode() {
+  return Number(`${Math.floor(Date.now() / 1000)}${Math.floor(100 + Math.random() * 900)}`);
+}
+
+function makePayosDescription(orderCode) {
+  // Tài khoản ngân hàng không liên kết qua payOS giới hạn mô tả ngắn.
+  return `FG${String(orderCode).slice(-7)}`;
+}
+
+async function syncPayosPayment(payment) {
+  if (!payment || payment.provider !== "payos" || payment.status !== "cho_thanh_toan") {
+    return payment;
+  }
+  const payload = await payosFetch(`/v2/payment-requests/${payment.orderCode}`);
+  const data = payload.data || {};
+  if (data.status === "PAID") {
+    return completePayment(payment, {
+      vnp_TransactionNo: data.paymentLinkId || data.id || String(data.orderCode),
+      vnp_BankCode: "PAYOS",
+      vnp_ResponseCode: "00",
+    });
+  }
+  if (["CANCELLED", "EXPIRED"].includes(data.status)) {
+    return releasePayment(payment, data.status === "CANCELLED" ? "da_huy" : "het_han");
+  }
+  return payment;
+}
+
 function getConfig() {
   const config = {
-    tmnCode: process.env.VNP_TMN_CODE,
-    secret: process.env.VNP_HASH_SECRET,
-    paymentUrl: process.env.VNP_PAYMENT_URL,
-    returnUrl: process.env.VNP_RETURN_URL,
+    tmnCode: process.env.VNP_TMN_CODE || process.env.VNPAY_TMN_CODE,
+    secret: process.env.VNP_HASH_SECRET || process.env.VNPAY_HASH_SECRET,
+    paymentUrl: process.env.VNP_PAYMENT_URL || process.env.VNPAY_URL,
+    returnUrl: process.env.VNP_RETURN_URL || process.env.VNPAY_RETURN_URL,
   };
   const missing = Object.entries(config).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length) {
@@ -468,6 +558,151 @@ const createVnpayPayment = async (req, res, next) => {
   }
 };
 
+const createPayosPayment = async (req, res, next) => {
+  let payment;
+  try {
+    const config = getPayosConfig();
+    const seats = normalizeSeats(req.body.seats);
+    const showtimeId = String(req.body.showtimeId || "").trim();
+    if (!showtimeId || !seats.length) {
+      return res.status(400).json({ success: false, message: "Thông tin suất chiếu hoặc ghế không hợp lệ" });
+    }
+
+    const showtime = await Showtime.findById(showtimeId).populate("movie", "title duration genre");
+    if (!showtime || showtime.status !== "scheduled") {
+      return res.status(404).json({ success: false, message: "Suất chiếu không tồn tại hoặc đã ngừng bán" });
+    }
+    const roomSeats = await Seat.find({ room: showtime.room, status: "active" }).lean();
+    const seatByLabel = new Map(roomSeats.map((seat) => [`${seat.row}${seat.number}`.toUpperCase(), seat]));
+    if (seats.some((label) => !seatByLabel.has(label))) {
+      return res.status(400).json({ success: false, message: "Có ghế không thuộc phòng chiếu này" });
+    }
+
+    const unitPrice = Number(showtime.price);
+    const ticketTotal = seats.reduce((total, label) => {
+      const type = seatByLabel.get(label).type;
+      return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);
+    }, 0);
+    const { combos, comboTotal } = await prepareCombos(req.body.combos);
+    const subtotal = ticketTotal + comboTotal;
+    const voucherInfo = await prepareVoucher(req.user?._id, req.body.voucherCode, subtotal);
+    const amount = subtotal - voucherInfo.discount;
+    if (!Number.isInteger(amount) || amount < 1000) {
+      return res.status(400).json({ success: false, message: "Số tiền thanh toán PayOS không hợp lệ" });
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+    const orderCode = makePayosOrderCode();
+    const movieTitle = showtime.movie?.title || String(req.body.movieTitle || "").trim();
+
+    payment = await Payment.create({
+      user: req.user?._id,
+      provider: "payos",
+      voucher: voucherInfo.voucher?._id,
+      userVoucher: voucherInfo.userVoucher?._id,
+      voucherCode: voucherInfo.voucher?.code,
+      subtotal,
+      discount: voucherInfo.discount,
+      orderCode: String(orderCode),
+      amount,
+      expiresAt,
+      bookingData: {
+        showtimeId,
+        movieTitle,
+        movieDuration: showtime.movie?.duration || req.body.movieDuration,
+        movieGenre: normalizeGenre(showtime.movie?.genre || req.body.movieGenre),
+        seats,
+        combos,
+        ticketTotal,
+        comboTotal,
+        totalPrice: amount,
+        cinema: req.body.cinema,
+        bookingDate: req.body.bookingDate,
+        bookingTime: req.body.bookingTime,
+      },
+    });
+
+    try {
+      await reservePaymentSeats({
+        showtimeId, seats, paymentId: payment._id, expiresAt,
+        userId: req.user?._id, holdToken: req.body.holdToken,
+      });
+      await reserveComboStock(payment);
+      await reserveVoucher(payment);
+    } catch (error) {
+      await restoreComboStock(payment);
+      await releaseVoucher(payment);
+      await BookedSeat.deleteMany({ payment: payment._id });
+      await Payment.deleteOne({ _id: payment._id });
+      if (error?.code === 11000) {
+        await notifyBookingFailure(req.user?._id, movieTitle, "Một hoặc nhiều ghế vừa được người khác giữ.");
+        return res.status(409).json({ success: false, message: "Một hoặc nhiều ghế vừa được người khác giữ" });
+      }
+      throw error;
+    }
+
+    const description = makePayosDescription(orderCode);
+    const paymentRequest = {
+      orderCode,
+      amount,
+      description,
+      buyerName: req.user?.fullName || undefined,
+      buyerEmail: req.user?.email || undefined,
+      buyerPhone: req.user?.phone || undefined,
+      items: [
+        { name: `Ve ${movieTitle}`.slice(0, 80), quantity: seats.length, price: ticketTotal },
+        ...combos.map(item => ({
+          name: String(item.name || "Combo").slice(0, 80),
+          quantity: item.quantity,
+          price: item.unitPrice,
+        })),
+      ],
+      returnUrl: config.returnUrl,
+      cancelUrl: config.cancelUrl,
+      expiredAt: Math.floor(expiresAt.getTime() / 1000),
+    };
+    paymentRequest.signature = signPayos({
+      amount: paymentRequest.amount,
+      cancelUrl: paymentRequest.cancelUrl,
+      description: paymentRequest.description,
+      orderCode: paymentRequest.orderCode,
+      returnUrl: paymentRequest.returnUrl,
+    });
+
+    const payload = await payosFetch("/v2/payment-requests", {
+      method: "POST",
+      body: JSON.stringify(paymentRequest),
+    });
+    payment.externalPaymentId = payload.data?.paymentLinkId;
+    payment.checkoutUrl = payload.data?.checkoutUrl;
+    await payment.save();
+    await notifyPendingPayment(payment);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        paymentId: String(payment._id),
+        orderCode: String(orderCode),
+        checkoutUrl: payload.data?.checkoutUrl,
+        paymentUrl: payload.data?.checkoutUrl,
+        qrCode: payload.data?.qrCode,
+        status: payment.status,
+        statusLabel: STATUS_LABELS[payment.status],
+        expiresAt,
+      },
+    });
+  } catch (error) {
+    if (payment?._id) {
+      await restoreComboStock(payment);
+      await releaseVoucher(payment);
+      await BookedSeat.deleteMany({ payment: payment._id });
+      await Payment.deleteOne({ _id: payment._id, status: "cho_thanh_toan" });
+    }
+    next(error);
+  }
+};
+
 const createMockPayment = async (req, res, next) => {
   let payment;
   try {
@@ -624,10 +859,52 @@ const vnpayReturn = async (req, res) => {
   }
 };
 
+const payosWebhook = async (req, res) => {
+  try {
+    const { data, signature } = req.body || {};
+    if (!data || !signature || signPayos(data) !== signature) {
+      return res.status(400).json({ success: false, message: "Chữ ký PayOS không hợp lệ" });
+    }
+    if (!data.orderCode) {
+      return res.json({ success: true });
+    }
+    const payment = await Payment.findOne({ orderCode: String(data.orderCode), provider: "payos" });
+    if (!payment) return res.json({ success: true });
+    if (data.code === "00" || data.desc === "success") {
+      await completePayment(payment, {
+        vnp_TransactionNo: data.reference || data.paymentLinkId || String(data.orderCode),
+        vnp_BankCode: "PAYOS",
+        vnp_ResponseCode: "00",
+      });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const payosReturn = async (req, res) => {
+  try {
+    const orderCode = String(req.query.orderCode || "").trim();
+    let payment = orderCode
+      ? await Payment.findOne({ orderCode, provider: "payos" })
+      : null;
+    if (payment) payment = await syncPayosPayment(payment);
+    const ok = payment?.status === "da_thanh_toan";
+    return res.type("html").send(`<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${ok ? "Thanh toán thành công" : "Đã quay lại FilmGo"}</title><body style="font-family:sans-serif;text-align:center;padding:48px"><h2>${ok ? "Thanh toán thành công" : "FilmGo đã nhận trạng thái thanh toán"}</h2><p>Bạn có thể quay lại ứng dụng FilmGo để xem vé.</p></body></html>`);
+  } catch (error) {
+    return res.status(400).send(`Không thể xác nhận thanh toán PayOS: ${error.message}`);
+  }
+};
+
 const getPaymentStatus = async (req, res, next) => {
   try {
     let payment = await Payment.findOne({_id: req.params.id, user: req.user._id}).lean();
     if (!payment) return res.status(404).json({ success: false, message: "Không tìm thấy giao dịch" });
+    if (payment.provider === "payos" && payment.status === "cho_thanh_toan") {
+      await syncPayosPayment(await Payment.findById(payment._id));
+      payment = await Payment.findById(payment._id).lean();
+    }
     if (payment.status === "cho_thanh_toan" && new Date(payment.expiresAt) <= new Date()) {
       await releasePayment(await Payment.findById(payment._id), "het_han");
       payment = await Payment.findById(payment._id).lean();
@@ -657,8 +934,11 @@ module.exports = {
   completeMockPayment,
   failMockPayment,
   createVnpayPayment,
+  createPayosPayment,
   vnpayIpn,
   vnpayReturn,
+  payosWebhook,
+  payosReturn,
   getPaymentStatus,
   cancelPayment,
   releaseExpiredPayments,
