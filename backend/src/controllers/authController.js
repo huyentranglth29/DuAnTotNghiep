@@ -129,7 +129,6 @@ const login = async (req, res) => {
     failedLoginAttempts.delete(String(user.email).toLowerCase());
     user.lastLogin = new Date();
     user.lastSeen = new Date();
-    user.forcedOfflineAt = null;
     await user.save();
     const token = generateToken(user._id, user.role);
     sendLoginNotification({
@@ -226,7 +225,6 @@ const googleLogin = async (req, res) => {
         avatar,
         lastLogin: new Date(),
         lastSeen: new Date(),
-        forcedOfflineAt: null,
       });
     } else {
       if (user.status !== "active") {
@@ -251,7 +249,6 @@ const googleLogin = async (req, res) => {
       }
       user.lastLogin = new Date();
       user.lastSeen = new Date();
-      user.forcedOfflineAt = null;
       await user.save();
     }
 
@@ -380,39 +377,13 @@ const updateProfile = async (req, res) => {
 const heartbeat = async (req, res) => {
   try {
     const now = new Date();
-    // Bỏ qua nếu vừa logout (tránh heartbeat in-flight ghi đè Offline)
     await User.updateOne(
-      {
-        _id: req.user._id,
-        $or: [
-          {forcedOfflineAt: null},
-          {forcedOfflineAt: {$exists: false}},
-          {forcedOfflineAt: {$lt: new Date(Date.now() - 3000)}},
-        ],
-      },
-      {$set: {lastSeen: now}, $unset: {forcedOfflineAt: ""}},
+      {_id: req.user._id},
+      {$set: {lastSeen: now}},
     );
     return res.json({
       success: true,
       message: "ok",
-      lastSeen: now,
-    });
-  } catch (error) {
-    return res.status(500).json({success: false, message: error.message});
-  }
-};
-
-/** Báo Offline ngay khi user đăng xuất */
-const goOffline = async (req, res) => {
-  try {
-    const now = new Date();
-    await User.updateOne(
-      {_id: req.user._id},
-      {$set: {lastSeen: now, forcedOfflineAt: now}},
-    );
-    return res.json({
-      success: true,
-      message: "offline",
       lastSeen: now,
     });
   } catch (error) {
@@ -428,5 +399,4 @@ module.exports = {
   profile,
   updateProfile,
   heartbeat,
-  goOffline,
 };
