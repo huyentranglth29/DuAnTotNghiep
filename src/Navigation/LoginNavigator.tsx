@@ -8,7 +8,6 @@ import {
   loginWithApi,
   loginWithGoogleApi,
   registerWithApi,
-  restoreAuthSession,
 } from '../services/voucherService';
 import {
   configureGoogleSignIn,
@@ -63,7 +62,6 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
   useEffect(() => {
     configureGoogleSignIn();
     loadRegisteredUser();
-    restoreAuthSession().catch(() => undefined);
   }, []);
 
   const loadRegisteredUser = async () => {

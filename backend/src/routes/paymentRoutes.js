@@ -12,6 +12,9 @@ router.post("/mock/:id/fail", authMiddleware, controller.failMockPayment);
 router.post("/vnpay/create", authMiddleware, controller.createVnpayPayment);
 router.get("/vnpay/ipn", controller.vnpayIpn);
 router.get("/vnpay/return", controller.vnpayReturn);
+router.post("/payos/create", authMiddleware, controller.createPayosPayment);
+router.post("/payos/webhook", controller.payosWebhook);
+router.get("/payos/return", controller.payosReturn);
 router.get("/:id/status", authMiddleware, controller.getPaymentStatus);
 router.post("/:id/cancel", authMiddleware, controller.cancelPayment);
 

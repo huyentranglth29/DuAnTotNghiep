@@ -35,9 +35,14 @@ export async function restoreAuthSession() {
     // Token cũ / user đã bị seed lại → xóa session để tránh "Người dùng không tồn tại"
     await apiClient.get('/api/auth/profile');
     return token;
-  } catch {
-    await clearAuthSession();
-    return null;
+  } catch (error) {
+    if ([401, 403, 404].includes(error?.status)) {
+      await clearAuthSession();
+      return null;
+    }
+
+    // Backend/mạng tạm lỗi thì vẫn giữ token để app không bắt đăng nhập lại liên tục.
+    return token;
   }
 }
 

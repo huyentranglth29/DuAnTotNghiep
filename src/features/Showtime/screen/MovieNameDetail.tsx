@@ -245,7 +245,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         y: 400,
         animated: true,
       });
-      Alert.alert('Thông báo', 'Vui lòng chọn khung giờ chiếu hôm nay ở bên dưới!');
+      Alert.alert('Thông báo', 'Vui lòng chọn khung giờ chiếu ở bên dưới!');
     }
   };
 

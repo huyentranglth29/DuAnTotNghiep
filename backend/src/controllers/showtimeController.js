@@ -111,11 +111,16 @@ const getShowtimeSeats = async (req, res, next) => {
           { expiresAt: { $exists: false } },
           { expiresAt: { $gt: new Date() } },
         ],
-      }).select("seatLabel status holdToken").lean(),
+      }).select("seatLabel status holdToken expiresAt").lean(),
     ]);
-    const sold = new Set(
+    const booked = new Set(
       soldRows
-        .filter((row) => row.status !== "held" || !row.expiresAt || new Date(row.expiresAt) > new Date())
+        .filter((row) => row.status !== "held")
+        .map((row) => row.seatLabel),
+    );
+    const held = new Set(
+      soldRows
+        .filter((row) => row.status === "held")
         .map((row) => row.seatLabel),
     );
     const heldByMe = new Set(
@@ -135,8 +140,8 @@ const getShowtimeSeats = async (req, res, next) => {
           row: seat.row,
           number: seat.number,
           type: seat.type,
-          isBooked: sold.has(`${seat.row}${seat.number}`) && !heldByMe.has(`${seat.row}${seat.number}`),
-          isHeld: sold.has(`${seat.row}${seat.number}`) && !heldByMe.has(`${seat.row}${seat.number}`),
+          isBooked: booked.has(`${seat.row}${seat.number}`),
+          isHeld: held.has(`${seat.row}${seat.number}`),
           heldByMe: heldByMe.has(`${seat.row}${seat.number}`),
         })),
       },
