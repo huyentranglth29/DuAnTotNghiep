@@ -28,13 +28,6 @@ function NewsEventList() {
             {value: 'khuyen_mai', label: 'Khuyến mãi'},
           ],
         },
-        {
-          name: 'status', label: 'Trạng thái', type: 'select', defaultValue: 'nhap',
-          options: [
-            {value: 'nhap', label: 'Bản nháp'},
-            {value: 'da_dang', label: 'Đã đăng'},
-          ],
-        },
         {name: 'publishDate', label: 'Ngày xuất bản', type: 'datetime-local'},
         {
           name: 'isFeatured', label: 'Bài nổi bật', type: 'select', defaultValue: 'false',
@@ -44,10 +37,11 @@ function NewsEventList() {
           ],
         },
       ]}
-      normalizeSubmit={payload => ({
+      normalizeSubmit={(payload, editingItem) => ({
         ...payload,
         isFeatured: payload.isFeatured === true || payload.isFeatured === 'true',
         publishDate: payload.publishDate || new Date().toISOString(),
+        status: editingItem?.status || 'da_dang',
       })}
       columns={[
         {key: 'title', title: 'Tiêu đề'},
