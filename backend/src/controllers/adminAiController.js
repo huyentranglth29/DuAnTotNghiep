@@ -41,6 +41,18 @@ const MODEL_REGISTRY = [
 
 const SECRET_FIELD = /(password|token|secret|hash|key|googleId)/i;
 const PII_FIELD = /(email|phone|idCard|address|birthDate)/i;
+const MOVIE_ACTOR_FIELDS = [
+  "actors",
+  "cast",
+  "dienVien",
+  "dienvien",
+  "diễn viên",
+  "actorList",
+  "actor_list",
+  "castMembers",
+  "performers",
+];
+const MOVIE_LANGUAGE_FIELDS = ["language", "languages", "ngonNgu", "ngôn ngữ"];
 
 function getModelName() {
   return process.env.OPENAI_MODEL || DEFAULT_MODEL;
@@ -291,10 +303,6 @@ function getStatusRows(rows = []) {
     .join("\n");
 }
 
-function escapeRegex(value = "") {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function normalizeText(value = "") {
   return String(value)
     .normalize("NFD")
@@ -379,24 +387,77 @@ function providerLabel(provider = "") {
 function extractMovieQuery(question = "") {
   return String(question)
     .replace(/^(cho\s+tôi|cho\s+toi|xem|lấy|lay|tìm|tim|thông\s+tin|thong\s+tin|về|ve)\s+/gi, "")
-    .replace(/\b(đạo\s+diễn|dao\s+dien|lịch\s+chiếu|lich\s+chieu|giá|gia|của|cua|là\s+ai|la\s+ai|bao\s+nhiêu|bao\s+nhieu)\b/gi, "")
+    .replace(/\b(đạo\s+diễn|dao\s+dien|diễn\s+viên|dien\s+vien|dàn\s+cast|dan\s+cast|lịch\s+chiếu|lich\s+chieu|giá\s+vé|gia\s+ve|giá|gia|của|cua|là\s+ai|la\s+ai|bao\s+nhiêu|bao\s+nhieu|có\s+những\s+ai\s+tham\s+gia|co\s+nhung\s+ai\s+tham\s+gia|ai\s+tham\s+gia)\b/gi, " ")
     .replace(/\b(phim|film|movie)\b/gi, "")
-    .replace(/[?!.]/g, "")
+    .replace(/[?!.:,]/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-async function findMovieForQuestion(question = "") {
+function getMovieValue(movie, fields) {
+  for (const field of fields) {
+    const value = movie?.[field];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return null;
+}
+
+function flattenActorNames(value) {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.flatMap(flattenActorNames);
+  if (typeof value === "object") {
+    return flattenActorNames(
+      value.name || value.fullName || value.displayName || value.actorName || value.actor || value.ten || value.tenDienVien || value.value,
+    );
+  }
+  return String(value)
+    .split(/[,;\n]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function getMovieActors(movie) {
+  return Array.from(new Set(
+    MOVIE_ACTOR_FIELDS.flatMap(field => flattenActorNames(movie?.[field])),
+  ));
+}
+
+function scoreMovieMatch(movie, normalizedKeyword, normalizedQuestion) {
+  const title = normalizeText(movie.title);
+  if (!title) return 0;
+  if (title === normalizedKeyword) return 100;
+  if (normalizedQuestion.includes(title)) return 90 + Math.min(title.length, 9) / 10;
+  if (title.includes(normalizedKeyword)) return 70 + normalizedKeyword.length / Math.max(title.length, 1);
+  if (normalizedKeyword.includes(title)) return 60 + title.length / Math.max(normalizedKeyword.length, 1);
+
+  const keywordTokens = new Set(normalizedKeyword.split(/\s+/).filter(token => token.length > 1));
+  const titleTokens = new Set(title.split(/\s+/).filter(token => token.length > 1));
+  const commonTokens = [...keywordTokens].filter(token => titleTokens.has(token)).length;
+  return commonTokens ? (commonTokens / Math.max(keywordTokens.size, titleTokens.size)) * 50 : 0;
+}
+
+async function findMovieMatchForQuestion(question = "") {
   const keyword = extractMovieQuery(question);
   if (!keyword || keyword.length < 2) return null;
-  const normalizedQuestion = normalizeText(keyword);
+  const normalizedKeyword = normalizeText(keyword);
+  const normalizedQuestion = normalizeText(question);
   const movies = await Movie.find({}).lean();
-  const directMatch = movies.find(movie =>
-    normalizeText(normalizedQuestion).includes(normalizeText(movie.title)),
-  );
-  if (directMatch) return directMatch;
-  return Movie.findOne({
-    title: { $regex: escapeRegex(keyword), $options: "i" },
-  }).lean();
+  const matches = movies
+    .map(movie => ({ movie, score: scoreMovieMatch(movie, normalizedKeyword, normalizedQuestion) }))
+    .filter(match => match.score > 0)
+    .sort((left, right) => right.score - left.score || String(left.movie.title).localeCompare(String(right.movie.title), "vi"));
+  if (!matches.length) return null;
+
+  return {
+    movie: matches[0].movie,
+    alternatives: matches.slice(1, 3).map(match => match.movie),
+    ambiguous: matches.length > 1 && matches[0].score < 100 && matches[0].score - matches[1].score < 3,
+  };
+}
+
+async function findMovieForQuestion(question = "") {
+  const match = await findMovieMatchForQuestion(question);
+  return match?.movie || null;
 }
 
 function formatMovieList(titles = [], emptyText = "Chưa có dữ liệu phù hợp.") {
@@ -431,11 +492,27 @@ async function getMovieScheduleAnswer(question = "") {
 }
 
 async function getMovieDirectorAnswer(question = "") {
-  const movie = await findMovieForQuestion(question);
+  const match = await findMovieMatchForQuestion(question);
+  const movie = match?.movie;
   if (!movie) return "Em chưa tìm thấy phim này trong dữ liệu.";
   return movie.director
     ? `Đạo diễn của phim ${movie.title} là ${movie.director}.`
     : `Phim ${movie.title} hiện chưa có thông tin đạo diễn trong hệ thống.`;
+}
+
+async function getMovieActorsAnswer(question = "") {
+  const match = await findMovieMatchForQuestion(question);
+  const movie = match?.movie;
+  if (!movie) return "Em chưa tìm thấy phim này trong dữ liệu.";
+
+  const actors = getMovieActors(movie);
+  if (!actors.length) {
+    return `Hiện phim ${movie.title} chưa có thông tin diễn viên trong hệ thống.`;
+  }
+  const clarification = match.ambiguous && match.alternatives.length
+    ? ` Em đang hiểu anh/chị hỏi phim ${movie.title}; ngoài ra còn có ${match.alternatives.map(item => item.title).join(", ")}.`
+    : "";
+  return `Diễn viên phim ${movie.title}: ${actors.join(", ")}.${clarification}`;
 }
 
 async function getHotMovieTodayAnswer() {
@@ -1052,19 +1129,47 @@ async function getAdminSummaryAnswer() {
 }
 
 function formatMovieInfo(movie) {
+  const actors = getMovieActors(movie);
+  const language = getMovieValue(movie, MOVIE_LANGUAGE_FIELDS);
   const parts = [
     `Phim: ${movie.title}`,
-    movie.status ? `Trạng thái: ${movie.status}` : null,
+    movie.status ? `Trạng thái: ${movieStatusLabel(movie.status)}` : null,
     movie.genre ? `Thể loại: ${Array.isArray(movie.genre) ? movie.genre.join(", ") : movie.genre}` : null,
     movie.duration ? `Thời lượng: ${movie.duration}` : null,
+    language ? `Ngôn ngữ: ${Array.isArray(language) ? language.join(", ") : language}` : null,
     movie.director ? `Đạo diễn: ${movie.director}` : null,
+    actors.length ? `Diễn viên: ${actors.join(", ")}` : "Hiện phim này chưa có thông tin diễn viên trong hệ thống.",
     movie.releaseDate ? `Ngày khởi chiếu: ${new Date(movie.releaseDate).toLocaleDateString("vi-VN")}` : null,
-    movie.price ? `Giá vé gốc: ${Number(movie.price).toLocaleString("vi-VN")}đ` : null,
+    movie.price != null ? `Giá vé gốc: ${Number(movie.price).toLocaleString("vi-VN")}đ` : null,
+    movie.rating != null ? `Đánh giá: ${Number(movie.rating)}/5` : null,
   ].filter(Boolean);
   if (movie.description || movie.synopsis) {
     parts.push(`Mô tả: ${String(movie.description || movie.synopsis).slice(0, 260)}`);
   }
   return parts.join("\n");
+}
+
+async function getMovieInfoAnswer(question = "") {
+  const match = await findMovieMatchForQuestion(question);
+  const movie = match?.movie;
+  if (!movie) return "Em chưa tìm thấy phim này trong dữ liệu.";
+
+  const showtimes = await Showtime.find({
+    movie: movie._id,
+    status: "scheduled",
+    startTime: { $gte: new Date() },
+  })
+    .populate("room", "name")
+    .sort({ startTime: 1 })
+    .limit(3)
+    .lean();
+  const schedule = showtimes.length
+    ? `Lịch chiếu sắp tới: ${showtimes.map(item => `${formatDateTimeVN(item.startTime)}${item.room?.name ? ` tại ${item.room.name}` : ""}, ${formatMoney(item.price)}`).join("; ")}.`
+    : "Lịch chiếu: hiện chưa có suất chiếu sắp tới.";
+  const clarification = match.ambiguous && match.alternatives.length
+    ? `\nEm đang hiểu anh/chị hỏi phim ${movie.title}; các tên gần khớp khác là ${match.alternatives.map(item => item.title).join(", ")}.`
+    : "";
+  return `${formatMovieInfo(movie)}\n${schedule}${clarification}`;
 }
 
 async function buildLocalFallbackAnswer(question, context, reason = "") {
@@ -1098,7 +1203,7 @@ async function buildLocalFallbackAnswer(question, context, reason = "") {
   if (normalized.includes("phim") || normalized.includes("bán")) {
     const matchedMovie = await findMovieForQuestion(question);
     if (matchedMovie) {
-      return `${prefix}${formatMovieInfo(sanitizeDocument(matchedMovie))}`;
+      return `${prefix}${await getMovieInfoAnswer(question)}`;
     }
     const movieStatuses = (snapshot.movieStatus || [])
       .map(row => `${row._id || "unknown"}: ${row.count || 0}`)
@@ -1142,16 +1247,24 @@ async function answerDirectQuestion(question, context) {
     return getTodayMoviesAnswer();
   }
 
-  if (normalized.includes("dao dien") && (normalized.includes("phim") || normalized.includes("film"))) {
+  const asksMovieActors = normalized.includes("dien vien")
+    || normalized.includes("dan cast")
+    || normalized.includes("ai tham gia")
+    || normalized.includes("nhung ai tham gia");
+  const asksMovieInfo = normalized.includes("thong tin") && normalized.includes("phim");
+  const asksMovieDirector = normalized.includes("dao dien");
+
+  if (asksMovieActors) {
+    return getMovieActorsAnswer(question);
+  }
+  if (asksMovieDirector) {
     return getMovieDirectorAnswer(question);
   }
   if (normalized.includes("lich chieu") && (normalized.includes("phim") || normalized.includes("film"))) {
     return getMovieScheduleAnswer(question);
   }
-  if (normalized.includes("thong tin") && normalized.includes("phim")) {
-    const matchedMovie = await findMovieForQuestion(question);
-    if (matchedMovie) return formatMovieInfo(sanitizeDocument(matchedMovie));
-    return "Em chưa tìm thấy phim này trong dữ liệu.";
+  if (asksMovieInfo) {
+    return getMovieInfoAnswer(question);
   }
   if ((normalized.includes("gia") || normalized.includes("gia ve")) &&
       (normalized.includes("phim") || normalized.includes("film"))) {

@@ -523,7 +523,7 @@ const createVnpayPayment = async (req, res, next) => {
       vnp_Amount: amount * 100,
       vnp_CurrCode: "VND",
       vnp_TxnRef: orderCode,
-      vnp_OrderInfo: `Thanh toan ve phim ${movieTitle}`,
+      vnp_OrderInfo: `Thanh toan FilmGo ${orderCode}`,
       vnp_OrderType: "other",
       vnp_Locale: "vn",
       vnp_ReturnUrl: config.returnUrl,

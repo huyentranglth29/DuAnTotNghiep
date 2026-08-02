@@ -4,24 +4,38 @@ function encode(value) {
   return encodeURIComponent(String(value)).replace(/%20/g, "+");
 }
 
-function buildQuery(params) {
-  return Object.keys(params)
-    .filter((key) => params[key] !== undefined && params[key] !== null && params[key] !== "")
-    .sort()
-    .map((key) => `${encode(key)}=${encode(params[key])}`)
+function getSignedParams(params, excludeSignature = false) {
+  return Object.entries(params || {})
+    .filter(([key, value]) => (
+      key.startsWith("vnp_")
+      && value !== undefined
+      && value !== null
+      && value !== ""
+      && (!excludeSignature || (key !== "vnp_SecureHash" && key !== "vnp_SecureHashType"))
+    ))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .reduce((result, [key, value]) => {
+      result[key] = value;
+      return result;
+    }, {});
+}
+
+function buildQuery(params, excludeSignature = false) {
+  return Object.entries(getSignedParams(params, excludeSignature))
+    .map(([key, value]) => `${encode(key)}=${encode(value)}`)
     .join("&");
 }
 
 function sign(params, secret) {
-  return crypto.createHmac("sha512", secret).update(buildQuery(params), "utf8").digest("hex");
+  return crypto
+    .createHmac("sha512", secret)
+    .update(buildQuery(params, true), "utf8")
+    .digest("hex");
 }
 
 function verify(query, secret) {
-  const params = { ...query };
-  const received = String(params.vnp_SecureHash || "").toLowerCase();
-  delete params.vnp_SecureHash;
-  delete params.vnp_SecureHashType;
-  const expected = sign(params, secret).toLowerCase();
+  const received = String(query?.vnp_SecureHash || "").toLowerCase();
+  const expected = sign(query, secret).toLowerCase();
   if (!received || received.length !== expected.length) return false;
   return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
 }

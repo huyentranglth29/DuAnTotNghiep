@@ -31,6 +31,22 @@ const movieSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: [],
     },
+    actors: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    dienVien: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    actorList: {
+      type: mongoose.Schema.Types.Mixed,
+      default: [],
+    },
+    language: {
+      type: String,
+      trim: true,
+    },
     poster: {
       type: String,
       trim: true,
