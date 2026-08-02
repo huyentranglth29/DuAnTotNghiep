@@ -104,7 +104,7 @@ const createAdminCrudController = (Model, options = {}) => {
     return query.populate(populate);
   };
 
-  const resolveBody = (body) =>
+  const resolveBody = async (body) =>
     typeof prepareBody === "function" ? prepareBody(body) || body : body;
 
   const getAll = async (req, res) => {
@@ -156,7 +156,7 @@ const createAdminCrudController = (Model, options = {}) => {
 
   const create = async (req, res) => {
     try {
-      const item = new Model(resolveBody(req.body));
+      const item = new Model(await resolveBody(req.body));
       await item.save();
       if (afterCreate) await afterCreate(item, req);
       const created = await applyPopulate(Model.findById(item._id));
@@ -164,6 +164,9 @@ const createAdminCrudController = (Model, options = {}) => {
     } catch (err) {
       if (err.name === "ValidationError" || err.code === 11000) {
         return error(res, 400, err.message, err.errors || err.keyValue);
+      }
+      if (err.statusCode) {
+        return error(res, err.statusCode, err.message);
       }
       return error(res, 500, err.message);
     }
@@ -180,7 +183,7 @@ const createAdminCrudController = (Model, options = {}) => {
         return error(res, 404, `${Model.modelName} không tồn tại`);
       }
 
-      item.set(resolveBody(req.body));
+      item.set(await resolveBody(req.body));
       await item.save();
       const updated = await applyPopulate(Model.findById(item._id));
 
@@ -188,6 +191,9 @@ const createAdminCrudController = (Model, options = {}) => {
     } catch (err) {
       if (err.name === "ValidationError" || err.code === 11000) {
         return error(res, 400, err.message, err.errors || err.keyValue);
+      }
+      if (err.statusCode) {
+        return error(res, err.statusCode, err.message);
       }
       return error(res, 500, err.message);
     }

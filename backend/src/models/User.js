@@ -130,6 +130,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    notificationEnabled: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

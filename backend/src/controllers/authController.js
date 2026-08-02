@@ -324,6 +324,7 @@ const updateProfile = async (req, res) => {
       province,
       district,
       address,
+      notificationEnabled,
     } = req.body;
 
     if (typeof fullName === "string") {
@@ -360,6 +361,9 @@ const updateProfile = async (req, res) => {
     if (typeof province === "string") user.province = province.trim();
     if (typeof district === "string") user.district = district.trim();
     if (typeof address === "string") user.address = address.trim();
+    if (typeof notificationEnabled === "boolean") {
+      user.notificationEnabled = notificationEnabled;
+    }
 
     await user.save();
 

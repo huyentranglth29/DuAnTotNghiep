@@ -7,6 +7,10 @@ const serialize = (item, userId) => ({
 
 exports.getAll = async (req, res, next) => {
   try {
+    if (req.user?.notificationEnabled === false) {
+      return res.json({ success: true, data: [] });
+    }
+
     const filter = req.user
       ? {
           $or: [

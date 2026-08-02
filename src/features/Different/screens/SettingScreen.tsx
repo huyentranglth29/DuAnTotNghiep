@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -8,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import {getAuthProfile, updateAuthProfile} from '../../../services/voucherService';
 
 const BLUE = '#005f98';
 
@@ -60,6 +62,39 @@ function SettingScreen({ onBack }: SettingScreenProps) {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [detailScreen, setDetailScreen] = useState<SettingDetailScreen | null>(null);
 
+  useEffect(() => {
+    let mounted = true;
+
+    getAuthProfile()
+      .then(user => {
+        if (mounted && typeof user?.notificationEnabled === 'boolean') {
+          setNotificationEnabled(user.notificationEnabled);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleNotificationChange = async (value: boolean) => {
+    const previous = notificationEnabled;
+    setNotificationEnabled(value);
+
+    try {
+      await updateAuthProfile({notificationEnabled: value});
+    } catch (error) {
+      setNotificationEnabled(previous);
+      Alert.alert(
+        'Thông báo',
+        error instanceof Error
+          ? error.message
+          : 'Không thể cập nhật cài đặt thông báo.',
+      );
+    }
+  };
+
   if (detailScreen === 'faq') {
     return <FaqScreen onBack={() => setDetailScreen(null)} />;
   }
@@ -102,7 +137,7 @@ function SettingScreen({ onBack }: SettingScreenProps) {
             value={notificationEnabled}
             trackColor={{ false: '#bfc2c5', true: '#9bd2ff' }}
             thumbColor={notificationEnabled ? '#2d9df2' : '#f2f2f2'}
-            onValueChange={setNotificationEnabled}
+            onValueChange={handleNotificationChange}
           />
         </View>
 
