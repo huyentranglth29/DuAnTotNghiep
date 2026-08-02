@@ -1,57 +1,58 @@
-import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, StyleSheet, View} from 'react-native';
+import React from 'react';
+import {ActivityIndicator, Modal, StyleSheet, View} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 import LoginNavigator from './src/Navigation/LoginNavigator';
 import TabNavigator from './src/Navigation/TabNavigator';
+import AuthPromptModal from './src/components/AuthPromptModal';
 import PresenceHeartbeat from './src/components/PresenceHeartbeat';
+import {AuthProvider, useAuth} from './src/contexts/AuthContext';
 import QueryProvider from './src/providers/QueryProvider';
-import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {restoreAuthSession} from './src/services/voucherService';
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+function AppShell() {
+  const {
+    status,
+    loginVisible,
+    loginInitialScreen,
+    handleAuthenticated,
+    closeLoginModal,
+    logout,
+  } = useAuth();
 
-  useEffect(() => {
-    let mounted = true;
-
-    restoreAuthSession()
-      .then(token => {
-        if (mounted && token) {
-          setIsLoggedIn(true);
-        }
-      })
-      .finally(() => {
-        if (mounted) {
-          setCheckingSession(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (checkingSession) {
+  if (status === 'loading') {
     return (
-      <SafeAreaProvider>
-        <View style={styles.bootScreen}>
-          <ActivityIndicator size="large" color="#e51937" />
-        </View>
-      </SafeAreaProvider>
+      <View style={styles.bootScreen}>
+        <ActivityIndicator size="large" color="#e51937" />
+      </View>
     );
   }
 
   return (
+    <>
+      {status === 'authenticated' && <PresenceHeartbeat />}
+      <TabNavigator onLoggedOut={logout} />
+      <AuthPromptModal />
+      <Modal
+        visible={loginVisible}
+        animationType="slide"
+        onRequestClose={closeLoginModal}>
+        <LoginNavigator
+          key={`login-${loginVisible ? loginInitialScreen : 'closed'}`}
+          initialScreen={loginInitialScreen}
+          onAuthenticated={handleAuthenticated}
+          onClose={closeLoginModal}
+        />
+      </Modal>
+    </>
+  );
+}
+
+function App() {
+  return (
     <SafeAreaProvider>
       <QueryProvider>
-        {!isLoggedIn ? (
-          <LoginNavigator onAuthenticated={() => setIsLoggedIn(true)} />
-        ) : (
-          <>
-            <PresenceHeartbeat />
-            <TabNavigator onLoggedOut={() => setIsLoggedIn(false)} />
-          </>
-        )}
+        <AuthProvider>
+          <AppShell />
+        </AuthProvider>
       </QueryProvider>
     </SafeAreaProvider>
   );

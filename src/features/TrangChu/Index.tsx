@@ -40,10 +40,12 @@ import {
   layDanhSachSuatChieu,
 } from '../../services/showtimeService';
 import {claimVoucher} from '../../services/voucherService';
+import {useAuth} from '../../contexts/AuthContext';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 function TrangChu() {
+  const {requestAuth} = useAuth();
   const phimNoiBat = usePhimNoiBat();
   const phimDangChieu = useMoviesDangChieu();
   const phimSapChieu = useMoviesSapChieu();
@@ -245,9 +247,21 @@ function TrangChu() {
       cinemaName: selectedCinema,
     };
 
-    setSelectedDetailMovie(selectedMovie);
-    setSelectedShowtime(realShowtime);
-    setShowBooking(true);
+    const startBooking = () => {
+      setSelectedDetailMovie(selectedMovie);
+      setSelectedShowtime(realShowtime);
+      setShowBooking(true);
+    };
+
+    if (!requestAuth(
+      {
+        title: 'Đăng nhập để tiếp tục',
+        message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+      },
+      startBooking,
+    )) {
+      return;
+    }
   };
 
   const renderMovieCard = ({item}: {item: Phim}) => {
@@ -328,16 +342,28 @@ function TrangChu() {
   const renderVoucherCard = ({item}: {item: any}) => {
     const handleClaim = async () => {
       if (claimingVoucher) return;
-      setClaimingVoucher(item.code);
-      try {
-        const result = await claimVoucher(item.code);
-        setClaimedVouchers(current => new Set(current).add(item.code));
-        Alert.alert('Nhận voucher thành công', result?.message || `Mã ${item.code} đã được thêm vào Voucher của tôi.`);
-      } catch (error) {
-        const message = (error as Error)?.message || 'Không thể nhận voucher';
-        Alert.alert(message.toLowerCase().includes('đăng nhập') ? 'Vui lòng đăng nhập' : 'Không thể nhận voucher', message);
-      } finally {
-        setClaimingVoucher('');
+      const runClaim = async () => {
+        setClaimingVoucher(item.code);
+        try {
+          const result = await claimVoucher(item.code);
+          setClaimedVouchers(current => new Set(current).add(item.code));
+          Alert.alert('Nhận voucher thành công', result?.message || `Mã ${item.code} đã được thêm vào Voucher của tôi.`);
+        } catch (error) {
+          const message = (error as Error)?.message || 'Không thể nhận voucher';
+          Alert.alert('Không thể nhận voucher', message);
+        } finally {
+          setClaimingVoucher('');
+        }
+      };
+
+      if (!requestAuth(
+        {
+          title: 'Đăng nhập để tiếp tục',
+          message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+        },
+        runClaim,
+      )) {
+        return;
       }
     };
     return (
@@ -510,7 +536,7 @@ function TrangChu() {
   // Nếu đang xem chi tiết phim
   if (selectedDetailMovie) {
     return (
-      <MovieNameDetail
+        <MovieNameDetail
         movie={{
           id: selectedDetailMovie.id,
           title: selectedDetailMovie.tieuDe,
@@ -525,8 +551,20 @@ function TrangChu() {
         } as any}
         onBack={() => setSelectedDetailMovie(null)}
         onShowtimeSelect={(showtime) => {
-          setSelectedShowtime(showtime);
-          setShowBooking(true);
+          const startBooking = () => {
+            setSelectedShowtime(showtime);
+            setShowBooking(true);
+          };
+
+          if (!requestAuth(
+            {
+              title: 'Đăng nhập để tiếp tục',
+              message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+            },
+            startBooking,
+          )) {
+            return;
+          }
         }}
       />
     );

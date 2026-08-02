@@ -29,6 +29,7 @@ import {
 import {getMyVouchers, AUTH_USER_KEY} from '../../../services/voucherService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
+import {useAuth} from '../../../contexts/AuthContext';
 
 const MOMO_PINK = '#d82d8b';
 const TEXT_DARK = '#1a1a1a';
@@ -128,6 +129,7 @@ function DatVeDetail({
   onClose,
   onPaymentSuccess,
 }: DatVeDetailProps) {
+  const {requestAuth} = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [showPaymentScreen, setShowPaymentScreen] = useState(false);
@@ -341,7 +343,7 @@ function DatVeDetail({
     bookingTime: startTime,
   });
 
-  const handleContinuePayment = async () => {
+  const runContinuePayment = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     try {
@@ -404,6 +406,18 @@ function DatVeDetail({
       const methodName = paymentMethod === 'vnpay' ? 'VNPay Sandbox' : paymentMethod === 'mock' ? 'thanh toán thử' : 'thanh toán';
       Alert.alert('Không thể mở thanh toán', (e as Error)?.message || `Vui lòng kiểm tra cấu hình ${methodName} và thử lại.`);
       setIsProcessing(false);
+    }
+  };
+
+  const handleContinuePayment = () => {
+    if (!requestAuth(
+      {
+        title: 'Đăng nhập để tiếp tục',
+        message: 'Bạn cần đăng nhập để đăng ký và quản lý thanh toán.',
+      },
+      runContinuePayment,
+    )) {
+      return;
     }
   };
 

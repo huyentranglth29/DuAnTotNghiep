@@ -19,6 +19,7 @@ import {
   claimVoucher,
   restoreAuthSession,
 } from '../../../services/voucherService';
+import {useAuth} from '../../../contexts/AuthContext';
 
 type MyVoucherScreenProps = {
   onAddVoucher: () => void;
@@ -31,6 +32,7 @@ function MyVoucherScreen({
   onOpenHistory,
   onOpenGuide,
 }: MyVoucherScreenProps) {
+  const {requestAuth} = useAuth();
   const [items, setItems] = useState<FilmGoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,15 +78,27 @@ function MyVoucherScreen({
   }, [load]);
 
   const receiveNow = async (code: string) => {
-    setClaimingCode(code);
-    try {
-      await claimVoucher(code);
-      Alert.alert('Nhận voucher thành công', `${code} đã được thêm vào kho của bạn.`);
-      await load();
-    } catch (err) {
-      Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
-    } finally {
-      setClaimingCode('');
+    const runReceive = async () => {
+      setClaimingCode(code);
+      try {
+        await claimVoucher(code);
+        Alert.alert('Nhận voucher thành công', `${code} đã được thêm vào kho của bạn.`);
+        await load();
+      } catch (err) {
+        Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
+      } finally {
+        setClaimingCode('');
+      }
+    };
+
+    if (!requestAuth(
+      {
+        title: 'Đăng nhập để tiếp tục',
+        message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+      },
+      runReceive,
+    )) {
+      return;
     }
   };
 

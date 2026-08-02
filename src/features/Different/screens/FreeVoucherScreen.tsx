@@ -15,6 +15,7 @@ import {
   getActiveVouchers,
   restoreAuthSession,
 } from '../../../services/voucherService';
+import {useAuth} from '../../../contexts/AuthContext';
 import {FilmGoVoucher, formatVoucherValue} from '../../Voucher/types';
 
 const BLUE = '#005f98';
@@ -40,6 +41,7 @@ const formatDate = (value?: string) => {
 };
 
 function FreeVoucherScreen({onBack}: FreeVoucherScreenProps) {
+  const {requestAuth} = useAuth();
   const [items, setItems] = useState<FilmGoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,24 +73,32 @@ function FreeVoucherScreen({onBack}: FreeVoucherScreenProps) {
   };
 
   const onClaim = async (code: string) => {
-    setClaimingCode(code);
-    try {
-      const token = await restoreAuthSession();
-      if (!token) {
-        Alert.alert(
-          'Cần đăng nhập',
-          'Bạn cần đăng nhập để lưu voucher vào kho.',
-        );
-        return;
-      }
+    const runClaim = async () => {
+      setClaimingCode(code);
+      try {
+        const token = await restoreAuthSession();
+        if (!token) {
+          return;
+        }
 
-      await claimVoucher(code);
-      Alert.alert('Thành công', `${code} đã được thêm vào kho voucher.`);
-      await loadVouchers();
-    } catch (err) {
-      Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
-    } finally {
-      setClaimingCode('');
+        await claimVoucher(code);
+        Alert.alert('Thành công', `${code} đã được thêm vào kho voucher.`);
+        await loadVouchers();
+      } catch (err) {
+        Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
+      } finally {
+        setClaimingCode('');
+      }
+    };
+
+    if (!requestAuth(
+      {
+        title: 'Đăng nhập để tiếp tục',
+        message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+      },
+      runClaim,
+    )) {
+      return;
     }
   };
 

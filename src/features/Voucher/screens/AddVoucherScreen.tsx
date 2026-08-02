@@ -27,6 +27,7 @@ import {
   claimVoucher,
   restoreAuthSession,
 } from '../../../services/voucherService';
+import {useAuth} from '../../../contexts/AuthContext';
 
 type AddVoucherScreenProps = {
   onBack: () => void;
@@ -36,6 +37,7 @@ const ERROR_COLOR = '#ef4444';
 const FOCUS_COLOR = '#3b82f6';
 
 function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
+  const {requestAuth} = useAuth();
   const [voucherCode, setVoucherCode] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [voucherError, setVoucherError] = useState('');
@@ -68,25 +70,33 @@ function AddVoucherScreen({onBack}: AddVoucherScreenProps) {
     }
 
     setSubmitting(true);
-    try {
-      const token = await restoreAuthSession();
-      if (!token) {
-        Alert.alert(
-          'Cần đăng nhập',
-          'Đăng nhập bằng tài khoản backend (vd: user@filmgo.com / User@123456) để lưu voucher vào kho.',
-        );
-        return;
-      }
+    const runAddVoucher = async () => {
+      try {
+        const token = await restoreAuthSession();
+        if (!token) {
+          return;
+        }
 
-      const result = await claimVoucher(voucherCode);
-      Alert.alert('Thành công', `Đã thêm ${result?.code || voucherCode} vào kho`, [
-        {text: 'OK', onPress: onBack},
-      ]);
-    } catch (err) {
-      const message = (err as Error)?.message || 'Không thêm được voucher';
-      setVoucherError(message);
-      Alert.alert('Thất bại', message);
-    } finally {
+        const result = await claimVoucher(voucherCode);
+        Alert.alert('Thành công', `Đã thêm ${result?.code || voucherCode} vào kho`, [
+          {text: 'OK', onPress: onBack},
+        ]);
+      } catch (err) {
+        const message = (err as Error)?.message || 'Không thêm được voucher';
+        setVoucherError(message);
+        Alert.alert('Thất bại', message);
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    if (!requestAuth(
+      {
+        title: 'Đăng nhập để tiếp tục',
+        message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+      },
+      runAddVoucher,
+    )) {
       setSubmitting(false);
     }
   };

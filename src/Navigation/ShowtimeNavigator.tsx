@@ -13,6 +13,7 @@ import SuatChieuSom from '../features/Showtime/components/SuatChieuSom';
 import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
 import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
 import WriteReview from '../features/Showtime/screen/WriteReview';
+import {useAuth} from '../contexts/AuthContext';
 
 const BLUE = '#005f98';
 
@@ -31,6 +32,7 @@ function ShowtimeNavigator({
   onMovieFlowChange,
   onGoToMyTickets,
 }: ShowtimeNavigatorProps) {
+  const {requestAuth} = useAuth();
   const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
     null,
@@ -107,10 +109,32 @@ function ShowtimeNavigator({
       <MovieNameDetail
         movie={selectedMovie}
         onBack={() => setShowMovieDetail(false)}
-        onWriteReview={() => setShowWriteReview(true)}
+        onWriteReview={() => {
+          const openReview = () => setShowWriteReview(true);
+          if (!requestAuth(
+            {
+              title: 'Đăng nhập để tiếp tục',
+              message: 'Đăng nhập để tham gia bình luận và đánh giá phim.',
+            },
+            openReview,
+          )) {
+            return;
+          }
+        }}
         onShowtimeSelect={showtime => {
-          setSelectedShowtime(showtime);
-          setShowBooking(true);
+          const startBooking = () => {
+            setSelectedShowtime(showtime);
+            setShowBooking(true);
+          };
+          if (!requestAuth(
+            {
+              title: 'Đăng nhập để tiếp tục',
+              message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+            },
+            startBooking,
+          )) {
+            return;
+          }
         }}
       />
     );
@@ -129,8 +153,19 @@ function ShowtimeNavigator({
         }}
         onDetailPress={() => setShowMovieDetail(true)}
         onShowtimePress={showtime => {
-          setSelectedShowtime(showtime);
-          setShowBooking(true);
+          const startBooking = () => {
+            setSelectedShowtime(showtime);
+            setShowBooking(true);
+          };
+          if (!requestAuth(
+            {
+              title: 'Đăng nhập để tiếp tục',
+              message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+            },
+            startBooking,
+          )) {
+            return;
+          }
         }}
       />
     );
@@ -172,18 +207,40 @@ function ShowtimeNavigator({
         <DangChieu
           onMoviePress={chonPhim}
           onShowtimePress={(movie, showtime) => {
-            chonPhim(movie);
-            setSelectedShowtime(showtime);
-            setShowBooking(true);
+            const startBooking = () => {
+              chonPhim(movie);
+              setSelectedShowtime(showtime);
+              setShowBooking(true);
+            };
+            if (!requestAuth(
+              {
+                title: 'Đăng nhập để tiếp tục',
+                message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+              },
+              startBooking,
+            )) {
+              return;
+            }
           }}
         />
       ) : (
         <SuatChieuSom
           onMoviePress={chonPhim}
           onShowtimePress={(movie, showtime) => {
-            chonPhim(movie);
-            setSelectedShowtime(showtime);
-            setShowBooking(true);
+            const startBooking = () => {
+              chonPhim(movie);
+              setSelectedShowtime(showtime);
+              setShowBooking(true);
+            };
+            if (!requestAuth(
+              {
+                title: 'Đăng nhập để tiếp tục',
+                message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+              },
+              startBooking,
+            )) {
+              return;
+            }
           }}
         />
       )}

@@ -27,6 +27,7 @@ import {
   getVoucherHistory,
   restoreAuthSession,
 } from '../../../services/voucherService';
+import {useAuth} from '../../../contexts/AuthContext';
 
 type VoucherHistoryScreenProps = {
   activeFilter: VoucherHistoryFilter;
@@ -39,11 +40,18 @@ function VoucherHistoryScreen({
   onBack,
   onChangeFilter,
 }: VoucherHistoryScreenProps) {
+  const {isAuthenticated, openLoginModal} = useAuth();
   const [items, setItems] = useState<FilmGoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      setLoading(false);
+      setError('Đăng nhập để xem lịch sử voucher đã dùng.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -61,7 +69,7 @@ function VoucherHistoryScreen({
     } finally {
       setLoading(false);
     }
-  }, [activeFilter]);
+  }, [activeFilter, isAuthenticated]);
 
   useEffect(() => {
     load();
@@ -96,13 +104,28 @@ function VoucherHistoryScreen({
       <StatusBar barStyle="light-content" backgroundColor={VOUCHER_BLUE} />
       <VoucherHeader title="LỊCH SỬ VOUCHER" onBack={onBack} />
 
-      <VoucherHistoryTabs
-        activeFilter={activeFilter}
-        onChangeFilter={onChangeFilter}
-      />
+      {isAuthenticated ? (
+        <VoucherHistoryTabs
+          activeFilter={activeFilter}
+          onChangeFilter={onChangeFilter}
+        />
+      ) : null}
 
       <View style={styles.body}>
-        {loading ? (
+        {!isAuthenticated ? (
+          <View style={styles.guestCard}>
+            <Text style={styles.guestTitle}>Đăng nhập để xem lịch sử voucher</Text>
+            <Text style={styles.guestText}>
+              Bạn vẫn có thể duyệt voucher công khai ở tab trước đó.
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              style={styles.loginButton}
+              onPress={() => openLoginModal('login')}>
+              <Text style={styles.loginText}>Đăng nhập</Text>
+            </TouchableOpacity>
+          </View>
+        ) : loading ? (
           <ActivityIndicator color={VOUCHER_BLUE} />
         ) : items.length > 0 ? (
           <FlatList
@@ -172,6 +195,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingBottom: 28,
+  },
+  guestCard: {
+    alignItems: 'center',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 30,
+    shadowColor: '#000000',
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 2,
+  },
+  guestTitle: {
+    color: VOUCHER_TEXT,
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  guestText: {
+    marginTop: 8,
+    color: VOUCHER_MUTED,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  loginButton: {
+    minWidth: 180,
+    minHeight: 46,
+    marginTop: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: VOUCHER_BLUE,
+  },
+  loginText: {
+    color: '#ffffff',
+    fontWeight: '900',
   },
   card: {
     marginBottom: 10,

@@ -9,7 +9,6 @@ import TrangChu from '../features/TrangChu/Index';
 import VoucherNavigator from './VoucherNavigator';
 import { MAU_CHU_DE } from '../theme/cinemaNoir';
 import {useQueryClient} from '@tanstack/react-query';
-import {clearAuthSession} from '../services/voucherService';
 import CustomerAiScreen from '../features/CustomerAi/CustomerAiScreen';
 import iconAi from '../assets/logo/iconai.jpg';
 
@@ -107,7 +106,6 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
             },
             openMemberDirectly,
             async () => {
-              await clearAuthSession();
               queryClient.clear();
               onLoggedOut();
             },
