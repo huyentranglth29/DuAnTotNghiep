@@ -6,6 +6,7 @@ const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const Movie = require("../models/Movie");
 const QuickBooking = require("../models/QuickBooking");
+const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
 
 const ok = (res, data, message = "OK", status = 200) =>
   res.status(status).json({ success: true, message, data });
@@ -109,7 +110,7 @@ const listActive = async (req, res) => {
       data.filter((item) => item.remaining === null || item.remaining > 0)
     );
   } catch (error) {
-    return fail(res, 500, error.message);
+    return fail(res, error.statusCode || error.status || 500, error.message);
   }
 };
 
@@ -304,6 +305,7 @@ const checkout = async (req, res) => {
     let seatIds = Array.isArray(req.body.seatIds) ? req.body.seatIds : [];
     const movieId = req.body.movieId;
     let movieTitle = String(req.body.movieTitle || "").trim();
+    let showtimeDoc = null;
 
     if (!showtimeId) {
       let showtime = null;
@@ -324,14 +326,21 @@ const checkout = async (req, res) => {
       showtimeId = showtime._id;
     }
 
+    showtimeDoc = await Showtime.findById(showtimeId)
+      .select("startTime endTime status movie room")
+      .populate("movie", "title");
+    if (!showtimeDoc) {
+      return fail(res, 404, "Suất chiếu không tồn tại");
+    }
+    assertShowtimeBookable(showtimeDoc);
+
     // Luôn ưu tiên tên phim client gửi; nếu thiếu thì lấy từ suất / movieId
     if (!movieTitle && movieId && mongoose.Types.ObjectId.isValid(movieId)) {
       const movieDoc = await Movie.findById(movieId).select("title");
       movieTitle = movieDoc?.title || "";
     }
     if (!movieTitle) {
-      const st = await Showtime.findById(showtimeId).populate("movie", "title");
-      movieTitle = st?.movie?.title || "";
+      movieTitle = showtimeDoc?.movie?.title || "";
     }
     if (!movieTitle) {
       return fail(res, 400, "Thiếu tên phim để tạo vé");

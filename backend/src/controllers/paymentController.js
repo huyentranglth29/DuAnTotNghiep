@@ -10,6 +10,7 @@ const Voucher = require("../models/Voucher");
 const UserVoucher = require("../models/UserVoucher");
 const { buildQuery, sign, verify, formatVnpDate } = require("../utils/vnpay");
 const { createNotification } = require("../services/notificationService");
+const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
 
 const HOLD_MINUTES = 15;
 const PAYOS_API_URL = "https://api-merchant.payos.vn";
@@ -447,9 +448,10 @@ const createVnpayPayment = async (req, res, next) => {
     }
 
     const showtime = await Showtime.findById(showtimeId).populate("movie", "title duration genre");
-    if (!showtime || showtime.status !== "scheduled") {
+    if (!showtime) {
       return res.status(404).json({ success: false, message: "Suất chiếu không tồn tại hoặc đã ngừng bán" });
     }
+    assertShowtimeBookable(showtime);
     const roomSeats = await Seat.find({ room: showtime.room, status: "active" }).lean();
     const seatByLabel = new Map(roomSeats.map((seat) => [`${seat.row}${seat.number}`.toUpperCase(), seat]));
     if (seats.some((label) => !seatByLabel.has(label))) {
@@ -569,9 +571,10 @@ const createPayosPayment = async (req, res, next) => {
     }
 
     const showtime = await Showtime.findById(showtimeId).populate("movie", "title duration genre");
-    if (!showtime || showtime.status !== "scheduled") {
+    if (!showtime) {
       return res.status(404).json({ success: false, message: "Suất chiếu không tồn tại hoặc đã ngừng bán" });
     }
+    assertShowtimeBookable(showtime);
     const roomSeats = await Seat.find({ room: showtime.room, status: "active" }).lean();
     const seatByLabel = new Map(roomSeats.map((seat) => [`${seat.row}${seat.number}`.toUpperCase(), seat]));
     if (seats.some((label) => !seatByLabel.has(label))) {
@@ -713,9 +716,10 @@ const createMockPayment = async (req, res, next) => {
     }
 
     const showtime = await Showtime.findById(showtimeId).populate("movie", "title duration genre");
-    if (!showtime || showtime.status !== "scheduled") {
+    if (!showtime) {
       return res.status(404).json({ success: false, message: "Suất chiếu không tồn tại hoặc đã ngừng bán" });
     }
+    assertShowtimeBookable(showtime);
     const roomSeats = await Seat.find({ room: showtime.room, status: "active" }).lean();
     const seatByLabel = new Map(roomSeats.map((seat) => [`${seat.row}${seat.number}`.toUpperCase(), seat]));
     if (seats.some((label) => !seatByLabel.has(label))) {

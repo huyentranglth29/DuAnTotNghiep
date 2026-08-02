@@ -194,10 +194,12 @@ function AdminListPage({
       <div className="pageTitle">
         <h2>{title}</h2>
         {!hideCreate &&
-          (fields.length > 0 ? (
+          (addTo ? (
+            <Link to={addTo}>{addLabel}</Link>
+          ) : fields.length > 0 ? (
             <button type="button" onClick={openCreate}>{addLabel}</button>
           ) : (
-            addTo && <Link to={addTo}>{addLabel}</Link>
+            null
           ))}
       </div>
 

@@ -49,10 +49,10 @@ const getShowtimes = async (req, res, next) => {
       filter.startTime = { $gte: dayStart, $lte: dayEnd };
     }
 
-    // App User: chỉ suất còn đặt (scheduled + chưa kết thúc)
+    // App User: chỉ suất còn đặt (scheduled + chưa tới giờ chiếu)
     if (bookable === "1" || bookable === "true") {
       filter.status = "scheduled";
-      filter.endTime = { $gt: new Date() };
+      filter.startTime = { $gt: new Date() };
     }
 
     const showtimes = await Showtime.find(filter)

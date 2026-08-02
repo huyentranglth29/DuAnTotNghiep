@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const createAdminCrudController = require("../controllers/adminCrudController");
 const {
   getDashboard,
@@ -26,6 +27,7 @@ const Room = require("../models/Room");
 const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
+const User = require("../models/User");
 const Voucher = require("../models/Voucher");
 const QuickBooking = require("../models/QuickBooking");
 const Payment = require("../models/Payment");
@@ -122,6 +124,86 @@ router.put("/users/:id", adminUser.updateUser);
 router.post("/users/:id/lock", adminUser.lockUser);
 router.post("/users/:id/unlock", adminUser.unlockUser);
 
+const normalizeNotificationBody = async (body = {}) => {
+  const next = { ...body };
+  const target = String(next.target || "").trim();
+  const user = String(next.user || "").trim();
+  const userId = user || (mongoose.Types.ObjectId.isValid(target) ? target : "");
+
+  if (userId) {
+    const recipient = await User.findOne({
+      _id: userId,
+      role: "user",
+      status: "active",
+      $and: [
+        {
+          $or: [
+            {notificationEnabled: true},
+            {notificationEnabled: {$exists: false}},
+          ],
+        },
+        {
+          $or: [{deleted: false}, {deleted: {$exists: false}}, {deleted: null}],
+        },
+      ],
+    }).select("_id");
+
+    if (!recipient) {
+      const error = new Error("Người dùng chưa bật thông báo hoặc không tồn tại");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    next.user = recipient._id;
+    next.target = "all";
+  } else {
+    next.user = null;
+    next.target = ["all", "vip", "newUser"].includes(target) ? target : "all";
+  }
+
+  return next;
+};
+
+const enrichNotificationsWithRecipients = async (items = []) => {
+  const userIds = [
+    ...new Set(
+      items
+        .map((item) => {
+          const user = item.user;
+          if (!user) return "";
+          if (typeof user === "object") return String(user._id || user.id || "");
+          return String(user);
+        })
+        .filter((id) => mongoose.Types.ObjectId.isValid(id)),
+    ),
+  ];
+
+  if (!userIds.length) return items;
+
+  const users = await User.find({_id: {$in: userIds}})
+    .select("fullName email notificationEnabled")
+    .lean();
+  const userMap = new Map(users.map((user) => [String(user._id), user]));
+
+  return items.map((item) => {
+    const rawUser = item.user;
+    const userId =
+      rawUser && typeof rawUser === "object"
+        ? String(rawUser._id || rawUser.id || "")
+        : String(rawUser || "");
+    const user = userMap.get(userId);
+
+    if (!user) return item;
+
+    return {
+      ...item,
+      user,
+      recipientName: user.fullName || user.email || "Người dùng",
+      recipientEmail: user.email || "",
+    };
+  });
+};
+
 const resources = {
   movies: createAdminCrudController(Movie, {
     keywordFields: ["title", "description", "synopsis", "director", "genre"],
@@ -189,7 +271,10 @@ const resources = {
     keywordFields: ["comment", "status"],
   }),
   notifications: createAdminCrudController(Notification, {
+    populate: { path: "user", select: "fullName email notificationEnabled" },
     keywordFields: ["title", "content", "target"],
+    prepareBody: normalizeNotificationBody,
+    enrichList: enrichNotificationsWithRecipients,
   }),
   "news-events": createAdminCrudController(NewsEvent, {
     populate: "createdBy",

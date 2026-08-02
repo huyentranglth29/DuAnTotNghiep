@@ -82,7 +82,7 @@ const formatUser = (doc, extras = {}) => {
 };
 
 const buildMatch = (query) => {
-  const {keyword, provider, status, role, online} = query;
+  const {keyword, provider, status, role, online, notificationEnabled} = query;
   const and = [notDeletedMatch];
 
   if (online === "1" || online === "true") {
@@ -96,6 +96,17 @@ const buildMatch = (query) => {
 
   if (role === "user" || role === "admin") {
     and.push({role});
+  }
+
+  if (notificationEnabled === "1" || notificationEnabled === "true") {
+    and.push({
+      $or: [
+        {notificationEnabled: true},
+        {notificationEnabled: {$exists: false}},
+      ],
+    });
+  } else if (notificationEnabled === "0" || notificationEnabled === "false") {
+    and.push({notificationEnabled: false});
   }
 
   if (provider === "google") {

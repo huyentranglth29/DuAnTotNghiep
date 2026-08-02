@@ -10,7 +10,7 @@ function useAdminOptions(loaders = {}) {
 
     Promise.all(
       Object.entries(loaders).map(async ([key, loader]) => {
-        const items = asArray(await loader.api.getAll({limit: 200}));
+        const items = asArray(await loader.api.getAll({limit: 200, ...(loader.params || {})}));
         return [
           key,
           items.map(item => ({

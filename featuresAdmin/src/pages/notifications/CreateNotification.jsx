@@ -1,14 +1,23 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import notificationApi from '../../api/notificationApi';
+import userApi from '../../api/userApi';
 import {PageTitle} from '../../components/AdminUi';
+import useAdminOptions from '../../hooks/useAdminOptions';
 
 function CreateNotification() {
   const navigate = useNavigate();
+  const options = useAdminOptions({
+    recipients: {
+      api: userApi,
+      params: {role: 'user', status: 'active', notificationEnabled: true},
+      label: user => `${user.fullName || 'Người dùng'}${user.email ? ` (${user.email})` : ''}`,
+    },
+  });
   const [form, setForm] = useState({
     title: '',
     content: '',
-    target: 'all',
+    user: '',
     image: '',
     sentAt: '',
   });
@@ -46,11 +55,12 @@ function CreateNotification() {
           <label>Tiêu đề<input required value={form.title} onChange={event => updateForm('title', event.target.value)} /></label>
           <label>Nội dung<textarea required value={form.content} onChange={event => updateForm('content', event.target.value)} /></label>
           <label>
-            Đối tượng
-            <select value={form.target} onChange={event => updateForm('target', event.target.value)}>
-              <option value="all">Tất cả</option>
-              <option value="vip">VIP</option>
-              <option value="newUser">Người dùng mới</option>
+            Người nhận
+            <select value={form.user} onChange={event => updateForm('user', event.target.value)}>
+              <option value="">Tất cả người dùng đã bật thông báo</option>
+              {(options.recipients || []).map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </label>
           <label>Ảnh banner URL<input value={form.image} onChange={event => updateForm('image', event.target.value)} /></label>
