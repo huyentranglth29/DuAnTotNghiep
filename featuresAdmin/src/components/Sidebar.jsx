@@ -43,6 +43,7 @@ const menuItems = [
   {to: '/reviews', label: 'Đánh giá phim'},
   {to: '/notifications', label: 'Thông báo'},
   {to: '/news-events', label: 'Tin tức & Sự kiện'},
+  {to: '/ai-assistant', label: 'AI nội bộ'},
 ];
 
 function Sidebar() {

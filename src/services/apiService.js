@@ -199,6 +199,11 @@ export const createVnpayPayment = async (payload) => {
   return apiClient.post('/api/payments/vnpay/create', payload);
 };
 
+/** Tạo link thanh toán PayOS thật và giữ ghế tạm thời. */
+export const createPayosPayment = async (payload) => {
+  return apiClient.post('/api/payments/payos/create', payload);
+};
+
 /** Tạo giao dịch mô phỏng nội bộ, không cần tài khoản cổng thanh toán. */
 export const createMockPayment = async (payload) => {
   return apiClient.post('/api/payments/mock/create', payload);
@@ -232,6 +237,10 @@ export const releaseSeats = async ({holdToken, showtimeId}) => {
   return apiClient.delete(`/api/seat-holds/${encodeURIComponent(holdToken)}`, {
     params: showtimeId ? {showtimeId} : undefined,
   });
+};
+
+export const chatWithCustomerAi = async (payload) => {
+  return apiClient.post('/api/customer-ai/chat', payload);
 };
 
 /**

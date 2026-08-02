@@ -4,7 +4,7 @@ const paymentSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     orderCode: { type: String, required: true, unique: true, trim: true },
-    provider: { type: String, enum: ["vnpay", "mo_phong"], default: "vnpay" },
+    provider: { type: String, enum: ["vnpay", "payos", "mo_phong"], default: "vnpay" },
     status: {
       type: String,
       enum: [
@@ -23,6 +23,8 @@ const paymentSchema = new mongoose.Schema(
     transactionNo: String,
     bankCode: String,
     responseCode: String,
+    externalPaymentId: String,
+    checkoutUrl: String,
     inventoryStatus: {
       type: String,
       enum: ["none", "reserved", "committed", "released"],

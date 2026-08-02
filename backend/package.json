@@ -9,6 +9,7 @@
     "seed:movies": "node src/scripts/seedMovies.js",
     "seed:showtimes": "node src/scripts/seedShowtimes.js",
     "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force",
+    "seed:future-showtimes": "node src/scripts/seedFutureShowtimes.js",
     "sync:seats": "node src/scripts/syncSeatLayout.js",
     "create-admin": "node src/scripts/createAdmin.js",
     "migrate:users": "node src/scripts/migrateUsersCollection.js",
@@ -19,6 +20,7 @@
     "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js"
   },
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -26,7 +28,8 @@
     "google-auth-library": "^10.9.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.3",
-    "nodemailer": "^7.0.13"
+    "nodemailer": "^7.0.13",
+    "openai": "^7.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
