@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {
   AccountInfoScreen,
   ChangePasswordScreen,
@@ -9,6 +10,7 @@ import {
 } from './member/MemberDetailScreens';
 import MemberHomeScreen from './member/MemberHomeScreen';
 import { MemberScreenName } from './member/memberData';
+import {useAuth} from '../../../contexts/AuthContext';
 
 type MemberScreenProps = {
   onBack: () => void;
@@ -17,6 +19,27 @@ type MemberScreenProps = {
 
 function MemberScreen({ onBack, onLogout }: MemberScreenProps) {
   const [screen, setScreen] = useState<MemberScreenName>('home');
+  const {isAuthenticated, openLoginModal} = useAuth();
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.guestScreen}>
+        <Text style={styles.guestTitle}>Đăng nhập để đồng bộ và quản lý tài khoản</Text>
+        <Text style={styles.guestText}>
+          Bạn vẫn có thể quay lại các tab khác bình thường.
+        </Text>
+        <Pressable style={styles.loginButton} onPress={() => openLoginModal('login')}>
+          <Text style={styles.loginButtonText}>Đăng nhập</Text>
+        </Pressable>
+        <Pressable style={styles.registerButton} onPress={() => openLoginModal('register')}>
+          <Text style={styles.registerButtonText}>Đăng ký</Text>
+        </Pressable>
+        <Pressable style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>Quay lại</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (screen === 'points') {
     return (
@@ -51,3 +74,62 @@ function MemberScreen({ onBack, onLogout }: MemberScreenProps) {
 }
 
 export default MemberScreen;
+
+const styles = StyleSheet.create({
+  guestScreen: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  guestTitle: {
+    color: '#173247',
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  guestText: {
+    marginTop: 12,
+    color: '#54616f',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  loginButton: {
+    width: '100%',
+    minHeight: 46,
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#e51937',
+  },
+  loginButtonText: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+  registerButton: {
+    width: '100%',
+    minHeight: 46,
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#ffffff',
+  },
+  registerButtonText: {
+    color: '#173247',
+    fontWeight: '800',
+  },
+  backButton: {
+    marginTop: 14,
+  },
+  backButtonText: {
+    color: '#64748b',
+    fontWeight: '700',
+  },
+});

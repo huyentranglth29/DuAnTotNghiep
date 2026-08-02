@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { getQuickBookings } from '../../../services/apiService';
+import {useAuth} from '../../../contexts/AuthContext';
 
 type Ticket = {
   _id: string;
@@ -43,6 +44,7 @@ type MyTicketsScreenProps = {
 };
 
 function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
+  const {isAuthenticated, openLoginModal} = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,8 +66,12 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
   }, []);
 
   useEffect(() => {
-    fetchTickets();
-  }, [fetchTickets]);
+    if (isAuthenticated) {
+      fetchTickets();
+      return;
+    }
+    setLoading(false);
+  }, [fetchTickets, isAuthenticated]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -220,6 +226,23 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 
   return (
     <View style={styles.container}>
+      {!isAuthenticated ? (
+        <View style={styles.guestContainer}>
+          <Text style={styles.guestTitle}>Đăng nhập để xem vé của bạn</Text>
+          <Text style={styles.guestSubText}>
+            Lịch sử vé và trạng thái thanh toán sẽ hiện sau khi đăng nhập.
+          </Text>
+          <TouchableOpacity
+            style={styles.guestPrimaryBtn}
+            onPress={() => openLoginModal('login')}>
+            <Text style={styles.guestPrimaryText}>Đăng nhập</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.guestBackBtn} onPress={onBack}>
+            <Text style={styles.guestBackText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity activeOpacity={0.75} style={styles.backButton} onPress={onBack}>
@@ -271,7 +294,9 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               </Text>
             </View>
           }
-        />
+          />
+      )}
+        </>
       )}
     </View>
   );
@@ -281,6 +306,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f0f4f8',
+  },
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#ffffff',
+  },
+  guestTitle: {
+    color: '#173247',
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  guestSubText: {
+    marginTop: 10,
+    color: '#54616f',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  guestPrimaryBtn: {
+    minWidth: 180,
+    minHeight: 46,
+    marginTop: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#e51937',
+  },
+  guestPrimaryText: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+  guestBackBtn: {
+    marginTop: 12,
+  },
+  guestBackText: {
+    color: '#64748b',
+    fontWeight: '700',
   },
   header: {
     height: 70,

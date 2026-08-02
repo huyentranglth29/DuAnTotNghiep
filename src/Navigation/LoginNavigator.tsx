@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {useEffect, useState} from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 import Login from '../features/Login/Index';
 import PorgotPass from '../features/Login/component/PorgotPass';
 import Register from '../features/Login/component/Register';
@@ -25,6 +26,8 @@ type RegisteredUser = {
 
 type LoginNavigatorProps = {
   onAuthenticated?: () => void;
+  onClose?: () => void;
+  initialScreen?: LoginScreen;
 };
 
 const REGISTERED_USER_KEY = '@filmgo_registered_user';
@@ -53,8 +56,12 @@ const resolveLoginEmail = (email: string) => {
   return normalized;
 };
 
-function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
-  const [activeScreen, setActiveScreen] = useState<LoginScreen>('login');
+function LoginNavigator({
+  onAuthenticated,
+  onClose,
+  initialScreen = 'login',
+}: LoginNavigatorProps) {
+  const [activeScreen, setActiveScreen] = useState<LoginScreen>(initialScreen);
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(
     null,
   );
@@ -101,12 +108,10 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
     }
   };
 
-  if (activeScreen === 'porgotPass') {
-    return <PorgotPass onBackToLogin={() => setActiveScreen('login')} />;
-  }
-
-  if (activeScreen === 'register') {
-    return (
+  const content =
+    activeScreen === 'porgotPass' ? (
+      <PorgotPass onBackToLogin={() => setActiveScreen('login')} />
+    ) : activeScreen === 'register' ? (
       <Register
         onBackToLogin={() => setActiveScreen('login')}
         onRegisterSuccess={async user => {
@@ -120,72 +125,99 @@ function LoginNavigator({onAuthenticated}: LoginNavigatorProps) {
           setActiveScreen('login');
         }}
       />
-    );
-  }
-
-  return (
-    <Login
-      onForgotPasswordPress={() => setActiveScreen('porgotPass')}
-      onRegisterPress={() => setActiveScreen('register')}
-      onGoogleLoginPress={async () => {
-        try {
-          const idToken = await getGoogleIdToken();
-          await loginWithGoogleApi(idToken);
-          onAuthenticated?.();
-          return true;
-        } catch (error) {
-          const message = mapGoogleSignInError(error);
-          if (message.includes('hủy đăng nhập')) {
-            return false;
-          }
-          throw new Error(message);
-        }
-      }}
-      onLoginPress={async ({email, password}) => {
-        const apiEmail = resolveLoginEmail(email);
-        const apiPassword =
-          email.trim().toLowerCase() === 'demo@filmgo.vn' &&
-          password === '123456'
-            ? SEED_DEMO_USER.password
-            : password;
-
-        try {
-          await loginWithApi({email: apiEmail, password: apiPassword});
-          onAuthenticated?.();
-          return true;
-        } catch (loginError) {
-          const localUser = await findRegisteredUser();
-          if (localUser && isSameCredentials(localUser, email, password)) {
-            try {
-              await registerWithApi({
-                fullName: localUser.fullName,
-                email: localUser.email,
-                password: localUser.password,
-                phone: localUser.phone || '',
-              });
-            } catch {
-              // Email đã có trên server
-            }
-            try {
-              await loginWithApi({
-                email: localUser.email,
-                password: localUser.password,
-              });
-              onAuthenticated?.();
-              return true;
-            } catch {
-              await clearAuthSession();
+    ) : (
+      <Login
+        onForgotPasswordPress={() => setActiveScreen('porgotPass')}
+        onRegisterPress={() => setActiveScreen('register')}
+        onGoogleLoginPress={async () => {
+          try {
+            const idToken = await getGoogleIdToken();
+            await loginWithGoogleApi(idToken);
+            onAuthenticated?.();
+            return true;
+          } catch (error) {
+            const message = mapGoogleSignInError(error);
+            if (message.includes('hủy đăng nhập')) {
               return false;
             }
+            throw new Error(message);
           }
+        }}
+        onLoginPress={async ({email, password}) => {
+          const apiEmail = resolveLoginEmail(email);
+          const apiPassword =
+            email.trim().toLowerCase() === 'demo@filmgo.vn' &&
+            password === '123456'
+              ? SEED_DEMO_USER.password
+              : password;
 
-          console.warn('Login API:', (loginError as Error)?.message);
-          await clearAuthSession();
-          return false;
-        }
-      }}
-    />
+          try {
+            await loginWithApi({email: apiEmail, password: apiPassword});
+            onAuthenticated?.();
+            return true;
+          } catch (loginError) {
+            const localUser = await findRegisteredUser();
+            if (localUser && isSameCredentials(localUser, email, password)) {
+              try {
+                await registerWithApi({
+                  fullName: localUser.fullName,
+                  email: localUser.email,
+                  password: localUser.password,
+                  phone: localUser.phone || '',
+                });
+              } catch {
+                // Email đã có trên server
+              }
+              try {
+                await loginWithApi({
+                  email: localUser.email,
+                  password: localUser.password,
+                });
+                onAuthenticated?.();
+                return true;
+              } catch {
+                await clearAuthSession();
+                return false;
+              }
+            }
+
+            console.warn('Login API:', (loginError as Error)?.message);
+            await clearAuthSession();
+            return false;
+          }
+        }}
+      />
+    );
+
+  return (
+    <View style={styles.container}>
+      {onClose ? (
+        <Pressable style={styles.closeButton} onPress={onClose}>
+          <Text style={styles.closeText}>Đóng</Text>
+        </Pressable>
+      ) : null}
+      {content}
+    </View>
   );
 }
 
 export default LoginNavigator;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 14,
+    right: 16,
+    zIndex: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  closeText: {
+    color: '#111827',
+    fontWeight: '900',
+  },
+});
