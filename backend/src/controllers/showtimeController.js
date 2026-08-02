@@ -10,9 +10,10 @@ const {
   resolveConflictDetails,
   formatConflictPayload,
 } = require("../services/showtimeScheduleService");
+const {syncMovieScheduleState} = require("../services/movieScheduleStateService");
 
 const POPULATE = [
-  { path: "movie", select: "title posterUrl duration ageRating genre status" },
+  { path: "movie", select: "title posterUrl duration ageRating genre status expectedReleaseDate publishedAt ticketSaleStartAt" },
   { path: "room", select: "name type totalSeats status" },
 ];
 
@@ -55,9 +56,17 @@ const getShowtimes = async (req, res, next) => {
       filter.startTime = { $gt: new Date() };
     }
 
-    const showtimes = await Showtime.find(filter)
+    let showtimes = await Showtime.find(filter)
       .populate(POPULATE)
       .sort({ startTime: 1 });
+
+    if (bookable === "1" || bookable === "true") {
+      const now = new Date();
+      showtimes = showtimes.filter((item) => {
+        const opensAt = item.movie?.ticketSaleStartAt;
+        return !opensAt || new Date(opensAt) <= now;
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -319,6 +328,8 @@ const createShowtime = async (req, res, next) => {
       status: status || "scheduled",
     });
 
+    await syncMovieScheduleState(movie);
+
     const populated = await Showtime.findById(showtime._id).populate(POPULATE);
 
     res.status(201).json({
@@ -341,6 +352,7 @@ const updateShowtime = async (req, res, next) => {
       });
     }
 
+    const previousMovieId = existing.movie;
     const movieId = req.body.movie || existing.movie;
     const roomId = req.body.room || existing.room;
     const start = req.body.startTime
@@ -386,6 +398,13 @@ const updateShowtime = async (req, res, next) => {
     existing.status = status;
     await existing.save();
 
+    await Promise.all([
+      syncMovieScheduleState(movieId),
+      String(previousMovieId) !== String(movieId)
+        ? syncMovieScheduleState(previousMovieId)
+        : Promise.resolve(),
+    ]);
+
     const populated = await Showtime.findById(existing._id).populate(POPULATE);
 
     res.status(200).json({
@@ -408,6 +427,8 @@ const deleteShowtime = async (req, res, next) => {
         message: "Không tìm thấy suất chiếu",
       });
     }
+
+    await syncMovieScheduleState(showtime.movie);
 
     res.status(200).json({
       success: true,

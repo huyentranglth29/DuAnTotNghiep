@@ -24,5 +24,7 @@ export interface PhimApi {
   isHot?: boolean;
   director?: string;
   releaseDate?: string;
+  publishedAt?: string;
+  ticketSaleStartAt?: string;
   price?: number;
 }

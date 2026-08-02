@@ -72,7 +72,10 @@ const calcDiscount = (voucher, orderValue) => {
 
 const getUsedCount = async (voucherId) => {
   const [bookings, quickBookings] = await Promise.all([
-    Booking.countDocuments({ voucher: voucherId, status: { $ne: "cancelled" } }),
+    Booking.countDocuments({
+      voucher: voucherId,
+      $or: [{ paymentStatus: "paid" }, { status: "paid" }],
+    }),
     QuickBooking.countDocuments({ voucher: voucherId, status: "paid" }),
   ]);
   return bookings + quickBookings;

@@ -66,6 +66,15 @@ const movieSchema = new mongoose.Schema(
     releaseDate: {
       type: mongoose.Schema.Types.Mixed,
     },
+    expectedReleaseDate: {
+      type: mongoose.Schema.Types.Mixed,
+    },
+    publishedAt: {
+      type: Date,
+    },
+    ticketSaleStartAt: {
+      type: Date,
+    },
     status: {
       type: String,
       enum: [
@@ -76,8 +85,9 @@ const movieSchema = new mongoose.Schema(
         "featured",
         "ended",
         "stopped",
+        "draft",
       ],
-      default: "coming_soon",
+      default: "draft",
     },
     rating: {
       type: Number,

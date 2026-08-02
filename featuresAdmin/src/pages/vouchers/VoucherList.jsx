@@ -32,74 +32,6 @@ function toDateInput(value) {
   }).format(new Date(value));
 }
 
-function LineChart({points}) {
-  const width = 360;
-  const height = 160;
-  const pad = 24;
-  const maxY = Math.max(5, ...points.map(p => p.count));
-  const stepX =
-    points.length > 1 ? (width - pad * 2) / (points.length - 1) : 0;
-
-  const coords = points.map((p, i) => {
-    const x = pad + i * stepX;
-    const y = height - pad - (p.count / maxY) * (height - pad * 2);
-    return {x, y, ...p};
-  });
-
-  const path = coords
-    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
-    .join(' ');
-
-  const area =
-    coords.length > 0
-      ? `${path} L ${coords[coords.length - 1].x} ${height - pad} L ${coords[0].x} ${height - pad} Z`
-      : '';
-
-  const labelIdx = [
-    0,
-    Math.floor(points.length / 4),
-    Math.floor(points.length / 2),
-    Math.floor((points.length * 3) / 4),
-    points.length - 1,
-  ].filter((v, i, arr) => v >= 0 && arr.indexOf(v) === i);
-
-  return (
-    <svg className="voucherChartSvg" viewBox={`0 0 ${width} ${height}`}>
-      {[0, 0.5, 1].map(t => {
-        const y = height - pad - t * (height - pad * 2);
-        return (
-          <line
-            key={t}
-            className="voucherGridLine"
-            x1={pad}
-            x2={width - pad}
-            y1={y}
-            y2={y}
-          />
-        );
-      })}
-      <path className="voucherAreaPath" d={area} />
-      <path className="voucherLinePath" d={path} />
-      {coords.map((c, i) => (
-        <g key={c.date} className="voucherDotGroup">
-          <circle className="voucherDot" cx={c.x} cy={c.y} r={3.5}>
-            <title>{`${c.date}: ${c.count} lượt`}</title>
-          </circle>
-        </g>
-      ))}
-      {labelIdx.map(i => {
-        const c = coords[i];
-        if (!c) return null;
-        return (
-          <text key={`lbl-${c.date}`} className="voucherAxisLabel" x={c.x} y={height - 6}>
-            {c.date.slice(8)}
-          </text>
-        );
-      })}
-    </svg>
-  );
-}
-
 function DonutChart({slices}) {
   const size = 150;
   const stroke = 22;
@@ -178,8 +110,8 @@ function BarChart({items}) {
             <div className="voucherBarTrack">
               <div className="voucherBarFill" style={{height: `${height}%`}} />
             </div>
-            <span>{item.genre}</span>
-            <small>{item.percent}%</small>
+            <span className="voucherBarLabel">{item.genre}</span>
+            <small className="voucherBarPercent">{item.percent}%</small>
           </div>
         );
       })}
@@ -222,11 +154,21 @@ function VoucherList() {
         (statsData?.vouchers || []).map(v => [String(v._id), v]),
       );
       setItems(
-        list.map(item => ({
-          ...item,
-          usedCount: usageMap[String(item._id)]?.usedCount ?? 0,
-          usagePercent: usageMap[String(item._id)]?.usagePercent ?? 0,
-        })),
+        list.map(item => {
+          const usage = usageMap[String(item._id)];
+          const quantity = Number(item.quantity || 0);
+          const usedCount = Number(usage?.usedCount || 0);
+          const unlimited = usage?.unlimited ?? quantity <= 0;
+          return {
+            ...item,
+            usedCount,
+            remainingCount: unlimited
+              ? null
+              : (usage?.remainingCount ?? Math.max(0, quantity - usedCount)),
+            unlimited,
+            usagePercent: usage?.usagePercent ?? 0,
+          };
+        }),
       );
     } catch (err) {
       setError(err.message || 'Không tải được dữ liệu voucher.');
@@ -326,13 +268,34 @@ function VoucherList() {
     loadAll();
   };
 
-  const trend = stats?.usageTrend || [];
   const types = stats?.typeDistribution || [
     {discountType: 'percent', label: 'Giảm %', count: 0, percent: 0},
     {discountType: 'amount', label: 'Giảm số tiền', count: 0, percent: 0},
   ];
   const genres = stats?.usageByGenre || [];
-  const topCards = stats?.topVouchers || [];
+  const voucherStats = stats?.vouchers || [];
+  const topCards = (stats?.topVouchers || []).map(card => {
+    const quantity = Number(card.quantity || 0);
+    const usedCount = Number(card.usedCount || 0);
+    const unlimited = card.unlimited ?? quantity <= 0;
+    return {
+      ...card,
+      usedCount,
+      unlimited,
+      remainingCount: unlimited
+        ? null
+        : (card.remainingCount ?? Math.max(0, quantity - usedCount)),
+    };
+  });
+  const voucherOverview = {
+    used: voucherStats.reduce((sum, item) => sum + Number(item.usedCount || 0), 0),
+    active: voucherStats.filter(item => item.status === 'active').length,
+    remaining: voucherStats.reduce((sum, item) => {
+      const quantity = Number(item.quantity || 0);
+      if (quantity <= 0) return sum;
+      return sum + Number(item.remainingCount ?? Math.max(0, quantity - Number(item.usedCount || 0)));
+    }, 0),
+  };
 
   return (
     <section className="voucherPage">
@@ -385,19 +348,33 @@ function VoucherList() {
       {loading && <p className="voucherLoading">Đang tải...</p>}
 
       <div className="voucherCharts">
-        <article className="voucherChartCard">
-          <h2>Xu hướng sử dụng Voucher (30 ngày)</h2>
-          <p className="voucherChartHint">
-            Đếm từ booking: mỗi khách dùng voucher = +1 theo ngày đặt
-          </p>
-          <LineChart points={trend} />
+        <article className="voucherChartCard voucherChartCard--overview">
+          <h2>Tổng quan Voucher</h2>
+          <p className="voucherChartHint">Số liệu cập nhật từ các giao dịch đã thanh toán</p>
+          <div className="voucherOverview">
+            <div className="voucherOverviewItem voucherOverviewItem--blue">
+              <span className="voucherOverviewIcon" aria-hidden="true">↗</span>
+              <span>Đã sử dụng</span>
+              <div><strong>{voucherOverview.used}</strong><small>lượt</small></div>
+            </div>
+            <div className="voucherOverviewItem voucherOverviewItem--green">
+              <span className="voucherOverviewIcon" aria-hidden="true">✓</span>
+              <span>Đang hoạt động</span>
+              <div><strong>{voucherOverview.active}</strong><small>mã voucher</small></div>
+            </div>
+            <div className="voucherOverviewItem voucherOverviewItem--amber">
+              <span className="voucherOverviewIcon" aria-hidden="true">⌁</span>
+              <span>Còn có thể dùng</span>
+              <div><strong>{voucherOverview.remaining}</strong><small>lượt giới hạn</small></div>
+            </div>
+          </div>
         </article>
-        <article className="voucherChartCard">
+        <article className="voucherChartCard voucherChartCard--donut">
           <h2>Phân bổ loại Voucher</h2>
           <p className="voucherChartHint">Theo loại giảm giá trong các lần dùng thật</p>
           <DonutChart slices={types} />
         </article>
-        <article className="voucherChartCard">
+        <article className="voucherChartCard voucherChartCard--bars">
           <h2>Tỷ lệ sử dụng theo thể loại phim</h2>
           <p className="voucherChartHint">
             Booking có voucher → suất chiếu → phim → genre
@@ -420,8 +397,17 @@ function VoucherList() {
                 {card.code} ⧉
               </button>
             </div>
-            <p>
-              {card.usedCount}/{card.quantity || 0} ({card.usagePercent}%)
+            <p className="voucherUsageSummary">
+              Đã dùng <strong>{card.usedCount}</strong>
+              {' / '}
+              Tổng <strong>{card.unlimited ? 'Không giới hạn' : card.quantity}</strong>
+              {!card.unlimited && ` (${card.usagePercent}%)`}
+            </p>
+            <p className="voucherRemaining">
+              Còn lại:{' '}
+              <strong>
+                {card.unlimited ? 'Không giới hạn' : `${card.remainingCount} lượt`}
+              </strong>
             </p>
             <div className="voucherProgress">
               <span style={{width: `${card.usagePercent}%`}} />
@@ -457,6 +443,7 @@ function VoucherList() {
                 <th>Ngày kết thúc</th>
                 <th>Tổng SL</th>
                 <th>Đã dùng</th>
+                <th>Còn lại</th>
                 <th>Trạng thái</th>
                 <th>Hành động</th>
               </tr>
@@ -491,6 +478,9 @@ function VoucherList() {
                   <td>{item.quantity > 0 ? item.quantity : 'Không giới hạn'}</td>
                   <td>{item.usedCount ?? 0}</td>
                   <td>
+                    {item.unlimited ? 'Không giới hạn' : (item.remainingCount ?? 0)}
+                  </td>
+                  <td>
                     <span className={`voucherStatus voucherStatus--${item.status}`}>
                       {STATUS_LABEL[item.status] || item.status}
                     </span>
@@ -514,7 +504,7 @@ function VoucherList() {
               ))}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="voucherEmptyHint">
+                  <td colSpan={11} className="voucherEmptyHint">
                     Không có voucher nào.
                   </td>
                 </tr>

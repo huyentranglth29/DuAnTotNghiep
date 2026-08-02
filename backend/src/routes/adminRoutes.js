@@ -29,6 +29,7 @@ const Showtime = require("../models/Showtime");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const Voucher = require("../models/Voucher");
+const Genre = require("../models/Genre");
 const QuickBooking = require("../models/QuickBooking");
 const Payment = require("../models/Payment");
 const { createNotification } = require("../services/notificationService");
@@ -204,14 +205,127 @@ const enrichNotificationsWithRecipients = async (items = []) => {
   });
 };
 
+const genreSlug = (value = "") =>
+  String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+const normalizeGenreBody = (body = {}) => {
+  const name = String(body.name || "").trim().replace(/\s+/g, " ");
+  return {
+    ...body,
+    name,
+    slug: genreSlug(name),
+    status: body.status === "inactive" ? "inactive" : "active",
+  };
+};
+
+const syncGenresFromMovies = async () => {
+  const movies = await Movie.find().select("genre -_id").lean();
+  const names = new Map();
+
+  movies.forEach((movie) => {
+    const raw = Array.isArray(movie.genre) ? movie.genre : [movie.genre];
+    raw
+      .flatMap((value) => String(value || "").split(/[,/|]/))
+      .map((value) => value.trim().replace(/\s+/g, " "))
+      .filter(Boolean)
+      .forEach((name) => names.set(genreSlug(name), name));
+  });
+
+  if (!names.size) return;
+  await Genre.bulkWrite(
+    [...names.entries()].map(([slug, name]) => ({
+      updateOne: {
+        filter: {slug},
+        update: {$setOnInsert: {name, slug, status: "active"}},
+        upsert: true,
+      },
+    })),
+    {ordered: false},
+  );
+};
+
+const enrichGenresWithMovieCount = async (items = []) => {
+  const movies = await Movie.find().select("genre -_id").lean();
+  const counts = new Map();
+  movies.forEach((movie) => {
+    const values = Array.isArray(movie.genre) ? movie.genre : [movie.genre];
+    values
+      .flatMap((value) => String(value || "").split(/[,/|]/))
+      .map((value) => genreSlug(value))
+      .filter(Boolean)
+      .forEach((slug) => counts.set(slug, (counts.get(slug) || 0) + 1));
+  });
+  return items.map((item) => ({...item, movieCount: counts.get(item.slug) || 0}));
+};
+
+const genreCrud = createAdminCrudController(Genre, {
+  keywordFields: ["name", "slug", "status"],
+  prepareBody: normalizeGenreBody,
+  enrichList: enrichGenresWithMovieCount,
+});
+
+const prepareMovieBody = (body = {}) => {
+  const next = {...body};
+  if (["coming-soon", "coming_soon"].includes(next.status)) {
+    const publishedAt = new Date(next.publishedAt);
+    const saleAt = new Date(next.ticketSaleStartAt);
+    const releaseAt = new Date(next.expectedReleaseDate);
+    if ([publishedAt, saleAt, releaseAt].some((date) => Number.isNaN(date.getTime()))) {
+      const error = new Error("Vui lòng nhập đủ thời điểm công bố, mở bán và dự kiến khởi chiếu");
+      error.statusCode = 400;
+      throw error;
+    }
+    if (publishedAt > saleAt || saleAt.toISOString().slice(0, 10) > releaseAt.toISOString().slice(0, 10)) {
+      const error = new Error("Thời gian phải theo thứ tự: Công bố ≤ Mở bán ≤ Khởi chiếu");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+  return next;
+};
+
+router.get("/genres", async (req, res) => {
+  try {
+    await syncGenresFromMovies();
+    return genreCrud.getAll(req, res);
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
+});
+router.get("/genres/:id", genreCrud.getById);
+router.post("/genres", genreCrud.create);
+router.put("/genres/:id", genreCrud.update);
+router.delete("/genres/:id", async (req, res) => {
+  const genre = await Genre.findById(req.params.id);
+  if (!genre) return res.status(404).json({success: false, message: "Thể loại không tồn tại"});
+  const pattern = new RegExp(`(^|[,/|]\\s*)${genre.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s*[,/|]|$)`, "i");
+  const used = await Movie.exists({genre: pattern});
+  if (used) {
+    return res.status(400).json({success: false, message: "Thể loại đang được phim sử dụng. Hãy tạm tắt thay vì xóa."});
+  }
+  return genreCrud.remove(req, res);
+});
+
 const resources = {
   movies: createAdminCrudController(Movie, {
     keywordFields: ["title", "description", "synopsis", "director", "genre"],
-    afterCreate: movie => createNotification({
-      title: `Phim mới: ${movie.title}`,
-      content: `${movie.title} vừa được cập nhật trên FilmGo. Xem thông tin và lịch chiếu ngay!`,
-      type: "phim", entityId: movie._id, action: "mo_chi_tiet_phim", image: movie.posterUrl,
-    }),
+    prepareBody: prepareMovieBody,
+    afterCreate: movie =>
+      ["coming-soon", "coming_soon"].includes(movie.status) &&
+      (!movie.publishedAt || new Date(movie.publishedAt) <= new Date())
+        ? createNotification({
+          title: `Phim sắp chiếu: ${movie.title}`,
+          content: `${movie.title} vừa được công bố trên FilmGo. Xem thông tin phim ngay!`,
+          type: "phim", entityId: movie._id, action: "mo_chi_tiet_phim", image: movie.posterUrl,
+        })
+        : null,
   }),
   rooms: createAdminCrudController(Room, {
     keywordFields: ["name", "type", "status"],

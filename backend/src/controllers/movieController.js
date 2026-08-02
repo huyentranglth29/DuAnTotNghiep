@@ -1,5 +1,6 @@
 const Movie = require("../models/Movie");
 const Showtime = require("../models/Showtime");
+const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateService");
 
 // ==========================
 // Chuyển dữ liệu cho App
@@ -21,6 +22,7 @@ const STATUS_TO_CLIENT = {
   featured: "featured",
   ended: "ended",
   stopped: "stopped",
+  draft: "draft",
 };
 
 function normalizeGenre(genre) {
@@ -65,7 +67,10 @@ function toClientMovie(movie) {
     rating: movie.rating,
     status: STATUS_TO_CLIENT[movie.status] || movie.status,
     ageRating: movie.ageRating,
-    releaseDate: movie.releaseDate,
+    releaseDate: movie.expectedReleaseDate || movie.releaseDate,
+    expectedReleaseDate: movie.expectedReleaseDate,
+    publishedAt: movie.publishedAt,
+    ticketSaleStartAt: movie.ticketSaleStartAt,
     price: movie.price,
     isHot: movie.isHot,
   };
@@ -77,6 +82,7 @@ function toClientMovie(movie) {
 
 const getMovies = async (req, res, next) => {
   try {
+    await syncAllMovieScheduleStates();
     const { status, genre, _limit, hasShowtimes } = req.query;
 
     const filter = {};
@@ -200,6 +206,9 @@ const createMovie = async (req, res, next) => {
       status,
       ageRating,
       releaseDate,
+      expectedReleaseDate,
+      publishedAt,
+      ticketSaleStartAt,
       isHot,
       price,
     } = req.body;
@@ -224,6 +233,9 @@ const createMovie = async (req, res, next) => {
       status,
       ageRating,
       releaseDate,
+      expectedReleaseDate,
+      publishedAt,
+      ticketSaleStartAt,
       isHot,
       price,
     });

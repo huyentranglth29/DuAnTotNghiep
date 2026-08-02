@@ -13,6 +13,8 @@ export function phimSangBooking(phim: Phim): MovieBookingInfo {
     cast: phim.danhSachDienVien?.map(item => item.ten),
     releaseDate: phim.ngayPhatHanh,
     ageRating: phim.nhanTuoi,
+    status: phim.trangThai,
+    ticketSaleStartAt: phim.moBanVeTu,
   };
 }
 

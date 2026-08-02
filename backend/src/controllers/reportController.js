@@ -428,7 +428,7 @@ const voucherStats = async (req, res) => {
 
     const voucherBookingMatch = {
       voucher: { $ne: null, $exists: true },
-      status: { $ne: "cancelled" },
+      ...paidBookingMatch,
       createdAt: { $gte: from, $lte: to },
     };
 
@@ -504,7 +504,7 @@ const voucherStats = async (req, res) => {
           {
             $match: {
               voucher: { $ne: null, $exists: true },
-              status: { $ne: "cancelled" },
+              ...paidBookingMatch,
             },
           },
           {
@@ -575,12 +575,18 @@ const voucherStats = async (req, res) => {
     const voucherUsage = vouchers.map((voucher) => {
       const usedCount = usageMap[String(voucher._id)] || 0;
       const quantity = Number(voucher.quantity || 0);
+      const unlimited = quantity <= 0;
+      const remainingCount = unlimited
+        ? null
+        : Math.max(0, quantity - usedCount);
       const percent =
-        quantity > 0 ? Math.min(100, Math.round((usedCount / quantity) * 100)) : 0;
+        unlimited ? 0 : Math.min(100, Math.round((usedCount / quantity) * 100));
 
       return {
         ...voucher,
         usedCount,
+        remainingCount,
+        unlimited,
         usagePercent: percent,
       };
     });

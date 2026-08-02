@@ -3,14 +3,19 @@ import {NavLink, useNavigate} from 'react-router-dom';
 const menuItems = [
   {to: '/', label: 'Tổng quan'},
   {to: '/users', label: 'Người dùng'},
-  {to: '/movies', label: 'Phim'},
+  {
+    label: 'Phim',
+    children: [
+      {to: '/movies', label: 'Quản lý phim'},
+      {to: '/categories', label: 'Thể loại phim'},
+    ],
+  },
   {to: '/rooms', label: 'Phòng chiếu'},
   {to: '/seats', label: 'Ghế'},
   {
     label: 'Suất chiếu',
     children: [
       {to: '/showtimes', label: 'Danh sách suất chiếu'},
-      {to: '/showtimes/create', label: 'Liên kết phim'},
       {to: '/showtimes/status', label: 'Trạng thái suất'},
     ],
   },

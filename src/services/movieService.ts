@@ -60,6 +60,8 @@ export function chuyenDoiPhimApi(duLieu: PhimApi): Phim {
     anhNen: duLieu.backdropUrl,
     daoDien: duLieu.director,
     ngayPhatHanh: duLieu.releaseDate,
+    ngayCongBo: duLieu.publishedAt,
+    moBanVeTu: duLieu.ticketSaleStartAt,
     giaVe: duLieu.price,
   };
 }

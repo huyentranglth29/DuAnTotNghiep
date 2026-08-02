@@ -1,6 +1,7 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -8,7 +9,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {useQuery} from '@tanstack/react-query';
 import {useMoviesSapChieu} from '../../../hooks/useMovies';
+import {layDanhSachSuatChieu} from '../../../services/showtimeService';
+import {
+  dangKyNhacPhim,
+  huyNhacPhim,
+  layDanhSachNhacPhim,
+} from '../../../services/movieReminderService';
 import {MovieBookingInfo} from './MovieName';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
 
@@ -41,6 +49,25 @@ function getRelease(value?: string) {
 function SapChieu({onMoviePress}: SapChieuProps) {
   const {data, isLoading, isError, refetch, isFetching} = useMoviesSapChieu();
   const movies = useMemo(() => data ?? [], [data]);
+  const [remindedMovieIds, setRemindedMovieIds] = useState<Set<string>>(new Set());
+  const remindersQuery = useQuery({
+    queryKey: ['nhac-phim'],
+    queryFn: layDanhSachNhacPhim,
+    retry: false,
+  });
+  useEffect(() => {
+    if (remindersQuery.data) setRemindedMovieIds(new Set(remindersQuery.data));
+  }, [remindersQuery.data]);
+  const bookableQuery = useQuery({
+    queryKey: ['lich-chieu', 'sap-chieu-mo-ban'],
+    queryFn: () => layDanhSachSuatChieu({bookable: true}),
+    staleTime: 15_000,
+    refetchInterval: 15_000,
+  });
+  const bookableMovieIds = useMemo(
+    () => new Set((bookableQuery.data ?? []).map(item => String(item.movie?._id || ''))),
+    [bookableQuery.data],
+  );
   const genres = useMemo(
     () => [
       'Tất cả',
@@ -139,6 +166,10 @@ function SapChieu({onMoviePress}: SapChieuProps) {
           </View>
           {visibleMovies.map((phim, index) => {
             const release = getRelease(phim.ngayPhatHanh);
+            const saleAt = phim.moBanVeTu ? new Date(phim.moBanVeTu) : null;
+            const saleOpened = !saleAt || saleAt <= new Date();
+            const hasBookableShowtime = bookableMovieIds.has(String(phim.id));
+            const reminded = remindedMovieIds.has(String(phim.id));
             return (
               <TouchableOpacity
                 key={String(phim.id)}
@@ -189,6 +220,43 @@ function SapChieu({onMoviePress}: SapChieuProps) {
                       <Text style={styles.releaseDate}>{release.label}</Text>
                     </View>
                   </View>
+                  {saleAt && <Text style={styles.saleDate}>
+                    Mở bán vé từ {saleAt.toLocaleString('vi-VN', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
+                  </Text>}
+                  <TouchableOpacity
+                    style={[styles.upcomingAction, saleOpened && hasBookableShowtime && styles.upcomingActionPrimary]}
+                    onPress={async event => {
+                      event.stopPropagation?.();
+                      if (saleOpened && hasBookableShowtime) {
+                        onMoviePress(phimSangBooking(phim));
+                        return;
+                      }
+                      if (saleOpened) {
+                        Alert.alert('Đang cập nhật lịch', 'FilmGo chưa mở suất chiếu để đặt vé cho phim này.');
+                        return;
+                      }
+                      const movieId = String(phim.id);
+                      try {
+                        if (reminded) {
+                          await huyNhacPhim(movieId);
+                          setRemindedMovieIds(current => {
+                            const next = new Set(current);
+                            next.delete(movieId);
+                            return next;
+                          });
+                        } else {
+                          await dangKyNhacPhim(movieId);
+                          setRemindedMovieIds(current => new Set(current).add(movieId));
+                          Alert.alert('Đã đăng ký nhắc', `FilmGo sẽ nhắc bạn khi ${phim.tieuDe} mở bán vé.`);
+                        }
+                      } catch (error) {
+                        Alert.alert('Cần đăng nhập', (error as Error).message || 'Vui lòng đăng nhập để dùng chức năng nhắc tôi.');
+                      }
+                    }}>
+                    <Text style={[styles.upcomingActionText, saleOpened && hasBookableShowtime && styles.upcomingActionTextPrimary]}>
+                      {saleOpened ? (hasBookableShowtime ? 'Đặt vé' : 'Đang cập nhật lịch') : (reminded ? 'Đã nhắc tôi' : 'Nhắc tôi')}
+                    </Text>
+                  </TouchableOpacity>
                   <Text style={styles.detailLink}>Xem thông tin phim  ›</Text>
                 </View>
               </TouchableOpacity>
@@ -304,6 +372,11 @@ const styles = StyleSheet.create({
   calendarIcon: {color: BLUE, fontSize: 15, marginRight: 7},
   releaseLabel: {fontSize: 8, color: '#8b9aac', fontWeight: '700'},
   releaseDate: {fontSize: 10, color: BLUE, fontWeight: '900', marginTop: 1},
+  saleDate: {fontSize: 9, color: '#64748b', fontWeight: '700', marginTop: 7},
+  upcomingAction: {marginTop: 8, borderRadius: 8, paddingVertical: 7, alignItems: 'center', backgroundColor: '#eef2f6'},
+  upcomingActionPrimary: {backgroundColor: PINK},
+  upcomingActionText: {fontSize: 11, color: '#536273', fontWeight: '900'},
+  upcomingActionTextPrimary: {color: '#fff'},
   detailLink: {fontSize: 10, color: PINK, fontWeight: '900', marginTop: 9},
   refreshHint: {textAlign: 'center', fontSize: 11, color: '#94a3b8'},
 });

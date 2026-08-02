@@ -591,6 +591,141 @@ th {
   min-height: 132px;
 }
 
+.movieGenreField {
+  display: grid;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+}
+
+.movieGenrePicker {
+  position: relative;
+}
+
+.movieGenrePicker > summary {
+  min-height: 42px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #cfd6df;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  list-style: none;
+}
+
+.movieGenrePicker > summary::-webkit-details-marker {display: none;}
+.movieGenrePicker[open] > summary {border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);}
+.movieGenrePlaceholder {color: #9ca3af;}
+
+.movieGenreDropdown {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  padding: 10px;
+  border: 1px solid #dbe3ed;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.movieGenreOptions {
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.movieGenreOption {
+  padding: 8px 9px;
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px !important;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.movieGenreOption:hover {background: #eff6ff;}
+.movieGenreOption input {width: 16px !important; height: 16px; margin: 0; accent-color: #2563eb;}
+
+.movieGenreQuickAdd {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.movieGenreQuickAdd button {background: #2563eb; white-space: nowrap;}
+.movieGenreManageLink {width: 100%; margin-top: 7px; padding: 7px !important; color: #2563eb !important; background: transparent !important;}
+
+.movieGenreChips {display: flex; flex-wrap: wrap; gap: 6px;}
+.movieGenreChips button {padding: 5px 9px; border: 1px solid #bfdbfe; border-radius: 999px; color: #1d4ed8; background: #eff6ff; cursor: pointer;}
+.movieGenreChips button span {margin-left: 3px; font-weight: 800;}
+
+.moviePublishBox {
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.moviePublishToggle {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: flex-start;
+  gap: 10px !important;
+  cursor: pointer;
+}
+
+.moviePublishToggle input {width: 18px !important; height: 18px; margin-top: 2px; accent-color: #2563eb;}
+.moviePublishToggle span {display: grid; gap: 3px;}
+.moviePublishToggle strong {color: #1e3a5f; font-size: 14px;}
+.moviePublishToggle small {color: #64748b; font-size: 12px; font-weight: 400;}
+.moviePublishDates {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;}
+.moviePublishDates label:last-child {grid-column: 1 / -1;}
+.movieScheduleManagedNotice {padding: 12px 14px; border-radius: 8px; color: #475569; background: #f1f5f9; font-size: 13px;}
+
+.genrePage {display: grid; gap: 16px;}
+.genreLayout {display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 18px; align-items: start;}
+.genreEditor, .genrePanel {padding: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 14px rgba(15, 23, 42, 0.05);}
+.genreEditor {display: grid; gap: 16px; position: sticky; top: 90px;}
+.genreEditor h2, .genrePanel h2 {margin: 0; color: #0f172a; font-size: 18px;}
+.genreEditor p, .genrePanel p {margin: 5px 0 0; color: #64748b; font-size: 13px; line-height: 1.5;}
+.genreEyebrow {color: #2563eb !important; font-size: 11px !important; font-weight: 800; letter-spacing: .08em;}
+.genreEditor label {display: grid; gap: 7px; color: #334155; font-size: 13px; font-weight: 600;}
+.genreEditor input, .genreEditor select, .genrePanelHead input {width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;}
+.genreFormActions {display: flex; justify-content: flex-end; gap: 8px;}
+.genreFormActions button, .genreActions button {padding: 9px 12px; border: 0; border-radius: 8px; color: #fff; background: #2563eb; cursor: pointer;}
+.genreFormActions .genreCancel {color: #475569; background: #f1f5f9;}
+.genreError {padding: 9px 10px; border-radius: 7px; color: #b91c1c !important; background: #fef2f2;}
+.genrePanelHead {display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px;}
+.genrePanelHead input {max-width: 260px;}
+.genreTableWrap {overflow-x: auto;}
+.genreTable td:first-child {display: grid; gap: 3px;}
+.genreTable td small {color: #94a3b8;}
+.genreStatus {display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;}
+.genreStatus--active {color: #15803d; background: #dcfce7;}
+.genreStatus--inactive {color: #a16207; background: #fef3c7;}
+.genreActions {display: flex; gap: 6px;}
+.genreActions .danger {color: #b91c1c; background: #fee2e2;}
+.genreEmpty, .genreLoading {text-align: center; color: #64748b;}
+
+@media (max-width: 900px) {
+  .genreLayout {grid-template-columns: 1fr;}
+  .genreEditor {position: static;}
+  .movieGenreOptions {grid-template-columns: 1fr;}
+}
+
 .formGrid button,
 .loginBox button,
 .pageTitle a,
@@ -3257,6 +3392,8 @@ th {
   background: #fff;
   border: 1px solid #e6edf5;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
@@ -3277,6 +3414,77 @@ th {
   font-size: 12px;
   color: #94a3b8;
 }
+
+.voucherChartCard--donut .voucherDonutWrap {
+  margin-top: 24px;
+}
+
+.voucherChartCard--bars .voucherBarChart {
+  margin-top: 18px;
+  margin-bottom: 12px;
+}
+
+.voucherOverview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  flex: 1;
+  align-items: stretch;
+  margin: 30px 0 16px;
+}
+
+.voucherOverviewItem {
+  min-height: 220px;
+  padding: 18px 14px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.voucherOverviewItem > span:not(.voucherOverviewIcon),
+.voucherOverviewItem small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.voucherOverviewItem > div {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.voucherOverviewItem strong {
+  color: #0f172a;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.voucherOverviewIcon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.12);
+}
+
+.voucherOverviewItem--blue {background: linear-gradient(145deg, #eff6ff, #fff); border-color: #bfdbfe;}
+.voucherOverviewItem--green {background: linear-gradient(145deg, #f0fdf4, #fff); border-color: #bbf7d0;}
+.voucherOverviewItem--amber {background: linear-gradient(145deg, #fffbeb, #fff); border-color: #fde68a;}
+.voucherOverviewItem--blue .voucherOverviewIcon {background: #2563eb;}
+.voucherOverviewItem--green .voucherOverviewIcon {background: #16a34a;}
+.voucherOverviewItem--amber .voucherOverviewIcon {background: #d97706;}
 
 .voucherChartSvg {
   width: 100%;
@@ -3363,18 +3571,21 @@ th {
 
 .voucherBarChart {
   display: flex;
-  align-items: end;
+  align-items: stretch;
   justify-content: space-around;
   gap: 8px;
-  min-height: 150px;
+  min-height: 280px;
+  flex: 1;
   padding-top: 8px;
 }
 
 .voucherBarCol {
   flex: 1;
   display: grid;
+  grid-template-rows: minmax(190px, 1fr) 38px 18px;
   justify-items: center;
-  gap: 6px;
+  align-items: start;
+  gap: 4px;
   font-size: 11px;
   color: #64748b;
   cursor: default;
@@ -3383,12 +3594,26 @@ th {
 .voucherBarTrack {
   width: 100%;
   max-width: 36px;
-  height: 110px;
+  height: 100%;
   display: flex;
   align-items: end;
   border-radius: 8px 8px 4px 4px;
   background: #f1f5f9;
   overflow: hidden;
+}
+
+.voucherBarLabel {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: center;
+  line-height: 14px;
+}
+
+.voucherBarPercent {
+  line-height: 18px;
 }
 
 .voucherBarFill {
@@ -3441,6 +3666,15 @@ th {
   margin: 8px 0;
   font-size: 13px;
   color: #475569;
+}
+
+.voucherUsageCard .voucherUsageSummary {
+  margin-bottom: 3px;
+}
+
+.voucherUsageCard .voucherRemaining {
+  margin-top: 0;
+  color: #15803d;
 }
 
 .voucherCopyBtn,
