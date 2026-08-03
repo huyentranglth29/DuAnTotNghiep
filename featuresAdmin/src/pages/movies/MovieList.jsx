@@ -28,6 +28,7 @@ const STATUS_META = {
   featured: {key: 'showing', label: 'Đang chiếu', tone: 'success'},
   'coming-soon': {key: 'upcoming', label: 'Sắp chiếu', tone: 'warning'},
   coming_soon: {key: 'upcoming', label: 'Sắp chiếu', tone: 'warning'},
+  'awaiting-showtime': {key: 'awaiting', label: 'Chưa có suất chiếu', tone: 'warning'},
   ended: {key: 'ended', label: 'Đã chiếu', tone: 'muted'},
   stopped: {key: 'stopped', label: 'Ngừng chiếu', tone: 'danger'},
   draft: {key: 'draft', label: 'Chưa có suất chiếu', tone: 'muted'},
@@ -88,6 +89,28 @@ function StatusBadge({status}) {
   return <span className={`movieBadge movieBadge--${meta.tone}`}>{meta.label}</span>;
 }
 
+function AppPlacementBadge({movie}) {
+  const status = getStatusMeta(movie.status).key;
+  const labels = [];
+  if (status === 'showing') labels.push('Đang chiếu');
+  if (status === 'upcoming') labels.push('Sắp chiếu');
+  if (movie.hasEarlyShowtime) labels.push('Suất chiếu sớm');
+  if (!labels.length) labels.push('Không hiển thị');
+  return (
+    <div className="movieAppPlacement">
+      {labels.map(label => (
+        <span
+          key={label}
+          className={`movieBadge movieBadge--${
+            label === 'Không hiển thị' ? 'muted' : 'success'
+          }`}>
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function AgeBadge({value}) {
   if (!value) return <span className="movieAgeBadge movieAgeBadge--muted">—</span>;
   const key = String(value).toUpperCase();
@@ -107,6 +130,7 @@ function MovieList() {
   const [movies, setMovies] = useState([]);
   const [showtimeCountMap, setShowtimeCountMap] = useState({});
   const [todayShowtimeMap, setTodayShowtimeMap] = useState({});
+  const [earlyShowtimeMap, setEarlyShowtimeMap] = useState({});
   const [revenueMap, setRevenueMap] = useState({});
   const [ticketMap, setTicketMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -147,11 +171,19 @@ function MovieList() {
 
       const countMap = {};
       const todayMap = {};
+      const earlyMap = {};
       const today = todayKey();
       showtimeRows.forEach(item => {
         const movieId = String(item.movie?._id || item.movie?.id || item.movie || '');
         if (!movieId) return;
         countMap[movieId] = (countMap[movieId] || 0) + 1;
+        if (
+          item.screeningType === 'early' &&
+          item.status === 'scheduled' &&
+          new Date(item.startTime).getTime() > Date.now()
+        ) {
+          earlyMap[movieId] = true;
+        }
         if (toDateKey(item.startTime) === today) {
           todayMap[movieId] = true;
         }
@@ -175,6 +207,7 @@ function MovieList() {
       setMovies(movieRows);
       setShowtimeCountMap(countMap);
       setTodayShowtimeMap(todayMap);
+      setEarlyShowtimeMap(earlyMap);
       setRevenueMap(nextRevenue);
       setTicketMap(nextTickets);
       setSelectedId(current => {
@@ -192,6 +225,18 @@ function MovieList() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await movieApi.getAll({limit: 500, page: 1, sort: '-createdAt'});
+        setMovies(Array.isArray(response) ? response : response?.data || []);
+      } catch {
+        // Giữ dữ liệu hiện tại nếu lần đồng bộ nền tạm thời thất bại.
+      }
+    }, 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -229,11 +274,12 @@ function MovieList() {
           id,
           showtimeCount: showtimeCountMap[id] || 0,
           showingToday: Boolean(todayShowtimeMap[id]),
+          hasEarlyShowtime: Boolean(earlyShowtimeMap[id]),
           revenue: revenueMap[id] ?? revenueMap[title] ?? null,
           ticketsSold: ticketMap[title] ?? null,
         };
       }),
-    [movies, showtimeCountMap, todayShowtimeMap, revenueMap, ticketMap],
+    [movies, showtimeCountMap, todayShowtimeMap, earlyShowtimeMap, revenueMap, ticketMap],
   );
 
   const filteredMovies = useMemo(() => {
@@ -492,19 +538,20 @@ function MovieList() {
                   <th>Dự kiến / Khởi chiếu</th>
                   <th>Suất chiếu</th>
                   <th>Trạng thái</th>
+                  <th>Hiển thị trên app</th>
                   <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="movieEmpty">
+                    <td colSpan={9} className="movieEmpty">
                       Đang tải danh sách phim...
                     </td>
                   </tr>
                 ) : pageRows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="movieEmpty">
+                    <td colSpan={9} className="movieEmpty">
                       Không có phim phù hợp.
                     </td>
                   </tr>
@@ -542,7 +589,7 @@ function MovieList() {
                       </td>
                       <td>{formatGenre(movie.genre)}</td>
                       <td>{formatDuration(movie.duration)}</td>
-                      <td>{formatDate(movie.expectedReleaseDate || movie.releaseDate) || 'Chưa có'}</td>
+                      <td>{formatDate(movie.releaseDate || movie.expectedReleaseDate) || 'Chưa có'}</td>
                       <td>
                         <button
                           type="button"
@@ -556,6 +603,9 @@ function MovieList() {
                       </td>
                       <td>
                         <StatusBadge status={movie.status} />
+                      </td>
+                      <td>
+                        <AppPlacementBadge movie={movie} />
                       </td>
                       <td>
                         <div className="movieRowActions" onClick={event => event.stopPropagation()}>
@@ -686,7 +736,7 @@ function MovieList() {
             </div>
             <div>
               <dt>Ngày khởi chiếu</dt>
-              <dd>{formatDate(selected.expectedReleaseDate || selected.releaseDate) || 'Chưa có'}</dd>
+              <dd>{formatDate(selected.releaseDate || selected.expectedReleaseDate) || 'Chưa có'}</dd>
             </div>
             {selected.endDate ? (
               <div>
@@ -816,7 +866,7 @@ function MovieList() {
                   </div>
                   <div>
                     <dt>Ngày khởi chiếu</dt>
-                    <dd>{formatDate(selected.expectedReleaseDate || selected.releaseDate) || 'Chưa có'}</dd>
+                    <dd>{formatDate(selected.releaseDate || selected.expectedReleaseDate) || 'Chưa có'}</dd>
                   </div>
                   {selected.endDate ? (
                     <div>

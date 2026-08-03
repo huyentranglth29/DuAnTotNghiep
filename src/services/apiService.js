@@ -120,8 +120,18 @@ export const register = async ({ fullName, email, password, phone }) => {
  */
 export const getReviews = async (movieId) => {
   return apiClient.get('/api/reviews', {
-    params: { movie: movieId, status: 'approved' },
+    params: { movie: movieId },
   });
+};
+
+/** Lấy đánh giá hiện tại của tài khoản đăng nhập cho một phim. */
+export const getMyReview = async movieId => {
+  return apiClient.get('/api/reviews/mine', {params: {movie: movieId}});
+};
+
+/** Kiểm tra phim đã có suất kết thúc và tài khoản có vé FilmGo hay chưa. */
+export const getReviewEligibility = async movieId => {
+  return apiClient.get('/api/reviews/eligibility', {params: {movie: movieId}});
 };
 
 /**
@@ -131,8 +141,8 @@ export const getReviews = async (movieId) => {
  */
 export const postReview = async (payload) => {
   return apiClient.post('/api/reviews', {
-    ...payload,
     movie: payload.movie || payload.movieId,
+    rating: payload.rating,
     comment: payload.comment || payload.text,
   });
 };

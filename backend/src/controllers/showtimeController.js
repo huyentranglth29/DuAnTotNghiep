@@ -10,7 +10,10 @@ const {
   resolveConflictDetails,
   formatConflictPayload,
 } = require("../services/showtimeScheduleService");
-const {syncMovieScheduleState} = require("../services/movieScheduleStateService");
+const {
+  startOfVietnamDay,
+  syncMovieScheduleState,
+} = require("../services/movieScheduleStateService");
 
 const POPULATE = [
   { path: "movie", select: "title posterUrl duration ageRating genre status expectedReleaseDate publishedAt ticketSaleStartAt" },
@@ -26,9 +29,25 @@ const sendConflict = (res, conflictError) =>
     earliestAvailable: conflictError.earliestAvailable || null,
   });
 
+const validateEarlyScreening = ({ movie, startTime }) => {
+  if (!movie.expectedReleaseDate) {
+    return "Phim phải có ngày dự kiến khởi chiếu trước khi tạo suất chiếu sớm";
+  }
+
+  const screeningDay = startOfVietnamDay(startTime);
+  const releaseDay = startOfVietnamDay(movie.expectedReleaseDate);
+  if (!screeningDay || !releaseDay) {
+    return "Ngày chiếu hoặc ngày dự kiến khởi chiếu không hợp lệ";
+  }
+  if (screeningDay >= releaseDay) {
+    return `Suất chiếu sớm phải diễn ra trước ngày khởi chiếu ${releaseDay.toLocaleDateString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"})}`;
+  }
+  return "";
+};
+
 const getShowtimes = async (req, res, next) => {
   try {
-    const { movie, room, date, status, bookable } = req.query;
+    const { movie, room, date, status, bookable, screeningType } = req.query;
     const filter = {};
 
     if (movie) {
@@ -41,6 +60,16 @@ const getShowtimes = async (req, res, next) => {
 
     if (status) {
       filter.status = status;
+    }
+
+    if (screeningType === "early") {
+      filter.screeningType = "early";
+    } else if (screeningType === "regular") {
+      // Dữ liệu cũ chưa có trường này được xem là suất thông thường.
+      filter.$or = [
+        { screeningType: "regular" },
+        { screeningType: { $exists: false } },
+      ];
     }
 
     // Ngày theo VN (UTC+7) để khớp App / Admin, tránh lệch timezone server
@@ -283,7 +312,7 @@ const checkShowtimeConflicts = async (req, res, next) => {
 
 const createShowtime = async (req, res, next) => {
   try {
-    const { movie, room, startTime, price, status } = req.body;
+    const { movie, room, startTime, price, status, screeningType } = req.body;
 
     if (!movie || !room || !startTime || price === undefined) {
       return res.status(400).json({
@@ -301,6 +330,12 @@ const createShowtime = async (req, res, next) => {
     }
 
     const start = new Date(startTime);
+    if (screeningType === "early") {
+      const earlyError = validateEarlyScreening({movie: movieDoc, startTime: start});
+      if (earlyError) {
+        return res.status(400).json({success: false, message: earlyError});
+      }
+    }
     // Luôn tự tính endTime từ thời lượng phim — không nhận endTime thủ công
     const end = buildEndTime(start, movieDoc.duration);
 
@@ -326,6 +361,7 @@ const createShowtime = async (req, res, next) => {
       endTime: end,
       price: Number(price),
       status: status || "scheduled",
+      screeningType: screeningType === "early" ? "early" : "regular",
     });
 
     await syncMovieScheduleState(movie);
@@ -362,6 +398,10 @@ const updateShowtime = async (req, res, next) => {
       req.body.status !== undefined ? req.body.status : existing.status;
     const price =
       req.body.price !== undefined ? Number(req.body.price) : existing.price;
+    const screeningType =
+      req.body.screeningType !== undefined
+        ? req.body.screeningType
+        : existing.screeningType || "regular";
 
     const movieDoc = await Movie.findById(movieId);
     if (!movieDoc) {
@@ -369,6 +409,13 @@ const updateShowtime = async (req, res, next) => {
         success: false,
         message: "Không tìm thấy phim",
       });
+    }
+
+    if (screeningType === "early") {
+      const earlyError = validateEarlyScreening({movie: movieDoc, startTime: start});
+      if (earlyError) {
+        return res.status(400).json({success: false, message: earlyError});
+      }
     }
 
     // Luôn tự tính lại endTime từ thời lượng phim
@@ -396,6 +443,7 @@ const updateShowtime = async (req, res, next) => {
     existing.endTime = end;
     existing.price = price;
     existing.status = status;
+    existing.screeningType = screeningType;
     await existing.save();
 
     await Promise.all([

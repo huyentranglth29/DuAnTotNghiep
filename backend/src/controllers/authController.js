@@ -2,7 +2,11 @@ const crypto = require("crypto");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
-const { sendLoginNotification, sendFailedLoginNotification } = require("../services/emailService");
+const {
+  sendRegistrationNotification,
+  sendLoginNotification,
+  sendFailedLoginNotification,
+} = require("../services/emailService");
 
 const failedLoginAttempts = new Map();
 const FAILED_LOGIN_THRESHOLD = 3;
@@ -59,6 +63,13 @@ const register = async (req, res) => {
       role: "user",
       status: "active",
     });
+
+    sendRegistrationNotification({
+      email: user.email,
+      fullName: user.fullName,
+    }).catch((error) =>
+      console.warn("Không gửi được email đăng ký:", error.message),
+    );
 
     res.status(201).json({
       success: true,

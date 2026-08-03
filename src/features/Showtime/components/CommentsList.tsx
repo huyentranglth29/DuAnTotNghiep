@@ -12,6 +12,7 @@ type Comment = {
     images?: any[];
     likes?: number;
     replies?: number;
+    verifiedViewer?: boolean;
 };
 
 export default function CommentsList({ comments }: { comments?: Comment[] }) {
@@ -25,7 +26,7 @@ export default function CommentsList({ comments }: { comments?: Comment[] }) {
                     <CommentItem key={c.id} comment={c} />
                 ))
             ) : (
-                <Text style={styles.emptyText}>Chưa có đánh giá nào cho phim này.</Text>
+                <Text style={styles.emptyText}>Chưa có đánh giá về phim này.</Text>
             )}
         </View>
     );

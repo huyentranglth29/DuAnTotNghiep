@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { postReview } from '../../../services/apiService';
+import { getMyReview, postReview } from '../../../services/apiService';
 
 type WriteReviewProps = {
     movieId: string | number;
@@ -10,8 +10,23 @@ type WriteReviewProps = {
 };
 
 export default function WriteReview({ movieId, title, onBack }: WriteReviewProps) {
-    const [rating, setRating] = useState<number>(10);
+    const [rating, setRating] = useState<number>(5);
     const [text, setText] = useState('');
+    const [saving, setSaving] = useState(false);
+
+    React.useEffect(() => {
+        if (!movieId) return;
+        getMyReview(movieId)
+            .then((review: any) => {
+                const data = review?.data || review;
+                if (!data) return;
+                if (Number(data.rating) >= 1 && Number(data.rating) <= 5) {
+                    setRating(Number(data.rating));
+                }
+                setText(data.comment || '');
+            })
+            .catch(() => {});
+    }, [movieId]);
 
     const submit = async () => {
         if (!movieId) {
@@ -25,18 +40,20 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
         }
 
         try {
+            setSaving(true);
             await postReview({
                 movieId,
                 rating,
                 text: text.trim(),
-                tags: [],
             });
 
-            Alert.alert('Hoàn tất', 'Gửi đánh giá thành công', [
+            Alert.alert('Đã gửi đánh giá', 'Đánh giá của bạn đang chờ quản trị viên duyệt.', [
                 { text: 'OK', onPress: () => onBack() },
             ]);
         } catch (err: any) {
             Alert.alert('Lỗi', err?.message ?? 'Không gửi được đánh giá');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -54,19 +71,19 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
             <ScrollView contentContainerStyle={styles.body}>
                 <Text style={styles.title}>Viết đánh giá — {title}</Text>
 
-                <Text style={styles.label}>Đánh giá (1-10)</Text>
+                <Text style={styles.label}>Đánh giá của bạn</Text>
                 <View style={styles.ratingRow}>
-                    {Array.from({ length: 10 }).map((_, i) => {
+                    {Array.from({ length: 5 }).map((_, i) => {
                         const val = i + 1;
                         const active = val <= rating;
                         return (
                             <TouchableOpacity key={val} onPress={() => setRating(val)} style={[styles.star, active && styles.starActive]}>
-                                <Text style={active ? styles.starTextActive : styles.starText}>{val}</Text>
+                                <Text style={active ? styles.starTextActive : styles.starText}>★</Text>
                             </TouchableOpacity>
                         );
                     })}
                     <View style={styles.scorePill}>
-                        <Text style={styles.scoreText}>{rating}/10</Text>
+                        <Text style={styles.scoreText}>{rating}/5</Text>
                     </View>
                 </View>
 
@@ -80,8 +97,8 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
                     numberOfLines={6}
                 />
 
-                <TouchableOpacity style={styles.submitBtn} onPress={submit} activeOpacity={0.8}>
-                    <Text style={styles.submitText}>Gửi đánh giá</Text>
+                <TouchableOpacity style={[styles.submitBtn, saving && styles.submitBtnDisabled]} onPress={submit} activeOpacity={0.8} disabled={saving}>
+                    <Text style={styles.submitText}>{saving ? 'Đang gửi...' : 'Gửi đánh giá'}</Text>
                 </TouchableOpacity>
             </ScrollView>
         </View>
@@ -106,5 +123,6 @@ const styles = StyleSheet.create({
     scoreText: { color: '#ff7a00', fontWeight: '900' },
     textarea: { borderWidth: 1, borderColor: '#ececec', borderRadius: 10, padding: 12, textAlignVertical: 'top', backgroundColor: '#fff', marginBottom: 18 },
     submitBtn: { backgroundColor: '#ff2d7a', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+    submitBtnDisabled: {opacity: 0.6},
     submitText: { color: '#fff', fontWeight: '900' },
 });

@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import {useQuery} from '@tanstack/react-query';
-import {useMoviesDangChieu} from '../../../hooks/useMovies';
+import {useMoviesDangChieu, useMoviesSapChieu} from '../../../hooks/useMovies';
 import {
   formatGio,
   layDanhSachSuatChieu,
@@ -45,18 +45,21 @@ function asSelected(item: SuatChieuApi): SelectedShowtimeInfo {
 }
 
 function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
-  const moviesQuery = useMoviesDangChieu();
+  const showingMoviesQuery = useMoviesDangChieu();
+  const upcomingMoviesQuery = useMoviesSapChieu();
   const showtimesQuery = useQuery({
     queryKey: ['lich-chieu', 'suat-chieu-som'],
-    queryFn: () => layDanhSachSuatChieu({bookable: true}),
+    queryFn: () =>
+      layDanhSachSuatChieu({bookable: true, screeningType: 'early'}),
     staleTime: 15_000,
     refetchOnMount: true,
   });
-  const allMovies = useMemo(() => moviesQuery.data ?? [], [moviesQuery.data]);
   const preferredMovies = useMemo(() => {
-    const hot = allMovies.filter(movie => movie.laPhimHot);
-    return hot.length > 0 ? hot : allMovies;
-  }, [allMovies]);
+    const byId = new Map();
+    [...(upcomingMoviesQuery.data ?? []), ...(showingMoviesQuery.data ?? [])]
+      .forEach(movie => byId.set(String(movie.id), movie));
+    return Array.from(byId.values());
+  }, [showingMoviesQuery.data, upcomingMoviesQuery.data]);
   const movieIds = useMemo(
     () => new Set(preferredMovies.map(movie => String(movie.id))),
     [preferredMovies],
@@ -98,8 +101,14 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
     [filteredShowtimes, preferredMovies],
   );
 
-  const loading = moviesQuery.isLoading || showtimesQuery.isLoading;
-  const error = moviesQuery.isError || showtimesQuery.isError;
+  const loading =
+    showingMoviesQuery.isLoading ||
+    upcomingMoviesQuery.isLoading ||
+    showtimesQuery.isLoading;
+  const error =
+    showingMoviesQuery.isError ||
+    upcomingMoviesQuery.isError ||
+    showtimesQuery.isError;
 
   return (
     <View style={styles.container}>
@@ -166,7 +175,8 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => {
-              moviesQuery.refetch();
+              showingMoviesQuery.refetch();
+              upcomingMoviesQuery.refetch();
               showtimesQuery.refetch();
             }}>
             <Text style={styles.retryText}>Thử lại</Text>
@@ -177,7 +187,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
           <Text style={styles.emptyIcon}>🎟️</Text>
           <Text style={styles.stateTitle}>Chưa có suất chiếu sớm</Text>
           <Text style={styles.stateHint}>
-            Hãy chọn ngày khác hoặc tạo suất cho phim HOT trên Admin.
+            Admin chưa đánh dấu suất nào là “Suất chiếu sớm”.
           </Text>
         </View>
       ) : (

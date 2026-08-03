@@ -30,6 +30,12 @@ const showtimeSchema = new mongoose.Schema(
       enum: ["scheduled", "cancelled", "completed"],
       default: "scheduled",
     },
+    screeningType: {
+      type: String,
+      enum: ["regular", "early"],
+      default: "regular",
+      index: true,
+    },
   },
   {
     timestamps: true,

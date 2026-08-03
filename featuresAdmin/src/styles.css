@@ -911,6 +911,110 @@ th {
   font-weight: 700;
 }
 
+/* Review management */
+.reviewPerson {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+}
+
+.reviewPerson > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.reviewPerson strong,
+.reviewPerson small {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewPerson small {
+  color: #7b879b;
+  font-size: 12px;
+}
+
+.reviewAvatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(145deg, #2f6fed, #174dc2);
+  font-weight: 800;
+}
+
+.reviewMissingReference {
+  display: inline-flex;
+  padding: 6px 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  color: #b45309;
+  background: #fff7ed;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.reviewRating {
+  display: grid;
+  gap: 2px;
+  min-width: 94px;
+}
+
+.reviewRating span {
+  color: #f59e0b;
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.reviewRating strong {
+  color: #667085;
+  font-size: 12px;
+}
+
+.reviewComment {
+  display: block;
+  min-width: 220px;
+  max-width: 460px;
+  line-height: 1.5;
+}
+
+.reviewStatus {
+  display: inline-flex;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.reviewStatus--pending {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.reviewStatus--approved {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.reviewStatus--rejected {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.reviewStatus--unknown {
+  color: #475467;
+  background: #eef2f6;
+}
+
 .success {
   color: #15803d;
   background: #dcfce7;
@@ -2222,7 +2326,7 @@ th {
 
 .showtimeFilters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: 12px;
   margin: 16px 0 18px;
   padding: 14px;
@@ -7914,6 +8018,34 @@ a.overviewMetric.overviewClickable {
   font-weight: 700;
   cursor: pointer;
   padding: 0;
+}
+
+.movieAppPlacement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 118px;
+}
+
+.showtimeEarlyNotice {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  color: #9a3412;
+  background: #fff7ed;
+}
+
+.showtimeEarlyNotice span {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.showtimeEarlyNotice.is-error {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
 }
 
 .movieRowActions {
