@@ -47,6 +47,39 @@ const startOfTodayVN = () => {
   return new Date(`${key}T00:00:00+07:00`);
 };
 
+const CATEGORY_LABELS = {
+  combo: "Combo",
+  popcorn: "Bắp",
+  drink: "Nước",
+  snack: "Snack",
+};
+
+const resolveProductCategory = (item = {}) => {
+  const name = String(item.name || "")
+    .toLocaleLowerCase("vi")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+  if (name.includes("combo")) return "combo";
+  if (name.includes("bap") || name.includes("popcorn") || name.includes("corn")) {
+    return "popcorn";
+  }
+  if (
+    name.includes("nuoc") ||
+    name.includes("drink") ||
+    name.includes("coca") ||
+    name.includes("pepsi") ||
+    name.includes("sprite") ||
+    name.includes("fanta") ||
+    name.includes("tra ") ||
+    name.startsWith("tra")
+  ) {
+    return "drink";
+  }
+  if (CATEGORY_LABELS[item.category]) return item.category;
+  return "snack";
+};
+
 const enrichProductsWithSoldToday = async (items = []) => {
   const start = startOfTodayVN();
   const soldMap = new Map();
@@ -81,6 +114,7 @@ const enrichProductsWithSoldToday = async (items = []) => {
     const id = String(item._id || item.id || "");
     return {
       ...item,
+      category: resolveProductCategory(item),
       soldToday: soldMap.get(id) || 0,
     };
   });

@@ -703,27 +703,144 @@ th {
 .genreEditor p, .genrePanel p {margin: 5px 0 0; color: #64748b; font-size: 13px; line-height: 1.5;}
 .genreEyebrow {color: #2563eb !important; font-size: 11px !important; font-weight: 800; letter-spacing: .08em;}
 .genreEditor label {display: grid; gap: 7px; color: #334155; font-size: 13px; font-weight: 600;}
-.genreEditor input, .genreEditor select, .genrePanelHead input {width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;}
+.genreEditor input, .genreEditor select, .genrePanelHead input {width: 100%; padding: 11px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; transition: border-color .15s ease, box-shadow .15s ease;}
+.genreEditor input:hover, .genreEditor select:hover, .genrePanelHead input:hover {border-color: #94a3b8;}
+.genreEditor input:focus, .genreEditor select:focus, .genrePanelHead input:focus {outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);}
 .genreFormActions {display: flex; justify-content: flex-end; gap: 8px;}
-.genreFormActions button, .genreActions button {padding: 9px 12px; border: 0; border-radius: 8px; color: #fff; background: #2563eb; cursor: pointer;}
+.genreFormActions button, .genreActions button {padding: 9px 12px; border: 0; border-radius: 8px; color: #fff; background: #2563eb; cursor: pointer; transition: background .15s ease, transform .12s ease;}
+.genreFormActions button:hover:not(:disabled), .genreActions button:hover {background: #1d4ed8;}
+.genreFormActions button:active:not(:disabled), .genreActions button:active {transform: translateY(1px);}
 .genreFormActions .genreCancel {color: #475569; background: #f1f5f9;}
+.genreFormActions .genreCancel:hover {background: #e2e8f0;}
 .genreError {padding: 9px 10px; border-radius: 7px; color: #b91c1c !important; background: #fef2f2;}
 .genrePanelHead {display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px;}
 .genrePanelHead input {max-width: 260px;}
-.genreTableWrap {overflow-x: auto;}
+.genreTableWrap {overflow-x: auto; border-radius: 10px;}
+.genreTable {width: 100%; border-collapse: collapse;}
+.genreTable th,
+.genreTable td {padding: 12px 14px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: middle;}
+.genreTable th {color: #64748b; font-size: 12px; font-weight: 700; letter-spacing: .02em; background: #f8fafc;}
+.genreTable tbody tr {transition: background .15s ease;}
+.genreTable tbody tr:hover {background: #f1f5f9;}
 .genreTable td:first-child {display: grid; gap: 3px;}
+.genreTable td strong {color: #0f172a;}
 .genreTable td small {color: #94a3b8;}
 .genreStatus {display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;}
 .genreStatus--active {color: #15803d; background: #dcfce7;}
 .genreStatus--inactive {color: #a16207; background: #fef3c7;}
 .genreActions {display: flex; gap: 6px;}
 .genreActions .danger {color: #b91c1c; background: #fee2e2;}
+.genreActions .danger:hover {background: #fecaca;}
 .genreEmpty, .genreLoading {text-align: center; color: #64748b;}
 
 @media (max-width: 900px) {
   .genreLayout {grid-template-columns: 1fr;}
   .genreEditor {position: static;}
   .movieGenreOptions {grid-template-columns: 1fr;}
+}
+
+.adminDarkMode .genreEditor,
+.adminDarkMode .genrePanel {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: none;
+}
+
+.adminDarkMode .genreEditor h2,
+.adminDarkMode .genrePanel h2,
+.adminDarkMode .genreTable td,
+.adminDarkMode .genreTable td strong {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .genreEditor p,
+.adminDarkMode .genrePanel p,
+.adminDarkMode .genreEmpty,
+.adminDarkMode .genreLoading,
+.adminDarkMode .genreTable td small {
+  color: var(--admin-muted);
+}
+
+.adminDarkMode .genreEyebrow {
+  color: #60a5fa !important;
+}
+
+.adminDarkMode .genreEditor label {
+  color: #cbd6e5;
+}
+
+.adminDarkMode .genreEditor input,
+.adminDarkMode .genreEditor select,
+.adminDarkMode .genrePanelHead input {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .genreEditor input:hover,
+.adminDarkMode .genreEditor select:hover,
+.adminDarkMode .genrePanelHead input:hover {
+  border-color: #3d6fa8;
+}
+
+.adminDarkMode .genreEditor input:focus,
+.adminDarkMode .genreEditor select:focus,
+.adminDarkMode .genrePanelHead input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+.adminDarkMode .genreTable th {
+  color: var(--admin-muted);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .genreTable td {
+  border-color: var(--admin-border);
+}
+
+.adminDarkMode .genreTable tbody tr:hover {
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .genreFormActions .genreCancel {
+  color: #dce5f2;
+  background: var(--admin-surface-raised);
+}
+
+.adminDarkMode .genreFormActions .genreCancel:hover {
+  background: var(--admin-hover);
+}
+
+.adminDarkMode .genreActions button:hover {
+  background: #3b82f6;
+}
+
+.adminDarkMode .genreActions .danger {
+  color: #fca5a5;
+  background: rgba(185, 28, 28, 0.28);
+}
+
+.adminDarkMode .genreActions .danger:hover {
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.4);
+}
+
+.adminDarkMode .genreStatus--active {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.22);
+}
+
+.adminDarkMode .genreStatus--inactive {
+  color: #fcd34d;
+  background: rgba(202, 138, 4, 0.22);
+}
+
+.adminDarkMode .genreError {
+  color: #fca5a5 !important;
+  background: rgba(185, 28, 28, 0.22);
 }
 
 .formGrid button,
@@ -8613,7 +8730,7 @@ a.overviewMetric.overviewClickable {
 
 .productFilterBar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 0.8fr)) auto;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 0.8fr)) auto auto;
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--product-border);
@@ -8655,6 +8772,16 @@ a.overviewMetric.overviewClickable {
 .productFilterBar select:focus,
 .productSearch:focus-within {
   border-color: #475569;
+}
+
+.productFilterHint {
+  margin: -6px 2px 0;
+  color: var(--product-muted);
+  font-size: 13px;
+}
+
+.productFilterHint strong {
+  color: var(--product-text);
 }
 
 .productError {

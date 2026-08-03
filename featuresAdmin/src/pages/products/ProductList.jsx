@@ -40,24 +40,60 @@ const emptyForm = {
   isActive: 'true',
 };
 
-function inferCategory(name = '', category) {
-  if (category && CATEGORY_LABEL[category]) return category;
-  const text = String(name).toLowerCase();
+function normalizeText(value = '') {
+  return String(value)
+    .toLocaleLowerCase('vi')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+}
+
+/** Suy loại từ tên — ưu tiên hơn category mặc định "snack" của data cũ */
+function detectCategoryFromName(name = '') {
+  const text = normalizeText(name);
+  if (!text) return null;
   if (text.includes('combo')) return 'combo';
-  if (text.includes('bắp') || text.includes('bap') || text.includes('popcorn')) {
+  if (
+    text.includes('bap') ||
+    text.includes('popcorn') ||
+    text.includes('corn')
+  ) {
     return 'popcorn';
   }
   if (
-    text.includes('nước') ||
     text.includes('nuoc') ||
     text.includes('drink') ||
     text.includes('coca') ||
     text.includes('pepsi') ||
-    text.includes('trà') ||
-    text.includes('tra ')
+    text.includes('sprite') ||
+    text.includes('fanta') ||
+    text.includes('tra ') ||
+    text.startsWith('tra') ||
+    text.includes(' soft') ||
+    text.includes('nectar')
   ) {
     return 'drink';
   }
+  if (
+    text.includes('snack') ||
+    text.includes('khoai') ||
+    text.includes('nachos') ||
+    text.includes('hotdog') ||
+    text.includes('hot dog')
+  ) {
+    return 'snack';
+  }
+  return null;
+}
+
+function inferCategory(name = '', category) {
+  const fromName = detectCategoryFromName(name);
+  const stored =
+    category && CATEGORY_LABEL[category] ? category : null;
+
+  // Tên rõ loại (Combo/Bắp/Nước...) thắng category mặc định cũ
+  if (fromName) return fromName;
+  if (stored) return stored;
   return 'snack';
 }
 
@@ -124,14 +160,16 @@ function ProductList() {
   }, [items]);
 
   const filteredItems = useMemo(() => {
-    const q = keyword.trim().toLowerCase();
+    const q = normalizeText(keyword.trim());
     let next = items.filter(item => {
       const category = inferCategory(item.name, item.category);
       const stock = Number(item.stock || 0);
       const active = item.isActive !== false;
 
       if (q) {
-        const hay = `${item.name || ''} ${item.description || ''}`.toLowerCase();
+        const hay = normalizeText(
+          `${item.name || ''} ${item.description || ''} ${CATEGORY_LABEL[category] || ''}`,
+        );
         if (!hay.includes(q)) return false;
       }
       if (categoryFilter && category !== categoryFilter) return false;
@@ -242,8 +280,13 @@ function ProductList() {
     setStatusFilter('');
     setSortBy('newest');
     setPage(1);
+  };
+
+  const refreshData = () => {
     loadData();
   };
+
+  const hasActiveFilters = Boolean(keyword || categoryFilter || statusFilter || sortBy !== 'newest');
 
   const rangeStart = filteredItems.length
     ? (currentPage - 1) * pageSize + 1
@@ -313,7 +356,7 @@ function ProductList() {
           value={categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
           aria-label="Loại sản phẩm">
-          <option value="">Loại sản phẩm</option>
+          <option value="">Tất cả loại</option>
           {CATEGORY_OPTIONS.map(option => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -324,8 +367,8 @@ function ProductList() {
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           aria-label="Trạng thái">
-          <option value="">Trạng thái</option>
-          <option value="active">Hoạt động</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="active">Đang bán (còn hàng)</option>
           <option value="low">Sắp hết</option>
           <option value="out">Hết hàng</option>
           <option value="inactive">Ngừng bán</option>
@@ -341,11 +384,28 @@ function ProductList() {
           <option value="stock-asc">Tồn kho tăng dần</option>
           <option value="stock-desc">Tồn kho giảm dần</option>
         </select>
-        <button type="button" className="productBtnGhost" onClick={clearFilters}>
+        <button type="button" className="productBtnGhost" onClick={refreshData}>
           <RefreshCw size={15} />
           Làm mới
         </button>
+        {hasActiveFilters && (
+          <button type="button" className="productBtnGhost" onClick={clearFilters}>
+            Xóa lọc
+          </button>
+        )}
       </div>
+
+      {(keyword || categoryFilter || statusFilter) && !loading && (
+        <p className="productFilterHint">
+          Tìm thấy <strong>{filteredItems.length}</strong> sản phẩm
+          {categoryFilter ? ` · loại ${CATEGORY_LABEL[categoryFilter]}` : ''}
+          {statusFilter === 'active' ? ' · đang bán' : ''}
+          {statusFilter === 'low' ? ' · sắp hết' : ''}
+          {statusFilter === 'out' ? ' · hết hàng' : ''}
+          {statusFilter === 'inactive' ? ' · ngừng bán' : ''}
+          {keyword.trim() ? ` · “${keyword.trim()}”` : ''}
+        </p>
+      )}
 
       {error && <p className="productError">{error}</p>}
       {loading ? (
