@@ -17,6 +17,7 @@ function CreateNotification() {
   const [form, setForm] = useState({
     title: '',
     content: '',
+    recipientMode: 'enabledUsers',
     user: '',
     image: '',
     sentAt: '',
@@ -35,7 +36,10 @@ function CreateNotification() {
 
     try {
       await notificationApi.create({
-        ...form,
+        title: form.title,
+        content: form.content,
+        user: form.recipientMode === 'singleUser' ? form.user : '',
+        image: form.image,
         sentAt: form.sentAt ? new Date(form.sentAt) : new Date(),
       });
       navigate('/notifications');
@@ -54,15 +58,39 @@ function CreateNotification() {
         <form className="formGrid" onSubmit={handleSubmit}>
           <label>Tiêu đề<input required value={form.title} onChange={event => updateForm('title', event.target.value)} /></label>
           <label>Nội dung<textarea required value={form.content} onChange={event => updateForm('content', event.target.value)} /></label>
-          <label>
-            Người nhận
-            <select value={form.user} onChange={event => updateForm('user', event.target.value)}>
-              <option value="">Tất cả người dùng đã bật thông báo</option>
-              {(options.recipients || []).map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
+          <div className="notificationRecipientBox">
+            <span className="notificationRecipientLabel">Gửi đến</span>
+            <div className="notificationRecipientModes">
+              <button
+                type="button"
+                className={form.recipientMode === 'enabledUsers' ? 'active' : ''}
+                onClick={() => setForm(current => ({...current, recipientMode: 'enabledUsers', user: ''}))}>
+                Người dùng đã bật thông báo
+              </button>
+              <button
+                type="button"
+                className={form.recipientMode === 'singleUser' ? 'active' : ''}
+                onClick={() => setForm(current => ({...current, recipientMode: 'singleUser'}))}>
+                Một người dùng
+              </button>
+            </div>
+            {form.recipientMode === 'singleUser' && (
+              <select
+                required
+                value={form.user}
+                onChange={event => updateForm('user', event.target.value)}>
+                <option value="">Chọn người nhận...</option>
+                {(options.recipients || []).map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            )}
+            <small>
+              {form.recipientMode === 'enabledUsers'
+                ? 'Thông báo sẽ gửi cho tất cả tài khoản user đang bật nhận thông báo.'
+                : 'Thông báo chỉ gửi đến người dùng được chọn.'}
+            </small>
+          </div>
           <label>Ảnh banner URL<input value={form.image} onChange={event => updateForm('image', event.target.value)} /></label>
           <label>Ngày gửi<input type="datetime-local" value={form.sentAt} onChange={event => updateForm('sentAt', event.target.value)} /></label>
           <div className="formActions">

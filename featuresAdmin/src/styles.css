@@ -1057,6 +1057,21 @@ th {
   background: #ffffff;
 }
 
+.actionGroup button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionGroup button.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fee2e2;
+}
+
+.reviewActions {
+  min-width: 174px;
+}
+
 .tabs {
   display: flex;
   gap: 18px;
@@ -1687,6 +1702,66 @@ th {
 
 .notificationForm textarea {
   min-height: 130px;
+}
+
+.notificationRecipient {
+  display: inline-flex;
+  max-width: 320px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.notificationRecipient--singleUser {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.notificationRecipient--enabledUsers {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.notificationRecipientBox {
+  display: grid;
+  gap: 8px;
+}
+
+.notificationRecipientLabel {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notificationRecipientModes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notificationRecipientModes button {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #334155;
+  background: #fff;
+  cursor: pointer;
+}
+
+.notificationRecipientModes button.active {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.notificationRecipientBox small {
+  color: #667085;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .audienceGroup {

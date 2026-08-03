@@ -194,10 +194,26 @@ const normalizeNotificationBody = async (body = {}) => {
     next.target = "all";
   } else {
     next.user = null;
-    next.target = ["all", "vip", "newUser"].includes(target) ? target : "all";
+    next.target = "all";
   }
 
   return next;
+};
+
+const notificationRecipientMatch = {
+  role: "user",
+  status: "active",
+  $and: [
+    {
+      $or: [
+        {notificationEnabled: true},
+        {notificationEnabled: {$exists: false}},
+      ],
+    },
+    {
+      $or: [{deleted: false}, {deleted: {$exists: false}}, {deleted: null}],
+    },
+  ],
 };
 
 const enrichNotificationsWithRecipients = async (items = []) => {
@@ -214,10 +230,19 @@ const enrichNotificationsWithRecipients = async (items = []) => {
     ),
   ];
 
-  if (!userIds.length) return items;
+  const recipientCount = await User.countDocuments(notificationRecipientMatch);
+
+  if (!userIds.length) {
+    return items.map((item) => ({
+      ...item,
+      recipientScope: "enabledUsers",
+      recipientLabel: `Người dùng đã bật thông báo (${recipientCount} người)`,
+      recipientCount,
+    }));
+  }
 
   const users = await User.find({_id: {$in: userIds}})
-    .select("fullName email notificationEnabled")
+    .select("fullName email notificationEnabled phone")
     .lean();
   const userMap = new Map(users.map((user) => [String(user._id), user]));
 
@@ -229,13 +254,23 @@ const enrichNotificationsWithRecipients = async (items = []) => {
         : String(rawUser || "");
     const user = userMap.get(userId);
 
-    if (!user) return item;
+    if (!user) {
+      return {
+        ...item,
+        recipientScope: "enabledUsers",
+        recipientLabel: `Người dùng đã bật thông báo (${recipientCount} người)`,
+        recipientCount,
+      };
+    }
 
     return {
       ...item,
       user,
-      recipientName: user.fullName || user.email || "Người dùng",
+      recipientScope: "singleUser",
+      recipientName: user.fullName || "Người dùng",
       recipientEmail: user.email || "",
+      recipientLabel: user.fullName || "Người dùng",
+      recipientCount: 1,
     };
   });
 };
@@ -416,7 +451,10 @@ const resources = {
     keywordFields: ["code", "status"],
   }),
   reviews: createAdminCrudController(Review, {
-    populate: "movie user",
+    populate: [
+      { path: "movie", select: "title posterUrl" },
+      { path: "user", select: "fullName email phone avatar" },
+    ],
     keywordFields: ["comment", "status"],
   }),
   notifications: createAdminCrudController(Notification, {
