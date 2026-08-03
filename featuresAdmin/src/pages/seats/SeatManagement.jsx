@@ -71,6 +71,38 @@ function formatShowtimeLabel(showtime) {
   return `${time} - ${date}`;
 }
 
+/** Suất gần hiện tại nhất: ưu tiên suất sắp/đang chiếu, không có thì lấy suất vừa qua */
+function pickNearestShowtime(options = []) {
+  if (!options.length) return null;
+  const now = Date.now();
+  const withTime = options
+    .map(item => ({item, at: new Date(item.startTime || 0).getTime()}))
+    .filter(row => Number.isFinite(row.at));
+
+  if (!withTime.length) return options[0];
+
+  const upcoming = withTime
+    .filter(row => row.at >= now)
+    .sort((a, b) => a.at - b.at);
+  if (upcoming.length) return upcoming[0].item;
+
+  return withTime.sort((a, b) => b.at - a.at)[0].item;
+}
+
+/** Sắp xếp: suất sắp tới trước (gần nhất → xa), rồi suất đã qua (mới → cũ) */
+function sortShowtimesByNearest(options = []) {
+  const now = Date.now();
+  return [...options].sort((a, b) => {
+    const aAt = new Date(a.startTime || 0).getTime();
+    const bAt = new Date(b.startTime || 0).getTime();
+    const aUpcoming = aAt >= now;
+    const bUpcoming = bAt >= now;
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+    if (aUpcoming) return aAt - bAt;
+    return bAt - aAt;
+  });
+}
+
 function formatCountdown(expiresAt) {
   if (!expiresAt) return '';
   const remain = new Date(expiresAt).getTime() - Date.now();
@@ -112,6 +144,7 @@ function SeatManagement() {
 
   const showtimeIdRef = useRef('');
   showtimeIdRef.current = showtimeId;
+  const prevMovieIdRef = useRef(movieId);
 
   /** Đồng hồ 1s cho countdown ghế đang giữ */
   useEffect(() => {
@@ -158,20 +191,21 @@ function SeatManagement() {
     return [...map.entries()].map(([id, name]) => ({id, name}));
   }, [showtimes, movieId]);
 
+  /** Suất theo phim (mọi phòng) — dùng để auto set phòng + suất gần nhất */
+  const showtimesForMovie = useMemo(
+    () =>
+      sortShowtimesByNearest(
+        showtimes.filter(item => !movieId || item.movie?._id === movieId),
+      ),
+    [showtimes, movieId],
+  );
+
   const showtimeOptions = useMemo(
     () =>
-      showtimes
-        .filter(
-          item =>
-            (!movieId || item.movie?._id === movieId) &&
-            (!roomId || item.room?._id === roomId),
-        )
-        .sort(
-          (a, b) =>
-            new Date(a.startTime || 0).getTime() -
-            new Date(b.startTime || 0).getTime(),
-        ),
-    [showtimes, movieId, roomId],
+      sortShowtimesByNearest(
+        showtimesForMovie.filter(item => !roomId || item.room?._id === roomId),
+      ),
+    [showtimesForMovie, roomId],
   );
 
   /** Nhóm suất chiếu theo phim để dropdown hiện rõ từng phim */
@@ -187,17 +221,46 @@ function SeatManagement() {
     return [...map.entries()].map(([title, items]) => ({title, items}));
   }, [showtimeOptions]);
 
-  /** Chỉ hiện suất chiếu sau khi đã chọn phim */
+  /** Chọn phim → tự chọn phòng + suất gần hiện tại nhất */
   useEffect(() => {
-    if (!movieId || !showtimeOptions.length) {
+    if (!movieId) {
+      prevMovieIdRef.current = '';
       setShowtimeId('');
       setSeatMap(null);
       return;
     }
-    if (!showtimeOptions.some(item => item._id === showtimeId)) {
-      setShowtimeId(showtimeOptions[0]._id);
+
+    if (!showtimesForMovie.length) {
+      setRoomId('');
+      setShowtimeId('');
+      setSeatMap(null);
+      prevMovieIdRef.current = movieId;
+      return;
     }
-  }, [movieId, showtimeOptions, showtimeId]);
+
+    const movieChanged = prevMovieIdRef.current !== movieId;
+    prevMovieIdRef.current = movieId;
+
+    if (movieChanged) {
+      const nearest = pickNearestShowtime(showtimesForMovie);
+      setRoomId(nearest?.room?._id || '');
+      setShowtimeId(nearest?._id || '');
+      return;
+    }
+
+    const roomValid = roomId && showtimesForMovie.some(item => item.room?._id === roomId);
+    if (!roomValid) {
+      const nearest = pickNearestShowtime(showtimesForMovie);
+      setRoomId(nearest?.room?._id || '');
+      setShowtimeId(nearest?._id || '');
+      return;
+    }
+
+    if (!showtimeOptions.some(item => item._id === showtimeId)) {
+      const nearest = pickNearestShowtime(showtimeOptions);
+      setShowtimeId(nearest?._id || '');
+    }
+  }, [movieId, roomId, showtimesForMovie, showtimeOptions, showtimeId]);
 
   const loadSeatMap = useCallback(
     async (id, {silent = false} = {}) => {
@@ -323,8 +386,13 @@ function SeatManagement() {
           <select
             value={movieId}
             onChange={event => {
-              setMovieId(event.target.value);
-              setRoomId('');
+              const nextMovieId = event.target.value;
+              setMovieId(nextMovieId);
+              if (!nextMovieId) {
+                setRoomId('');
+                setShowtimeId('');
+                setSeatMap(null);
+              }
             }}
           >
             <option value="">Tất cả phim</option>

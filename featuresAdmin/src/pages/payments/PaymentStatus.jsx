@@ -181,7 +181,6 @@ function PaymentStatus() {
           aria-label="Lọc phương thức thanh toán"
         >
           <option value="all">Tất cả phương thức</option>
-          <option value="cash">Tiền mặt</option>
           <option value="card">Thẻ</option>
           <option value="momo">Momo</option>
           <option value="vnpay">VNPay</option>
