@@ -19,13 +19,7 @@ const menuItems = [
       {to: '/showtimes/status', label: 'Trạng thái suất'},
     ],
   },
-  {
-    label: 'Đơn đặt vé',
-    children: [
-      {to: '/bookings', label: 'Quản lý đơn đặt vé'},
-      {to: '/bookings/detail', label: 'Chi tiết đơn'},
-    ],
-  },
+  {to: '/bookings', label: 'Đơn đặt vé'},
   {
     label: 'Thanh toán',
     children: [

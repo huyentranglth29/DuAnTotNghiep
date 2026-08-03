@@ -676,22 +676,15 @@ function SeatManagement() {
               ) : null}
 
               {selectedSeat.status === 'sold' && selectedSeat.order ? (
-                <>
-                  <button
-                    type="button"
-                    className="seatActionBtn"
-                    onClick={() => navigate(`/bookings/detail?code=${selectedSeat.order.code}`)}
-                  >
-                    Xem chi tiết vé
-                  </button>
-                  <button
-                    type="button"
-                    className="seatActionBtn"
-                    onClick={() => navigate(`/bookings?keyword=${selectedSeat.order.code}`)}
-                  >
-                    Xem thông tin khách hàng
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="seatActionBtn"
+                  onClick={() =>
+                    navigate(`/bookings?keyword=${encodeURIComponent(selectedSeat.order.code)}`)
+                  }
+                >
+                  Xem đơn đặt vé
+                </button>
               ) : null}
 
               {selectedSeat.status === 'checked_in' ? (

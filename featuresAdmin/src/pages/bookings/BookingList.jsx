@@ -135,6 +135,9 @@ function BookingList() {
       setOrders(rows);
       setPagination(response?.pagination || {page: 1, totalPages: 1, total: rows.length, limit: 10});
       setSelected(current => {
+        if (nextFilters.keyword && rows.length === 1) {
+          return rows[0];
+        }
         if (!current) return null;
         return rows.find(item => item._id === current._id) || null;
       });
