@@ -29,5 +29,7 @@ export interface Phim {
   anhNen?: string;
   daoDien?: string;
   ngayPhatHanh?: string;
+  ngayCongBo?: string;
+  moBanVeTu?: string;
   giaVe?: number;
 }

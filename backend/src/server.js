@@ -21,7 +21,9 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const seatHoldRoutes = require("./routes/seatHoldRoutes");
 const newsEventRoutes = require("./routes/newsEventRoutes");
 const customerAiRoutes = require("./routes/customerAiRoutes");
+const movieReminderRoutes = require("./routes/movieReminderRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
+const {sendDueMovieReminders} = require("./services/movieReminderService");
 
 dotenv.config();
 
@@ -56,6 +58,7 @@ app.use("/api/news-events", newsEventRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/seat-holds", seatHoldRoutes);
 app.use("/api/customer-ai", customerAiRoutes);
+app.use("/api/movie-reminders", movieReminderRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {
@@ -80,6 +83,15 @@ if (require.main === module) {
       );
     }, 60 * 1000);
     cleanupTimer.unref();
+    await sendDueMovieReminders().catch((error) =>
+      console.error("❌ Không thể gửi nhắc mở bán phim:", error.message)
+    );
+    const reminderTimer = setInterval(() => {
+      sendDueMovieReminders().catch((error) =>
+        console.error("❌ Không thể gửi nhắc mở bán phim:", error.message)
+      );
+    }, 60 * 1000);
+    reminderTimer.unref();
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

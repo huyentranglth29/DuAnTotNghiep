@@ -30,6 +30,7 @@ const STATUS_META = {
   coming_soon: {key: 'upcoming', label: 'Sắp chiếu', tone: 'warning'},
   ended: {key: 'ended', label: 'Đã chiếu', tone: 'muted'},
   stopped: {key: 'stopped', label: 'Ngừng chiếu', tone: 'danger'},
+  draft: {key: 'draft', label: 'Chưa có suất chiếu', tone: 'muted'},
 };
 
 const PAGE_SIZE = 10;
@@ -446,6 +447,7 @@ function MovieList() {
             <option value="upcoming">Sắp chiếu</option>
             <option value="ended">Đã chiếu</option>
             <option value="stopped">Ngừng chiếu</option>
+            <option value="draft">Chưa có suất chiếu</option>
           </select>
           <select
             value={draft.ageRating}
@@ -487,7 +489,7 @@ function MovieList() {
                   <th>Phim</th>
                   <th>Thể loại</th>
                   <th>Thời lượng</th>
-                  <th>Khởi chiếu</th>
+                  <th>Dự kiến / Khởi chiếu</th>
                   <th>Suất chiếu</th>
                   <th>Trạng thái</th>
                   <th>Hành động</th>
@@ -540,7 +542,7 @@ function MovieList() {
                       </td>
                       <td>{formatGenre(movie.genre)}</td>
                       <td>{formatDuration(movie.duration)}</td>
-                      <td>{formatDate(movie.releaseDate) || '—'}</td>
+                      <td>{formatDate(movie.expectedReleaseDate || movie.releaseDate) || 'Chưa có'}</td>
                       <td>
                         <button
                           type="button"
@@ -684,7 +686,7 @@ function MovieList() {
             </div>
             <div>
               <dt>Ngày khởi chiếu</dt>
-              <dd>{formatDate(selected.releaseDate) || '—'}</dd>
+              <dd>{formatDate(selected.expectedReleaseDate || selected.releaseDate) || 'Chưa có'}</dd>
             </div>
             {selected.endDate ? (
               <div>
@@ -814,7 +816,7 @@ function MovieList() {
                   </div>
                   <div>
                     <dt>Ngày khởi chiếu</dt>
-                    <dd>{formatDate(selected.releaseDate) || '—'}</dd>
+                    <dd>{formatDate(selected.expectedReleaseDate || selected.releaseDate) || 'Chưa có'}</dd>
                   </div>
                   {selected.endDate ? (
                     <div>

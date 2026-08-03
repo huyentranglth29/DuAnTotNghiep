@@ -29,6 +29,8 @@ export type MovieBookingInfo = {
   cast?: string[];
   releaseDate?: string;
   ageRating?: string;
+  status?: 'dang-chieu' | 'sap-chieu' | 'noi-bat';
+  ticketSaleStartAt?: string;
 };
 
 type MovieNameProps = {
@@ -48,6 +50,11 @@ function MovieName({
 }: MovieNameProps) {
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
   const duration = movie.duration ?? '109 phút';
+  const isUpcoming = movie.status === 'sap-chieu';
+  const ticketSaleOpen =
+    !movie.ticketSaleStartAt ||
+    new Date(movie.ticketSaleStartAt) <= new Date();
+  const bookingLocked = isUpcoming && !ticketSaleOpen;
   const [dateKeys, setDateKeys] = useState<string[]>([]);
   const [selectedDateKey, setSelectedDateKey] = useState('');
 
@@ -136,7 +143,14 @@ function MovieName({
           </View>
         </ImageBackground>
 
-        <View style={styles.dateRow}>
+        {bookingLocked ? (
+          <View style={styles.upcomingNotice}>
+            <Text style={styles.upcomingNoticeTitle}>Phim sắp chiếu</Text>
+            <Text style={styles.upcomingNoticeText}>
+              Lịch chiếu và đặt vé sẽ được FilmGo cập nhật sau.
+            </Text>
+          </View>
+        ) : <><View style={styles.dateRow}>
           {dateItems.length === 0 ? (
             <Text style={styles.noDate}>Chưa có ngày chiếu từ Admin</Text>
           ) : (
@@ -165,6 +179,7 @@ function MovieName({
           selectedDateKey={selectedDateKey || undefined}
           onShowtimePress={onShowtimePress}
         />
+        </>}
       </ScrollView>
     </View>
   );
@@ -178,6 +193,16 @@ const styles = StyleSheet.create({
   scrollBody: {
     paddingBottom: 18,
   },
+  upcomingNotice: {
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#eef8fc',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#9bcfe3',
+  },
+  upcomingNoticeTitle: {color: '#00689d', fontSize: 16, fontWeight: '900'},
+  upcomingNoticeText: {color: '#4b6470', fontSize: 13, marginTop: 5, lineHeight: 19},
   header: {
     height: 72,
     alignItems: 'center',

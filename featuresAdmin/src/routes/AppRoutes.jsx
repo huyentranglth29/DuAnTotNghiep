@@ -6,6 +6,7 @@ import MovieList from '../pages/movies/MovieList';
 import MovieAdd from '../pages/movies/MovieAdd';
 import MovieEdit from '../pages/movies/MovieEdit';
 import MovieRevenue from '../pages/movies/MovieRevenue';
+import CategoryList from '../pages/categories/CategoryList';
 import RoomList from '../pages/rooms/RoomList';
 import SeatManagement from '../pages/seats/SeatManagement';
 import ShowtimeList from '../pages/showtimes/ShowtimeList';
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="movies/add" element={<MovieAdd />} />
         <Route path="movies/:id/edit" element={<MovieEdit />} />
         <Route path="movies/:id/revenue" element={<MovieRevenue />} />
+        <Route path="categories" element={<CategoryList />} />
         <Route path="rooms" element={<RoomList />} />
         <Route path="seats" element={<SeatManagement />} />
         <Route path="showtimes" element={<ShowtimeList />} />

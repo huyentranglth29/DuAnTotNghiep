@@ -149,6 +149,10 @@ const mapApiReview = (item: ReviewApi, index: number): MovieReview => ({
 });
 
 function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
+  const ticketSaleOpen =
+    !movie.ticketSaleStartAt ||
+    new Date(movie.ticketSaleStartAt) <= new Date();
+  const bookingLocked = movie.status === 'sap-chieu' && !ticketSaleOpen;
   const duration = movie.duration ?? '109 phút';
   const genre = movie.genre ?? 'Giật gân, Kinh dị';
 
@@ -326,7 +330,9 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           <Text style={styles.detailValue}>{duration}</Text>
           <Text style={styles.detailLabel}>NGÔN NGỮ</Text>
           <Text style={styles.detailValue}>Tiếng Anh</Text>
-          <Text style={styles.detailLabel}>NGÀY KHỞI CHIẾU</Text>
+          <Text style={styles.detailLabel}>
+            {movie.status === 'sap-chieu' ? 'DỰ KIẾN KHỞI CHIẾU' : 'NGÀY KHỞI CHIẾU'}
+          </Text>
           <Text style={styles.detailValue}>
             {movie.releaseDate
               ? new Date(movie.releaseDate).toLocaleDateString('vi-VN')
@@ -338,8 +344,15 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           {movie.description || movie.tomTat || "Bear, một chàng trai si tình, đã bẻ gãy món đồ chơi bí ẩn mang tên \"Liễu Ước Nguyện\" để đổi lấy tình yêu của cô gái mình thầm thương. Điều ước nhanh chóng trở thành hiện thực, nhưng hạnh phúc mà anh hằng mong đợi lại dần biến thành cơn ác mộng. Bear dần nhận ra một sự thật rùng rợn: cái giá phải trả cho món quà kỳ diệu đó kinh hoàng và đen tối hơn bất cứ điều gì anh có thể tưởng tượng."}
         </Text>
 
-        {/* Lịch chiếu lấy trực tiếp từ MongoDB qua API */}
-        <View style={styles.showtimeSection}>
+        {/* Phim sắp chiếu chỉ công bố thông tin; chưa mở lịch đặt vé. */}
+        {bookingLocked ? (
+          <View style={styles.upcomingScheduleNotice}>
+            <Text style={styles.upcomingScheduleTitle}>SẮP CHIẾU TẠI FILMGO</Text>
+            <Text style={styles.upcomingScheduleText}>
+              Lịch chiếu và thời gian mở bán vé sẽ được cập nhật sau.
+            </Text>
+          </View>
+        ) : <View style={styles.showtimeSection}>
           <Text style={styles.sectionTitle}>📅 LỊCH CHIẾU</Text>
           <Text style={styles.showtimeSubtitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <ChonGio
@@ -351,7 +364,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
               )
             }
           />
-        </View>
+        </View>}
 
         <View style={styles.promotionHeader}>
           <Text style={styles.sectionTitle}>KHUYẾN MÃI</Text>
@@ -447,9 +460,9 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         </View>
       </Modal>
 
-      <TouchableOpacity activeOpacity={0.8} style={styles.bookTicketBtn} onPress={handleBookTicketPress}>
+      {!bookingLocked && <TouchableOpacity activeOpacity={0.8} style={styles.bookTicketBtn} onPress={handleBookTicketPress}>
         <Text style={styles.bookTicketBtnText}>ĐẶT VÉ NGAY</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </View>
   );
 }
@@ -659,6 +672,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
   },
+  upcomingScheduleNotice: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#eef8fc',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#9bcfe3',
+  },
+  upcomingScheduleTitle: {color: BLUE, fontSize: 15, fontWeight: '900'},
+  upcomingScheduleText: {color: '#4b6470', fontSize: 13, lineHeight: 19, marginTop: 5},
   showtimeSubtitle: {
     fontSize: 13,
     color: '#666666',

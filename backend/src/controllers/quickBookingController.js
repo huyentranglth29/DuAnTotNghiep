@@ -2,6 +2,7 @@ const QuickBooking = require("../models/QuickBooking");
 const BookedSeat = require("../models/BookedSeat");
 const Showtime = require("../models/Showtime");
 const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
+const {assertTicketSaleOpen} = require("../services/ticketSaleService");
 
 const normalizeSeats = (seats) =>
   [...new Set((Array.isArray(seats) ? seats : []).map((seat) =>
@@ -61,7 +62,9 @@ const create = async (req, res, next) => {
       });
     }
 
-    const showtime = await Showtime.findById(normalizedShowtimeId).select("startTime endTime status");
+    const showtime = await Showtime.findById(normalizedShowtimeId)
+      .select("startTime endTime status movie")
+      .populate("movie", "ticketSaleStartAt");
     if (!showtime) {
       return res.status(404).json({
         success: false,
@@ -69,6 +72,7 @@ const create = async (req, res, next) => {
       });
     }
     assertShowtimeBookable(showtime);
+    assertTicketSaleOpen(showtime.movie);
 
     const code = "FG-" + Math.floor(100000 + Math.random() * 900000);
 

@@ -25,6 +25,7 @@ export function useMovies(loc?: LocPhim) {
     queryKey: KHOA_PHIM.danhSach(loc),
     queryFn: () => layDanhSachPhim(loc),
     staleTime: THOI_GIAN_CACHE_MS,
+    refetchInterval: THOI_GIAN_CACHE_MS,
     refetchOnMount: true,
     refetchOnReconnect: true,
   });

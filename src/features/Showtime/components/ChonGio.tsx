@@ -161,9 +161,6 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
                     })
                   }>
                   <Text style={[styles.timeText, selected && styles.selectedText]}>{formatGio(item.startTime)}</Text>
-                  <Text style={[styles.seatText, selected && styles.selectedPrice]}>
-                    {Number(item.price).toLocaleString('vi-VN')}đ
-                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -240,7 +237,6 @@ const styles = StyleSheet.create({
     borderColor: '#bd0f6d',
   },
   selectedText: {color: '#ffffff'},
-  selectedPrice: {color: '#fff1f8', fontWeight: '700'},
   timeText: {
     color: '#111111',
     fontSize: 17,
@@ -251,11 +247,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     marginTop: 1,
-  },
-  seatText: {
-    color: '#555555',
-    fontSize: 12,
-    marginTop: 5,
   },
   noteRow: {
     alignItems: 'center',

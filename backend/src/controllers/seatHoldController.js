@@ -1,6 +1,7 @@
 const BookedSeat = require("../models/BookedSeat");
 const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
+const {assertTicketSaleOpen} = require("../services/ticketSaleService");
 
 const HOLD_MINUTES = 15;
 
@@ -10,12 +11,15 @@ const normalizeSeats = (seats) =>
     .filter(Boolean))];
 
 async function ensureSeatsBelongToShowtime(showtimeId, seats) {
-  const showtime = await Showtime.findById(showtimeId).select("room status");
+  const showtime = await Showtime.findById(showtimeId)
+    .select("room status movie")
+    .populate("movie", "ticketSaleStartAt");
   if (!showtime || showtime.status !== "scheduled") {
     const error = new Error("Suất chiếu không tồn tại hoặc đã ngừng bán");
     error.status = 404;
     throw error;
   }
+  assertTicketSaleOpen(showtime.movie);
 
   const roomSeats = await Seat.find({
     room: showtime.room,

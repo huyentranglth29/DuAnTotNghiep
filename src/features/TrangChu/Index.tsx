@@ -64,6 +64,8 @@ function TrangChu() {
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: getNotifications,
+    refetchInterval: 30_000,
+    refetchOnReconnect: true,
   });
   const newsEventsQuery = useQuery({
     queryKey: ['news-events'],
