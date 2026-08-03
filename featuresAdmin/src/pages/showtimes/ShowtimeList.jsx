@@ -19,6 +19,7 @@ import {
 const PAGE_SIZE = 8;
 
 function ShowtimeList() {
+  const [, setClockTick] = useState(() => Date.now());
   const [showtimes, setShowtimes] = useState([]);
   const [movies, setMovies] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -34,6 +35,7 @@ function ShowtimeList() {
     room: '',
     date: '',
     status: '',
+    screeningType: '',
   });
   const [timelineDate, setTimelineDate] = useState(toDateInputValue(new Date()));
 
@@ -76,6 +78,11 @@ function ShowtimeList() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockTick(Date.now()), 30 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const filteredRows = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
@@ -88,6 +95,13 @@ function ShowtimeList() {
       }
 
       if (filters.room && roomId !== String(filters.room)) {
+        return false;
+      }
+
+      if (
+        filters.screeningType &&
+        (item.screeningType || 'regular') !== filters.screeningType
+      ) {
         return false;
       }
 
@@ -190,7 +204,7 @@ function ShowtimeList() {
   };
 
   const clearFilters = () => {
-    setFilters({movie: '', room: '', date: '', status: ''});
+    setFilters({movie: '', room: '', date: '', status: '', screeningType: ''});
     setSearch('');
     setPage(1);
   };
@@ -331,10 +345,21 @@ function ShowtimeList() {
               onChange={value => updateFilter('status', value)}
               options={[
                 {value: '', label: 'Tất cả trạng thái'},
-                {value: 'scheduled', label: 'Sắp chiếu'},
-                {value: 'showing', label: 'Đang chiếu'},
+                {value: 'scheduled', label: 'Chưa bắt đầu'},
+                {value: 'showing', label: 'Đang diễn ra'},
                 {value: 'completed', label: 'Đã kết thúc'},
                 {value: 'cancelled', label: 'Đã hủy'},
+              ]}
+            />
+            <SelectDropdown
+              label="Loại suất"
+              value={filters.screeningType}
+              placeholder="Tất cả loại suất"
+              onChange={value => updateFilter('screeningType', value)}
+              options={[
+                {value: '', label: 'Tất cả loại suất'},
+                {value: 'regular', label: 'Suất thông thường'},
+                {value: 'early', label: 'Suất chiếu sớm'},
               ]}
             />
             <div className="filterActions">
@@ -377,6 +402,7 @@ function ShowtimeList() {
                 <th>Phim</th>
                 <th>Phòng chiếu</th>
                 <th>Suất chiếu</th>
+                <th>Loại suất</th>
                 <th>Giá vé</th>
                 <th>Ghế</th>
                 <th>Trạng thái</th>
@@ -386,7 +412,7 @@ function ShowtimeList() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="emptyCell">
+                  <td colSpan={9} className="emptyCell">
                     Chưa có suất chiếu. Hãy tạo suất mới hoặc kiểm tra backend.
                   </td>
                 </tr>
@@ -432,6 +458,16 @@ function ShowtimeList() {
                           </strong>
                           <span>{formatDate(item.startTime)}</span>
                         </div>
+                      </td>
+                      <td>
+                        <span
+                          className={`statusPill ${
+                            item.screeningType === 'early' ? 'warning' : 'muted'
+                          }`}>
+                          {item.screeningType === 'early'
+                            ? 'Chiếu sớm'
+                            : 'Thông thường'}
+                        </span>
                       </td>
                       <td className="priceCell">{formatVnd(item.price)}</td>
                       <td>
@@ -628,6 +664,19 @@ function ShowtimeList() {
               <p>
                 <span>Trạng thái DB</span>
                 <strong>{viewing.status || 'scheduled'}</strong>
+              </p>
+              <p>
+                <span>Hiển thị trên app</span>
+                <strong>
+                  {viewing.screeningType === 'early'
+                    ? 'Tab Suất chiếu sớm'
+                    : viewing.movie?.status === 'now-showing' ||
+                        viewing.movie?.status === 'featured'
+                      ? 'Tab Đang chiếu'
+                      : viewing.movie?.status === 'coming-soon'
+                        ? 'Tab Sắp chiếu'
+                        : 'Không hiển thị'}
+                </strong>
               </p>
             </div>
 

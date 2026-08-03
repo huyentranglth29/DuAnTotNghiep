@@ -12,6 +12,7 @@ export type SuatChieuApi = {
   endTime: string;
   price: number;
   status: string;
+  screeningType?: 'regular' | 'early';
   movie?: {
     _id?: string;
     title?: string;
@@ -45,6 +46,8 @@ export type LocSuatChieu = {
   status?: string;
   /** Chỉ suất còn đặt được (khớp Admin scheduled + chưa hết giờ) */
   bookable?: boolean;
+  /** Phân loại do Admin chọn: suất thường hoặc suất chiếu sớm */
+  screeningType?: 'regular' | 'early';
 };
 
 export type GheSuatChieu = {
@@ -77,6 +80,7 @@ export async function layDanhSachSuatChieu(
   if (loc?.date) params.date = loc.date;
   if (loc?.status) params.status = loc.status;
   if (loc?.bookable) params.bookable = '1';
+  if (loc?.screeningType) params.screeningType = loc.screeningType;
 
   const res = await apiClient.get('/api/showtimes', {params});
   const data = layPayload<SuatChieuApi[]>(

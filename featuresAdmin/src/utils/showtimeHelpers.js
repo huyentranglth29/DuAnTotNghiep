@@ -1,7 +1,7 @@
 export const CLEANUP_MINUTES = 15;
 
 export const STATUS_LABELS = {
-  scheduled: 'Sắp chiếu',
+  scheduled: 'Chưa bắt đầu',
   cancelled: 'Đã hủy',
   completed: 'Đã kết thúc',
 };
@@ -42,7 +42,7 @@ export function formatDuration(duration) {
 
 export function getDisplayStatus(showtime) {
   if (!showtime) {
-    return {key: 'scheduled', label: 'Sắp chiếu', tone: 'upcoming'};
+    return {key: 'scheduled', label: 'Chưa bắt đầu', tone: 'upcoming'};
   }
 
   if (showtime.status === 'cancelled') {
@@ -58,11 +58,11 @@ export function getDisplayStatus(showtime) {
   const end = new Date(showtime.endTime).getTime();
 
   if (now < start) {
-    return {key: 'scheduled', label: 'Sắp chiếu', tone: 'upcoming'};
+    return {key: 'scheduled', label: 'Chưa bắt đầu', tone: 'upcoming'};
   }
 
   if (now >= start && now <= end) {
-    return {key: 'showing', label: 'Đang chiếu', tone: 'showing'};
+    return {key: 'showing', label: 'Đang diễn ra', tone: 'showing'};
   }
 
   return {key: 'completed', label: 'Đã kết thúc', tone: 'ended'};

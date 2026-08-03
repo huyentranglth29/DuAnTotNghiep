@@ -53,7 +53,8 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
   const movies = useMemo(() => data ?? [], [data]);
   const showtimesQuery = useQuery({
     queryKey: ['lich-chieu', 'tat-ca-suat-dat-duoc'],
-    queryFn: () => layDanhSachSuatChieu({bookable: true}),
+    queryFn: () =>
+      layDanhSachSuatChieu({bookable: true, screeningType: 'regular'}),
     staleTime: 15_000,
     refetchOnMount: true,
   });

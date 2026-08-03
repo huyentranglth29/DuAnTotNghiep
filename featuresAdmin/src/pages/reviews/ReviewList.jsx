@@ -1,24 +1,24 @@
-import movieApi from '../../api/movieApi';
 import reviewApi from '../../api/reviewApi';
-import userApi from '../../api/userApi';
 import AdminListPage from '../../components/AdminListPage';
-import useAdminOptions from '../../hooks/useAdminOptions';
+
+const STATUS_META = {
+  pending: {label: 'Chờ duyệt', tone: 'pending'},
+  approved: {label: 'Đã duyệt', tone: 'approved'},
+  rejected: {label: 'Đã từ chối', tone: 'rejected'},
+};
+
+function MissingReference({children}) {
+  return <span className="reviewMissingReference">{children}</span>;
+}
 
 function ReviewList() {
-  const fieldOptions = useAdminOptions({
-    movie: {api: movieApi, label: movie => movie.title},
-    user: {api: userApi, label: user => `${user.fullName || user.email} (${user.email})`},
-  });
-
   return (
     <AdminListPage
       title="Quản lý đánh giá phim"
       api={reviewApi}
-      searchPlaceholder="Tìm kiếm đánh giá..."
+      hideCreate
+      searchPlaceholder="Tìm theo nội dung hoặc trạng thái..."
       fields={[
-        {name: 'movie', label: 'Phim', type: 'select', ref: true},
-        {name: 'user', label: 'Người dùng', type: 'select', ref: true},
-        {name: 'rating', label: 'Số sao', type: 'number'},
         {name: 'comment', label: 'Nội dung', type: 'textarea'},
         {
           name: 'status',
@@ -32,13 +32,55 @@ function ReviewList() {
           ],
         },
       ]}
-      fieldOptions={fieldOptions}
       columns={[
-        {key: 'user', title: 'Khách hàng', render: item => item.user?.fullName || item.user?.email || ''},
-        {key: 'movie', title: 'Phim', render: item => item.movie?.title || ''},
-        {key: 'rating', title: 'Số sao'},
-        {key: 'comment', title: 'Nội dung'},
-        {key: 'status', title: 'Trạng thái'},
+        {
+          key: 'user',
+          title: 'Khách hàng',
+          render: item => item.user ? (
+            <div className="reviewPerson">
+              <span className="reviewAvatar">
+                {(item.user.fullName || item.user.email || '?').charAt(0).toUpperCase()}
+              </span>
+              <span>
+                <strong>{item.user.fullName || 'Chưa cập nhật tên'}</strong>
+                {item.user.email && <small>{item.user.email}</small>}
+              </span>
+            </div>
+          ) : <MissingReference>Tài khoản không còn tồn tại</MissingReference>,
+        },
+        {
+          key: 'movie',
+          title: 'Phim',
+          render: item => item.movie?.title || (
+            <MissingReference>Phim không còn tồn tại</MissingReference>
+          ),
+        },
+        {
+          key: 'rating',
+          title: 'Đánh giá',
+          render: item => {
+            const rating = Math.round(Math.max(0, Math.min(5, Number(item.rating) || 0)));
+            return (
+              <div className="reviewRating" aria-label={`${rating} trên 5 sao`}>
+                <span>{'★'.repeat(rating)}{'☆'.repeat(5 - rating)}</span>
+                <strong>{rating}/5</strong>
+              </div>
+            );
+          },
+        },
+        {
+          key: 'comment',
+          title: 'Nội dung',
+          render: item => <span className="reviewComment">{item.comment || 'Không có nội dung'}</span>,
+        },
+        {
+          key: 'status',
+          title: 'Trạng thái',
+          render: item => {
+            const meta = STATUS_META[item.status] || {label: item.status || 'Không rõ', tone: 'unknown'};
+            return <span className={`reviewStatus reviewStatus--${meta.tone}`}>{meta.label}</span>;
+          },
+        },
       ]}
     />
   );

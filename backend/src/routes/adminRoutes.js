@@ -33,6 +33,7 @@ const Genre = require("../models/Genre");
 const QuickBooking = require("../models/QuickBooking");
 const Payment = require("../models/Payment");
 const { createNotification } = require("../services/notificationService");
+const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateService");
 const adminBooking = require("../controllers/adminBookingController");
 const adminSeatMap = require("../controllers/adminSeatMapController");
 const adminAi = require("../controllers/adminAiController");
@@ -349,6 +350,7 @@ router.delete("/genres/:id", async (req, res) => {
 
 const resources = {
   movies: createAdminCrudController(Movie, {
+    beforeList: () => syncAllMovieScheduleStates(),
     keywordFields: ["title", "description", "synopsis", "director", "genre"],
     prepareBody: prepareMovieBody,
     afterCreate: movie =>
@@ -432,7 +434,7 @@ const resources = {
 
 const showtimeCrud = createAdminCrudController(Showtime, {
   populate: [
-    { path: "movie", select: "title posterUrl duration ageRating genre status" },
+    { path: "movie", select: "title posterUrl duration ageRating genre status expectedReleaseDate publishedAt" },
     { path: "room", select: "name type totalSeats status" },
   ],
   keywordFields: ["status"],

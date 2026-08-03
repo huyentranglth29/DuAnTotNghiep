@@ -11,6 +11,7 @@ type Comment = {
     images?: any[];
     likes?: number;
     replies?: number;
+    verifiedViewer?: boolean;
 };
 
 export default function CommentItem({ comment }: { comment: Comment }) {
@@ -20,11 +21,14 @@ export default function CommentItem({ comment }: { comment: Comment }) {
                 <View style={styles.avatar} />
                 <View style={styles.meta}>
                     <Text style={styles.author}>{comment.author}</Text>
+                    {comment.verifiedViewer && (
+                        <Text style={styles.verifiedViewer}>✓ Đã xem phim</Text>
+                    )}
                     <Text style={styles.date}>{comment.date}</Text>
                 </View>
                 {comment.rating != null && (
                     <View style={styles.ratingPill}>
-                        <Text style={styles.ratingText}>{comment.rating}/10</Text>
+                        <Text style={styles.ratingText}>★ {comment.rating}/5</Text>
                     </View>
                 )}
             </View>
@@ -77,6 +81,7 @@ const styles = StyleSheet.create({
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f1f1f1' },
     meta: { flex: 1, marginLeft: 10 },
     author: { fontWeight: '700', color: '#111', fontSize: 14 },
+    verifiedViewer: {color: '#16803c', fontSize: 11, fontWeight: '800', marginTop: 2},
     date: { color: '#8a8a8a', fontSize: 12, marginTop: 2 },
     ratingPill: { backgroundColor: '#fff0f0', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
     ratingText: { color: '#ff7a00', fontWeight: '800' },

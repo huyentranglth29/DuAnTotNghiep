@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   time: '',
   price: '120000',
   status: 'scheduled',
+  screeningType: 'regular',
   note: '',
 };
 
@@ -73,6 +74,7 @@ function CreateShowtime() {
             time: toTimeInputValue(showtime.startTime),
             price: String(showtime.price ?? ''),
             status: showtime.status || 'scheduled',
+            screeningType: showtime.screeningType || 'regular',
             note: '',
           });
         } else {
@@ -113,6 +115,20 @@ function CreateShowtime() {
     const start = buildStartTimeIso(form.date, form.time);
     return buildEndTimeIso(start, selectedMovie.duration);
   }, [form.date, form.time, selectedMovie]);
+
+  const earlyScreeningError = useMemo(() => {
+    if (form.screeningType !== 'early') return '';
+    const releaseValue = selectedMovie?.expectedReleaseDate;
+    if (!releaseValue) {
+      return 'Phim phải có ngày dự kiến khởi chiếu trước khi tạo suất chiếu sớm.';
+    }
+    if (!form.date) return '';
+    const releaseDate = toDateInputValue(releaseValue);
+    if (form.date >= releaseDate) {
+      return `Suất chiếu sớm phải nằm trước ngày khởi chiếu ${formatDate(releaseValue)}.`;
+    }
+    return '';
+  }, [form.date, form.screeningType, selectedMovie]);
 
   useEffect(() => {
     if (!form.room || !form.date) {
@@ -230,6 +246,11 @@ function CreateShowtime() {
       return;
     }
 
+    if (earlyScreeningError) {
+      setError(earlyScreeningError);
+      return;
+    }
+
     if (conflicts.length && form.status !== 'cancelled') {
       setError(
         conflictMessage ||
@@ -247,6 +268,7 @@ function CreateShowtime() {
         startTime,
         price: Number(String(form.price).replace(/[^\d]/g, '')),
         status: form.status,
+        screeningType: form.screeningType,
       };
 
       if (isEdit) {
@@ -401,6 +423,30 @@ function CreateShowtime() {
               />
             </label>
             <SelectDropdown
+              label="Loại suất chiếu"
+              value={form.screeningType}
+              placeholder="Chọn loại suất"
+              onChange={value => updateField('screeningType', value)}
+              options={[
+                {value: 'regular', label: 'Suất thông thường'},
+                {value: 'early', label: 'Suất chiếu sớm'},
+              ]}
+            />
+            {form.screeningType === 'early' ? (
+              <div
+                className={`showtimeEarlyNotice fullField ${
+                  earlyScreeningError ? 'is-error' : ''
+                }`}>
+                <strong>Suất chiếu sớm</strong>
+                <span>
+                  {earlyScreeningError ||
+                    `Hợp lệ: suất này diễn ra trước ngày khởi chiếu ${formatDate(
+                      selectedMovie?.expectedReleaseDate,
+                    )}. Phim vẫn nằm ở Sắp chiếu và đồng thời xuất hiện trong tab Suất chiếu sớm.`}
+                </span>
+              </div>
+            ) : null}
+            <SelectDropdown
               label="Trạng thái"
               value={form.status}
               placeholder="Chọn trạng thái"
@@ -490,6 +536,7 @@ function CreateShowtime() {
               <button
                 disabled={
                   saving ||
+                  Boolean(earlyScreeningError) ||
                   (conflicts.length > 0 && form.status !== 'cancelled')
                 }
                 type="submit">
@@ -558,6 +605,14 @@ function CreateShowtime() {
             <p>
               <span>Vệ sinh</span>
               <strong>{CLEANUP_MINUTES} phút</strong>
+            </p>
+            <p>
+              <span>Loại suất</span>
+              <strong>
+                {form.screeningType === 'early'
+                  ? 'Suất chiếu sớm'
+                  : 'Suất thông thường'}
+              </strong>
             </p>
           </div>
           <div className="occupancy">
