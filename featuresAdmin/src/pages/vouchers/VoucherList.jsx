@@ -97,21 +97,28 @@ function DonutChart({slices}) {
   );
 }
 
-function BarChart({items}) {
-  const max = Math.max(1, ...items.map(i => i.percent || i.count || 0));
+function BarChart({items, valueKey = 'count', labelKey = 'genre', formatValue = value => value}) {
+  const max = Math.max(1, ...items.map(i => Number(i[valueKey] || 0)));
   return (
     <div className="voucherBarChart">
-      {items.length === 0 && <p className="voucherEmptyHint">Chưa có dữ liệu sử dụng</p>}
+      {items.length === 0 && <p className="voucherEmptyHint">Chưa có dữ liệu giảm giá</p>}
       {items.map(item => {
-        const value = item.percent ?? item.count;
+        const value = Number(item[valueKey] || 0);
         const height = Math.max(6, Math.round((value / max) * 100));
         return (
-          <div key={item.genre} className="voucherBarCol" title={`${item.genre}: ${item.count} lượt`}>
+          <div
+            key={item._id || item[labelKey]}
+            className="voucherBarCol"
+            title={`${item[labelKey]}: ${formatValue(value)}`}
+          >
+            <strong className="voucherBarValue">{formatValue(value)}</strong>
             <div className="voucherBarTrack">
               <div className="voucherBarFill" style={{height: `${height}%`}} />
             </div>
-            <span className="voucherBarLabel">{item.genre}</span>
-            <small className="voucherBarPercent">{item.percent}%</small>
+            <span className="voucherBarLabel">{item[labelKey]}</span>
+            <small className="voucherBarPercent">
+              {item.usedCount != null ? `${item.usedCount} lượt dùng` : `${item.percent}%`}
+            </small>
           </div>
         );
       })}
@@ -272,7 +279,7 @@ function VoucherList() {
     {discountType: 'percent', label: 'Giảm %', count: 0, percent: 0},
     {discountType: 'amount', label: 'Giảm số tiền', count: 0, percent: 0},
   ];
-  const genres = stats?.usageByGenre || [];
+  const discountBars = (stats?.discountByVoucher || []).slice(0, 5);
   const voucherStats = stats?.vouchers || [];
   const topCards = (stats?.topVouchers || []).map(card => {
     const quantity = Number(card.quantity || 0);
@@ -290,11 +297,13 @@ function VoucherList() {
   const voucherOverview = {
     used: voucherStats.reduce((sum, item) => sum + Number(item.usedCount || 0), 0),
     active: voucherStats.filter(item => item.status === 'active').length,
-    remaining: voucherStats.reduce((sum, item) => {
-      const quantity = Number(item.quantity || 0);
-      if (quantity <= 0) return sum;
-      return sum + Number(item.remainingCount ?? Math.max(0, quantity - Number(item.usedCount || 0)));
-    }, 0),
+    usable: voucherStats.filter(item => {
+      const today = toDateInput(new Date());
+      const start = item.startDate ? toDateInput(item.startDate) : '';
+      const end = item.endDate ? toDateInput(item.endDate) : '';
+      const inDateRange = (!start || start <= today) && (!end || end >= today);
+      return item.status === 'active' && inDateRange && (item.unlimited || Number(item.remainingCount || 0) > 0);
+    }).length,
   };
 
   return (
@@ -364,8 +373,8 @@ function VoucherList() {
             </div>
             <div className="voucherOverviewItem voucherOverviewItem--amber">
               <span className="voucherOverviewIcon" aria-hidden="true">⌁</span>
-              <span>Còn có thể dùng</span>
-              <div><strong>{voucherOverview.remaining}</strong><small>lượt giới hạn</small></div>
+              <span>Voucher dùng được</span>
+              <div><strong>{voucherOverview.usable}</strong><small>mã còn hiệu lực</small></div>
             </div>
           </div>
         </article>
@@ -375,11 +384,16 @@ function VoucherList() {
           <DonutChart slices={types} />
         </article>
         <article className="voucherChartCard voucherChartCard--bars">
-          <h2>Tỷ lệ sử dụng theo thể loại phim</h2>
+          <h2>Giảm giá theo voucher</h2>
           <p className="voucherChartHint">
-            Booking có voucher → suất chiếu → phim → genre
+            Tổng số tiền giảm từ các giao dịch đã thanh toán
           </p>
-          <BarChart items={genres} />
+          <BarChart
+            items={discountBars}
+            valueKey="totalDiscount"
+            labelKey="code"
+            formatValue={formatVnd}
+          />
         </article>
       </div>
 

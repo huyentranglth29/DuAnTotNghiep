@@ -311,14 +311,13 @@ const prepareMovieBody = (body = {}) => {
   if (["coming-soon", "coming_soon"].includes(next.status)) {
     const publishedAt = new Date(next.publishedAt);
     const saleAt = new Date(next.ticketSaleStartAt);
-    const releaseAt = new Date(next.expectedReleaseDate);
-    if ([publishedAt, saleAt, releaseAt].some((date) => Number.isNaN(date.getTime()))) {
-      const error = new Error("Vui lòng nhập đủ thời điểm công bố, mở bán và dự kiến khởi chiếu");
+    if ([publishedAt, saleAt].some((date) => Number.isNaN(date.getTime()))) {
+      const error = new Error("Vui lòng nhập đủ thời điểm công bố và mở bán");
       error.statusCode = 400;
       throw error;
     }
-    if (publishedAt > saleAt || saleAt.toISOString().slice(0, 10) > releaseAt.toISOString().slice(0, 10)) {
-      const error = new Error("Thời gian phải theo thứ tự: Công bố ≤ Mở bán ≤ Khởi chiếu");
+    if (publishedAt > saleAt) {
+      const error = new Error("Thời gian phải theo thứ tự: Công bố ≤ Mở bán");
       error.statusCode = 400;
       throw error;
     }

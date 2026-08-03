@@ -15,7 +15,7 @@ export interface PhimApi {
   posterUrl: string;
   backdropUrl?: string;
   rating: number;
-  genre: string;
+  genre: string | string[];
   duration: string;
   synopsis?: string;
   cast?: DienVienApi[];

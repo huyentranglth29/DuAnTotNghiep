@@ -434,7 +434,7 @@ const voucherStats = async (req, res) => {
 
     const Voucher = require("../models/Voucher");
 
-    const [usageTrend, usedByType, genreRaw, usageByVoucher, vouchers] =
+    const [usageTrend, usedByType, genreRaw, usageByVoucher, discountByVoucherRaw, vouchers] =
       await Promise.all([
         Booking.aggregate([
           { $match: voucherBookingMatch },
@@ -514,15 +514,32 @@ const voucherStats = async (req, res) => {
             },
           },
         ]),
+        Booking.aggregate([
+          {
+            $match: {
+              voucher: { $ne: null, $exists: true },
+              ...paidBookingMatch,
+              createdAt: { $gte: from, $lte: to },
+            },
+          },
+          {
+            $group: {
+              _id: "$voucher",
+              totalDiscount: { $sum: "$discount" },
+              usedCount: { $sum: 1 },
+            },
+          },
+        ]),
         Voucher.find().sort({ createdAt: -1 }).lean(),
       ]);
 
     const quickMatch = {voucher: {$ne: null, $exists: true}, status: "paid", createdAt: {$gte: from, $lte: to}};
-    const [quickTrend, quickTypes, quickGenres, quickUsage] = await Promise.all([
+    const [quickTrend, quickTypes, quickGenres, quickUsage, quickDiscounts] = await Promise.all([
       QuickBooking.aggregate([{$match: quickMatch}, {$group: {_id: {$dateToString: {format: "%Y-%m-%d", date: "$createdAt"}}, count: {$sum: 1}}}]),
       QuickBooking.aggregate([{$match: quickMatch}, {$lookup: {from: Voucher.collection.name, localField: "voucher", foreignField: "_id", as: "voucherDoc"}}, {$unwind: "$voucherDoc"}, {$group: {_id: "$voucherDoc.discountType", count: {$sum: 1}}}, {$project: {_id: 0, discountType: "$_id", count: 1}}]),
       QuickBooking.find(quickMatch).select("movieGenre -_id").lean(),
       QuickBooking.aggregate([{$match: {voucher: {$ne: null, $exists: true}, status: "paid"}}, {$group: {_id: "$voucher", usedCount: {$sum: 1}}}]),
+      QuickBooking.aggregate([{$match: quickMatch}, {$group: {_id: "$voucher", totalDiscount: {$sum: "$discount"}, usedCount: {$sum: 1}}}]),
     ]);
     quickTrend.forEach(row => {
       const date = row._id;
@@ -537,6 +554,15 @@ const voucherStats = async (req, res) => {
     quickUsage.forEach(row => {
       const found = usageByVoucher.find(item => String(item._id) === String(row._id));
       if (found) found.usedCount += row.usedCount; else usageByVoucher.push(row);
+    });
+    quickDiscounts.forEach(row => {
+      const found = discountByVoucherRaw.find(item => String(item._id) === String(row._id));
+      if (found) {
+        found.totalDiscount += Number(row.totalDiscount || 0);
+        found.usedCount += Number(row.usedCount || 0);
+      } else {
+        discountByVoucherRaw.push(row);
+      }
     });
 
     const genreCounts = {};
@@ -591,6 +617,21 @@ const voucherStats = async (req, res) => {
       };
     });
 
+    const discountByVoucher = discountByVoucherRaw
+      .map((row) => {
+        const voucher = vouchers.find((item) => String(item._id) === String(row._id));
+        return {
+          _id: row._id,
+          code: voucher?.code || "Không rõ",
+          description: voucher?.description || "",
+          totalDiscount: Number(row.totalDiscount || 0),
+          usedCount: Number(row.usedCount || 0),
+        };
+      })
+      .filter((row) => row.totalDiscount > 0)
+      .sort((a, b) => b.totalDiscount - a.totalDiscount)
+      .slice(0, 8);
+
     const dayMap = Object.fromEntries(
       usageTrend.map((row) => [row.date, row.count])
     );
@@ -608,6 +649,7 @@ const voucherStats = async (req, res) => {
       usageTrend: filledTrend,
       typeDistribution,
       usageByGenre,
+      discountByVoucher,
       topVouchers: voucherUsage
         .slice()
         .sort((a, b) => b.usedCount - a.usedCount)

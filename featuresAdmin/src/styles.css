@@ -602,22 +602,28 @@ th {
   position: relative;
 }
 
-.movieGenrePicker > summary {
+.movieGenrePicker > summary,
+.movieGenreSummary,
+.formGrid .movieGenreSummary {
   min-height: 42px;
   padding: 11px 12px;
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border: 1px solid #cfd6df;
   border-radius: 6px;
+  color: #374151;
   background: #fff;
   cursor: pointer;
   list-style: none;
+  text-align: left;
 }
 
 .movieGenrePicker > summary::-webkit-details-marker {display: none;}
-.movieGenrePicker[open] > summary {border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);}
+.movieGenrePicker[open] > summary,
+.movieGenrePicker.isOpen > .movieGenreSummary {border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);}
 .movieGenrePlaceholder {color: #9ca3af;}
 
 .movieGenreDropdown {
@@ -663,7 +669,11 @@ th {
   border-top: 1px solid #e5e7eb;
 }
 
-.movieGenreQuickAdd button {background: #2563eb; white-space: nowrap;}
+.movieGenreQuickAdd button,
+.formGrid .movieGenreQuickAdd button {background: #2563eb; white-space: nowrap;}
+.movieGenreQuickAdd button:disabled,
+.formGrid .movieGenreQuickAdd button:disabled {opacity: 0.65; cursor: wait;}
+.movieGenreMessage {margin: 7px 0 0; color: #1d4ed8; font-size: 12px; font-weight: 700;}
 .movieGenreManageLink {width: 100%; margin-top: 7px; padding: 7px !important; color: #2563eb !important; background: transparent !important;}
 
 .movieGenreChips {display: flex; flex-wrap: wrap; gap: 6px;}
@@ -3608,6 +3618,8 @@ th {
 }
 
 .voucherChartCard {
+  min-width: 0;
+  overflow: hidden;
   padding: 16px;
   border-radius: 12px;
   background: #fff;
@@ -3795,21 +3807,32 @@ th {
   align-items: stretch;
   justify-content: space-around;
   gap: 8px;
+  min-width: 0;
   min-height: 280px;
   flex: 1;
   padding-top: 8px;
 }
 
 .voucherBarCol {
+  min-width: 0;
   flex: 1;
   display: grid;
-  grid-template-rows: minmax(190px, 1fr) 38px 18px;
+  grid-template-rows: 30px minmax(170px, 1fr) 38px 18px;
   justify-items: center;
   align-items: start;
   gap: 4px;
   font-size: 11px;
   color: #64748b;
   cursor: default;
+}
+
+.voucherBarValue {
+  width: 100%;
+  color: #0f172a;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .voucherBarTrack {
@@ -3831,10 +3854,13 @@ th {
   justify-content: center;
   text-align: center;
   line-height: 14px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .voucherBarPercent {
   line-height: 18px;
+  text-align: center;
 }
 
 .voucherBarFill {
