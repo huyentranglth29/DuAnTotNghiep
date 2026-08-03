@@ -602,22 +602,28 @@ th {
   position: relative;
 }
 
-.movieGenrePicker > summary {
+.movieGenrePicker > summary,
+.movieGenreSummary,
+.formGrid .movieGenreSummary {
   min-height: 42px;
   padding: 11px 12px;
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   border: 1px solid #cfd6df;
   border-radius: 6px;
+  color: #374151;
   background: #fff;
   cursor: pointer;
   list-style: none;
+  text-align: left;
 }
 
 .movieGenrePicker > summary::-webkit-details-marker {display: none;}
-.movieGenrePicker[open] > summary {border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);}
+.movieGenrePicker[open] > summary,
+.movieGenrePicker.isOpen > .movieGenreSummary {border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);}
 .movieGenrePlaceholder {color: #9ca3af;}
 
 .movieGenreDropdown {
@@ -663,7 +669,11 @@ th {
   border-top: 1px solid #e5e7eb;
 }
 
-.movieGenreQuickAdd button {background: #2563eb; white-space: nowrap;}
+.movieGenreQuickAdd button,
+.formGrid .movieGenreQuickAdd button {background: #2563eb; white-space: nowrap;}
+.movieGenreQuickAdd button:disabled,
+.formGrid .movieGenreQuickAdd button:disabled {opacity: 0.65; cursor: wait;}
+.movieGenreMessage {margin: 7px 0 0; color: #1d4ed8; font-size: 12px; font-weight: 700;}
 .movieGenreManageLink {width: 100%; margin-top: 7px; padding: 7px !important; color: #2563eb !important; background: transparent !important;}
 
 .movieGenreChips {display: flex; flex-wrap: wrap; gap: 6px;}
@@ -909,6 +919,110 @@ th {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
+}
+
+/* Review management */
+.reviewPerson {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+}
+
+.reviewPerson > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.reviewPerson strong,
+.reviewPerson small {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reviewPerson small {
+  color: #7b879b;
+  font-size: 12px;
+}
+
+.reviewAvatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(145deg, #2f6fed, #174dc2);
+  font-weight: 800;
+}
+
+.reviewMissingReference {
+  display: inline-flex;
+  padding: 6px 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  color: #b45309;
+  background: #fff7ed;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.reviewRating {
+  display: grid;
+  gap: 2px;
+  min-width: 94px;
+}
+
+.reviewRating span {
+  color: #f59e0b;
+  font-size: 18px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.reviewRating strong {
+  color: #667085;
+  font-size: 12px;
+}
+
+.reviewComment {
+  display: block;
+  min-width: 220px;
+  max-width: 460px;
+  line-height: 1.5;
+}
+
+.reviewStatus {
+  display: inline-flex;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.reviewStatus--pending {
+  color: #a16207;
+  background: #fef3c7;
+}
+
+.reviewStatus--approved {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.reviewStatus--rejected {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.reviewStatus--unknown {
+  color: #475467;
+  background: #eef2f6;
 }
 
 .success {
@@ -2222,7 +2336,7 @@ th {
 
 .showtimeFilters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: 12px;
   margin: 16px 0 18px;
   padding: 14px;
@@ -3504,6 +3618,8 @@ th {
 }
 
 .voucherChartCard {
+  min-width: 0;
+  overflow: hidden;
   padding: 16px;
   border-radius: 12px;
   background: #fff;
@@ -3691,21 +3807,32 @@ th {
   align-items: stretch;
   justify-content: space-around;
   gap: 8px;
+  min-width: 0;
   min-height: 280px;
   flex: 1;
   padding-top: 8px;
 }
 
 .voucherBarCol {
+  min-width: 0;
   flex: 1;
   display: grid;
-  grid-template-rows: minmax(190px, 1fr) 38px 18px;
+  grid-template-rows: 30px minmax(170px, 1fr) 38px 18px;
   justify-items: center;
   align-items: start;
   gap: 4px;
   font-size: 11px;
   color: #64748b;
   cursor: default;
+}
+
+.voucherBarValue {
+  width: 100%;
+  color: #0f172a;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .voucherBarTrack {
@@ -3727,10 +3854,13 @@ th {
   justify-content: center;
   text-align: center;
   line-height: 14px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .voucherBarPercent {
   line-height: 18px;
+  text-align: center;
 }
 
 .voucherBarFill {
@@ -7914,6 +8044,34 @@ a.overviewMetric.overviewClickable {
   font-weight: 700;
   cursor: pointer;
   padding: 0;
+}
+
+.movieAppPlacement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 118px;
+}
+
+.showtimeEarlyNotice {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  color: #9a3412;
+  background: #fff7ed;
+}
+
+.showtimeEarlyNotice span {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.showtimeEarlyNotice.is-error {
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
 }
 
 .movieRowActions {

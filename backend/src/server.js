@@ -24,6 +24,7 @@ const customerAiRoutes = require("./routes/customerAiRoutes");
 const movieReminderRoutes = require("./routes/movieReminderRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
 const {sendDueMovieReminders} = require("./services/movieReminderService");
+const {syncAllMovieScheduleStates} = require("./services/movieScheduleStateService");
 
 dotenv.config();
 
@@ -92,6 +93,15 @@ if (require.main === module) {
       );
     }, 60 * 1000);
     reminderTimer.unref();
+    await syncAllMovieScheduleStates().catch((error) =>
+      console.error("❌ Không thể đồng bộ trạng thái phim:", error.message)
+    );
+    const movieStatusTimer = setInterval(() => {
+      syncAllMovieScheduleStates().catch((error) =>
+        console.error("❌ Không thể đồng bộ trạng thái phim:", error.message)
+      );
+    }, 60 * 1000);
+    movieStatusTimer.unref();
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

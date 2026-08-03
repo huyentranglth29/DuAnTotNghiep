@@ -43,6 +43,14 @@ function chuyenDoiDienVien(dienVien: DienVienApi): DienVien {
   };
 }
 
+function chuyenDoiTheLoai(theLoai: PhimApi['genre']): string {
+  if (Array.isArray(theLoai)) {
+    return theLoai.map(item => String(item || '').trim()).filter(Boolean).join(', ');
+  }
+
+  return String(theLoai || '').trim();
+}
+
 /** Chuyển dữ liệu API sang model Phim dùng trong app */
 export function chuyenDoiPhimApi(duLieu: PhimApi): Phim {
   return {
@@ -50,7 +58,7 @@ export function chuyenDoiPhimApi(duLieu: PhimApi): Phim {
     tieuDe: duLieu.title,
     posterUrl: duLieu.posterUrl,
     diemDanhGia: duLieu.rating,
-    theLoai: duLieu.genre,
+    theLoai: chuyenDoiTheLoai(duLieu.genre),
     thoiLuong: duLieu.duration,
     tomTat: duLieu.synopsis,
     danhSachDienVien: duLieu.cast?.map(chuyenDoiDienVien),

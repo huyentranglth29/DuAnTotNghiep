@@ -86,6 +86,7 @@ const movieSchema = new mongoose.Schema(
         "ended",
         "stopped",
         "draft",
+        "awaiting-showtime",
       ],
       default: "draft",
     },

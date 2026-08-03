@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import movieApi from '../../api/movieApi';
 import genreApi from '../../api/genreApi';
@@ -8,7 +8,6 @@ const initialForm = {
   title: '',
   genre: [],
   duration: '',
-  expectedReleaseDate: '',
   publishedAt: '',
   ticketSaleStartAt: '',
   announceUpcoming: false,
@@ -21,13 +20,6 @@ const initialForm = {
   status: 'draft',
   ageRating: '',
 };
-
-function toDateInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toISOString().slice(0, 10);
-}
 
 function toDateTimeInput(value) {
   if (!value) return '';
@@ -49,6 +41,10 @@ function MovieAdd() {
   const [genreLoading, setGenreLoading] = useState(true);
   const [newGenreName, setNewGenreName] = useState('');
   const [addingGenre, setAddingGenre] = useState(false);
+  const [genreOpen, setGenreOpen] = useState(false);
+  const [genreMessage, setGenreMessage] = useState('');
+  const genrePickerRef = useRef(null);
+  const newGenreInputRef = useRef(null);
 
   const loadGenres = async () => {
     setGenreLoading(true);
@@ -65,6 +61,28 @@ function MovieAdd() {
   useEffect(() => {
     loadGenres();
   }, []);
+
+  useEffect(() => {
+    if (!genreOpen) return undefined;
+
+    const closeOnOutside = event => {
+      if (!genrePickerRef.current?.contains(event.target)) {
+        setGenreOpen(false);
+      }
+    };
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') {
+        setGenreOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOnOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [genreOpen]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -85,10 +103,9 @@ function MovieAdd() {
             typeof movie.duration === 'number'
               ? String(movie.duration)
               : String(movie.duration || '').replace(/[^\d]/g, '') || '',
-          expectedReleaseDate: toDateInput(movie.expectedReleaseDate || movie.releaseDate),
           publishedAt: toDateTimeInput(movie.publishedAt),
           ticketSaleStartAt: toDateTimeInput(movie.ticketSaleStartAt),
-          announceUpcoming: ['coming-soon', 'coming_soon'].includes(movie.status) || Boolean(movie.expectedReleaseDate),
+          announceUpcoming: ['coming-soon', 'coming_soon'].includes(movie.status),
           director: movie.director || '',
           cast: Array.isArray(movie.cast)
             ? movie.cast
@@ -120,6 +137,7 @@ function MovieAdd() {
   };
 
   const toggleGenre = name => {
+    setGenreMessage('');
     setForm(current => ({
       ...current,
       genre: current.genre.includes(name)
@@ -130,9 +148,15 @@ function MovieAdd() {
 
   const addGenreQuickly = async () => {
     const name = newGenreName.trim();
-    if (!name || addingGenre) return;
+    if (addingGenre) return;
+    if (!name) {
+      setGenreMessage('Nhập tên thể loại mới trước khi bấm thêm.');
+      newGenreInputRef.current?.focus();
+      return;
+    }
     setAddingGenre(true);
     setError('');
+    setGenreMessage('');
     try {
       const response = await genreApi.create({name, status: 'active'});
       const created = response?.data || response;
@@ -148,8 +172,9 @@ function MovieAdd() {
           : [...current.genre, created.name],
       }));
       setNewGenreName('');
+      setGenreMessage(`Đã thêm thể loại "${created.name}".`);
     } catch (err) {
-      setError(err.message || 'Không thêm được thể loại mới.');
+      setGenreMessage(err.message || 'Không thêm được thể loại mới.');
     } finally {
       setAddingGenre(false);
     }
@@ -164,12 +189,11 @@ function MovieAdd() {
       if (form.announceUpcoming) {
         const publishAt = new Date(form.publishedAt);
         const saleAt = new Date(form.ticketSaleStartAt);
-        const releaseAt = new Date(`${form.expectedReleaseDate}T23:59:59`);
-        if (!form.publishedAt || !form.ticketSaleStartAt || !form.expectedReleaseDate) {
-          throw new Error('Vui lòng nhập đủ thời điểm công bố, mở bán và dự kiến khởi chiếu.');
+        if (!form.publishedAt || !form.ticketSaleStartAt) {
+          throw new Error('Vui lòng nhập đủ thời điểm công bố và mở bán.');
         }
-        if (publishAt > saleAt || saleAt > releaseAt) {
-          throw new Error('Thời gian phải theo thứ tự: Công bố ≤ Mở bán ≤ Khởi chiếu.');
+        if (publishAt > saleAt) {
+          throw new Error('Thời gian phải theo thứ tự: Công bố ≤ Mở bán.');
         }
       }
       const {announceUpcoming, ...formData} = form;
@@ -179,9 +203,6 @@ function MovieAdd() {
         cast: form.cast.split(',').map(item => item.trim()).filter(Boolean),
         duration: Number(form.duration),
         price: Number(form.price || 0),
-        expectedReleaseDate: form.expectedReleaseDate
-          ? new Date(form.expectedReleaseDate)
-          : undefined,
         publishedAt: form.publishedAt ? new Date(form.publishedAt) : undefined,
         ticketSaleStartAt: form.ticketSaleStartAt
           ? new Date(form.ticketSaleStartAt)
@@ -220,14 +241,17 @@ function MovieAdd() {
             </label>
             <div className="movieGenreField">
               <span className="movieGenreFieldLabel">Thể loại</span>
-              <details className="movieGenrePicker">
-                <summary>
+              <div ref={genrePickerRef} className={`movieGenrePicker ${genreOpen ? 'isOpen' : ''}`}>
+                <button
+                  type="button"
+                  className="movieGenreSummary"
+                  onClick={() => setGenreOpen(open => !open)}>
                   <span className={form.genre.length ? '' : 'movieGenrePlaceholder'}>
                     {form.genre.length ? form.genre.join(', ') : 'Chọn một hoặc nhiều thể loại'}
                   </span>
                   <b>⌄</b>
-                </summary>
-                <div className="movieGenreDropdown">
+                </button>
+                {genreOpen && <div className="movieGenreDropdown">
                   <div className="movieGenreOptions">
                     {genreLoading && <p>Đang tải thể loại...</p>}
                     {!genreLoading && genreOptions.map(item => (
@@ -244,8 +268,12 @@ function MovieAdd() {
                   </div>
                   <div className="movieGenreQuickAdd">
                     <input
+                      ref={newGenreInputRef}
                       value={newGenreName}
-                      onChange={event => setNewGenreName(event.target.value)}
+                      onChange={event => {
+                        setNewGenreName(event.target.value);
+                        setGenreMessage('');
+                      }}
                       onKeyDown={event => {
                         if (event.key === 'Enter') {
                           event.preventDefault();
@@ -258,11 +286,12 @@ function MovieAdd() {
                       {addingGenre ? 'Đang thêm...' : '+ Thêm'}
                     </button>
                   </div>
+                  {genreMessage && <p className="movieGenreMessage">{genreMessage}</p>}
                   <button className="movieGenreManageLink" type="button" onClick={() => navigate('/categories')}>
                     Quản lý danh mục thể loại →
                   </button>
-                </div>
-              </details>
+                </div>}
+              </div>
               {form.genre.length > 0 && (
                 <div className="movieGenreChips">
                   {form.genre.map(name => (
@@ -295,7 +324,6 @@ function MovieAdd() {
                         updateForm('publishedAt', toDateTimeInput(new Date()));
                       }
                       if (!event.target.checked) {
-                        updateForm('expectedReleaseDate', '');
                         updateForm('publishedAt', '');
                         updateForm('ticketSaleStartAt', '');
                       }
@@ -309,7 +337,6 @@ function MovieAdd() {
                 {form.announceUpcoming && <div className="moviePublishDates">
                   <label>Thời điểm công bố<input required type="datetime-local" value={form.publishedAt} onChange={event => updateForm('publishedAt', event.target.value)} /></label>
                   <label>Mở bán vé từ<input required type="datetime-local" value={form.ticketSaleStartAt} onChange={event => updateForm('ticketSaleStartAt', event.target.value)} /></label>
-                  <label>Dự kiến khởi chiếu<input required type="date" value={form.expectedReleaseDate} onChange={event => updateForm('expectedReleaseDate', event.target.value)} /></label>
                 </div>}
               </div>
             ) : (

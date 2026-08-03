@@ -1,6 +1,9 @@
 const Movie = require("../models/Movie");
 const Showtime = require("../models/Showtime");
-const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateService");
+const {
+  syncAllMovieScheduleStates,
+  syncMovieScheduleState,
+} = require("../services/movieScheduleStateService");
 
 // ==========================
 // Chuyển dữ liệu cho App
@@ -23,6 +26,7 @@ const STATUS_TO_CLIENT = {
   ended: "ended",
   stopped: "stopped",
   draft: "draft",
+  "awaiting-showtime": "awaiting-showtime",
 };
 
 function normalizeGenre(genre) {
@@ -67,7 +71,9 @@ function toClientMovie(movie) {
     rating: movie.rating,
     status: STATUS_TO_CLIENT[movie.status] || movie.status,
     ageRating: movie.ageRating,
-    releaseDate: movie.expectedReleaseDate || movie.releaseDate,
+    // Khi đã có lịch thường, ngày suất đầu tiên là ngày khởi chiếu thực tế.
+    // Nếu chưa có lịch thường thì dùng ngày dự kiến cho tab Sắp chiếu.
+    releaseDate: movie.releaseDate || movie.expectedReleaseDate,
     expectedReleaseDate: movie.expectedReleaseDate,
     publishedAt: movie.publishedAt,
     ticketSaleStartAt: movie.ticketSaleStartAt,
@@ -166,7 +172,7 @@ const getMovies = async (req, res, next) => {
 
 const getMovieById = async (req, res, next) => {
   try {
-
+    await syncMovieScheduleState(req.params.id);
     const movie = await Movie.findById(req.params.id);
 
     if (!movie) {

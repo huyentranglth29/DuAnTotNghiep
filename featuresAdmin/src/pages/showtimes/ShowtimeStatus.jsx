@@ -9,6 +9,7 @@ import {
 } from '../../utils/showtimeHelpers';
 
 function ShowtimeStatus() {
+  const [, setClockTick] = useState(() => Date.now());
   const [showtimes, setShowtimes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,6 +32,11 @@ function ShowtimeStatus() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockTick(Date.now()), 30 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const updateStatus = async (id, status) => {
     setSavingId(id);
     try {
@@ -51,7 +57,7 @@ function ShowtimeStatus() {
       <div className="pageTitle">
         <div>
           <h2>Quản lý trạng thái suất chiếu</h2>
-          <p>Đổi trạng thái lên lịch / đã chiếu / đã hủy</p>
+          <p>Quản lý trạng thái vận hành của từng suất chiếu</p>
         </div>
         <div className="showtimeHeaderActions">
           <button type="button" className="ghost" onClick={loadData}>
@@ -76,7 +82,7 @@ function ShowtimeStatus() {
                 <th>Phòng</th>
                 <th>Ngày</th>
                 <th>Giờ</th>
-                <th>Trạng thái hiện tại</th>
+                <th>Trạng thái suất</th>
                 <th>Cập nhật</th>
               </tr>
             </thead>

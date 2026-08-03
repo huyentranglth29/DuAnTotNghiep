@@ -14,7 +14,9 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { MovieBookingInfo } from '../components/MovieName';
 import CommentsList from '../components/CommentsList';
 import ChonGio, {SelectedShowtimeInfo} from '../components/ChonGio';
-import {getNewsEvents, getReviews} from '../../../services/apiService';
+import {getMyReview, getNewsEvents, getReviewEligibility, getReviews} from '../../../services/apiService';
+import {resolveMediaUrl} from '../../../config/api.config';
+import {useAuth} from '../../../contexts/AuthContext';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
@@ -33,6 +35,7 @@ type NewsEventApi = {
   category?: string;
   publishDate?: string;
   createdAt?: string;
+  image?: string;
 };
 
 type MoviePromotion = {
@@ -41,6 +44,7 @@ type MoviePromotion = {
   summary: string;
   content: string;
   publishedAt?: string;
+  imageUrl?: string;
   color: string;
 };
 
@@ -54,6 +58,7 @@ type MovieReview = {
   images?: any[];
   likes?: number;
   replies?: number;
+  verifiedViewer?: boolean;
 };
 
 type ReviewApi = {
@@ -69,6 +74,13 @@ type ReviewApi = {
   text?: string;
   createdAt?: string;
   updatedAt?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  verifiedViewer?: boolean;
+};
+
+type ReviewEligibility = {
+  canReview: boolean;
+  verifiedViewer: boolean;
 };
 
 const fallbackPromotions: MoviePromotion[] = [
@@ -123,6 +135,7 @@ const mapNewsEventToPromotion = (
   summary: item.summary || item.content || 'Ưu đãi FilmGo',
   content: item.content || item.summary || 'Thông tin khuyến mãi đang được cập nhật.',
   publishedAt: formatPromotionDate(item.publishDate || item.createdAt),
+  imageUrl: resolveMediaUrl(item.image),
   color: promoColors[index % promoColors.length],
 });
 
@@ -141,6 +154,7 @@ const mapApiReview = (item: ReviewApi, index: number): MovieReview => ({
   author: item.user?.fullName || item.user?.name || item.user?.email || 'Khách FilmGo',
   date: formatReviewDate(item.createdAt || item.updatedAt),
   rating: typeof item.rating === 'number' ? item.rating : undefined,
+  verifiedViewer: Boolean(item.verifiedViewer),
   text: item.comment || item.text || 'Người dùng chưa để lại nội dung.',
   tags: [],
   images: [],
@@ -149,6 +163,7 @@ const mapApiReview = (item: ReviewApi, index: number): MovieReview => ({
 });
 
 function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
+  const {isAuthenticated} = useAuth();
   const ticketSaleOpen =
     !movie.ticketSaleStartAt ||
     new Date(movie.ticketSaleStartAt) <= new Date();
@@ -163,6 +178,10 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
   const [selectedShowtime, setSelectedShowtime] = useState<SelectedShowtimeInfo | null>(null);
   const [moviePromotions, setMoviePromotions] = useState<MoviePromotion[]>(fallbackPromotions);
   const [movieReviews, setMovieReviews] = useState<MovieReview[]>([]);
+  const [myReview, setMyReview] = useState<ReviewApi | null>(null);
+  const [reviewEligibility, setReviewEligibility] = useState<ReviewEligibility>({canReview: false, verifiedViewer: false});
+  const [selectedPromotion, setSelectedPromotion] = useState<MoviePromotion | null>(null);
+  const [showAllPromotions, setShowAllPromotions] = useState(false);
 
   useEffect(() => {
     let timer: any;
@@ -190,7 +209,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           .filter((item: NewsEventApi) => item.category === 'khuyen_mai')
           .slice(0, 4)
           .map(mapNewsEventToPromotion);
-        setMoviePromotions(promos.length ? promos : fallbackPromotions);
+        setMoviePromotions(promos);
       })
       .catch(() => {
         if (!cancelled) {
@@ -227,10 +246,42 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         }
       });
 
+    getReviewEligibility(movie.id)
+      .then(response => {
+        if (!cancelled) {
+          const data = response?.data || response;
+          setReviewEligibility({
+            canReview: Boolean(data?.canReview),
+            verifiedViewer: Boolean(data?.verifiedViewer),
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReviewEligibility({canReview: false, verifiedViewer: false});
+        }
+      });
+
+    if (isAuthenticated) {
+      getMyReview(movie.id)
+        .then(response => {
+          if (!cancelled) {
+            setMyReview((response?.data || response) ?? null);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setMyReview(null);
+          }
+        });
+    } else {
+      setMyReview(null);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [movie.id]);
+  }, [isAuthenticated, movie.id]);
 
   const formatTime = (pct: number) => {
     const totalSec = Math.round((pct / 100) * 150); // 150 giây = 2m30s
@@ -253,14 +304,17 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
     }
   };
 
-  const showPromotionDetail = (promo: MoviePromotion) => {
-    const lines = [
-      promo.summary,
-      promo.publishedAt ? `Ngày đăng: ${promo.publishedAt}` : '',
-      promo.content,
-    ].filter(Boolean);
-    Alert.alert(promo.title, lines.join('\n\n'));
-  };
+  const averageRating = movieReviews.length
+    ? movieReviews.reduce((total, review) => total + Number(review.rating || 0), 0) / movieReviews.length
+    : 0;
+
+  const myReviewStatus = myReview?.status === 'approved'
+    ? {label: 'Đánh giá của bạn đã được duyệt', tone: styles.reviewStateApproved}
+    : myReview?.status === 'rejected'
+      ? {label: 'Đánh giá của bạn đã bị từ chối — bạn có thể chỉnh sửa và gửi lại', tone: styles.reviewStateRejected}
+      : myReview
+        ? {label: 'Đánh giá của bạn đang chờ duyệt', tone: styles.reviewStatePending}
+        : null;
 
   return (
     <View style={styles.container}>
@@ -371,33 +425,70 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           <TouchableOpacity
             activeOpacity={0.75}
             style={styles.allButton}
-            onPress={() =>
-              Alert.alert(
-                'Khuyến mãi',
-                `${moviePromotions.length} ưu đãi đang được hiển thị từ FilmGo.`,
-              )
-            }>
+            onPress={() => setShowAllPromotions(true)}>
             <Text style={styles.allButtonText}>Tất cả</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.promotionList}>
-          {moviePromotions.map(promo => (
+          {moviePromotions.slice(0, 3).map(promo => (
             <TouchableOpacity
               key={promo.id}
               activeOpacity={0.82}
               style={styles.promotionCard}
-              onPress={() => showPromotionDetail(promo)}>
-              <View style={[styles.promotionThumb, { backgroundColor: promo.color }]}>
-                <Text style={styles.promotionThumbText}>FilmGo</Text>
-              </View>
+              onPress={() => setSelectedPromotion(promo)}>
+              {promo.imageUrl ? (
+                <Image source={{uri: promo.imageUrl}} style={styles.promotionImage} />
+              ) : (
+                <View style={[styles.promotionThumb, { backgroundColor: promo.color }]}>
+                  <Text style={styles.promotionThumbText}>FilmGo</Text>
+                </View>
+              )}
               <Text style={styles.promotionTitle}>{promo.title}</Text>
             </TouchableOpacity>
           ))}
+          {moviePromotions.length === 0 && (
+            <Text style={styles.emptyPromotion}>Hiện chưa có chương trình khuyến mãi đang áp dụng.</Text>
+          )}
         </View>
 
-        <TouchableOpacity style={styles.writeReviewBtn} activeOpacity={0.85} onPress={() => onWriteReview?.(movie)}>
-          <Text style={styles.writeReviewText}>Viết đánh giá</Text>
+        <View style={styles.reviewSummary}>
+          <View>
+            <Text style={styles.reviewSummaryTitle}>ĐÁNH GIÁ PHIM</Text>
+            <Text style={styles.reviewSummaryMeta}>
+              {movieReviews.length ? `★ ${averageRating.toFixed(1)}/5 · ${movieReviews.length} lượt đánh giá` : 'Chưa có đánh giá về phim này'}
+            </Text>
+          </View>
+        </View>
+
+        {myReviewStatus && (
+          <View style={[styles.reviewState, myReviewStatus.tone]}>
+            <Text style={styles.reviewStateText}>{myReviewStatus.label}</Text>
+          </View>
+        )}
+
+        {!reviewEligibility.canReview ? (
+          <Text style={styles.reviewAvailabilityText}>
+            Bạn có thể đánh giá sau khi suất chiếu đầu tiên của phim kết thúc.
+          </Text>
+        ) : reviewEligibility.verifiedViewer ? (
+          <View style={styles.verifiedViewerNotice}>
+            <Text style={styles.verifiedViewerNoticeText}>✓ Bạn đã xem phim tại FilmGo</Text>
+          </View>
+        ) : (
+          <Text style={styles.reviewAvailabilityText}>
+            Khách mua vé tại quầy vẫn có thể chia sẻ cảm nhận sau khi xem phim.
+          </Text>
+        )}
+
+        <TouchableOpacity
+          style={[styles.writeReviewBtn, !reviewEligibility.canReview && styles.writeReviewBtnDisabled]}
+          activeOpacity={0.85}
+          disabled={!reviewEligibility.canReview}
+          onPress={() => onWriteReview?.(movie)}>
+          <Text style={styles.writeReviewText}>
+            {!reviewEligibility.canReview ? 'Chưa thể đánh giá' : myReview ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá'}
+          </Text>
         </TouchableOpacity>
 
         <CommentsList comments={movieReviews} />
@@ -457,6 +548,72 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
               </View>
             </View>
           </ImageBackground>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(selectedPromotion)}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedPromotion(null)}>
+        <View style={styles.promotionModalBackdrop}>
+          <View style={styles.promotionModalCard}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {selectedPromotion?.imageUrl ? (
+                <Image source={{uri: selectedPromotion.imageUrl}} style={styles.promotionModalImage} />
+              ) : (
+                <View style={[styles.promotionModalPlaceholder, {backgroundColor: selectedPromotion?.color || BLUE}]}>
+                  <Text style={styles.promotionModalBrand}>FilmGo</Text>
+                </View>
+              )}
+              <View style={styles.promotionModalBody}>
+                <Text style={styles.promotionModalTitle}>{selectedPromotion?.title}</Text>
+                {selectedPromotion?.publishedAt ? (
+                  <Text style={styles.promotionModalDate}>Công bố ngày {selectedPromotion.publishedAt}</Text>
+                ) : null}
+                <Text style={styles.promotionModalSummary}>{selectedPromotion?.summary}</Text>
+                <Text style={styles.promotionModalContent}>{selectedPromotion?.content}</Text>
+              </View>
+            </ScrollView>
+            <TouchableOpacity style={styles.promotionCloseButton} onPress={() => setSelectedPromotion(null)}>
+              <Text style={styles.promotionCloseText}>Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showAllPromotions}
+        animationType="slide"
+        onRequestClose={() => setShowAllPromotions(false)}>
+        <View style={styles.allPromotionsPage}>
+          <View style={styles.allPromotionsHeader}>
+            <TouchableOpacity onPress={() => setShowAllPromotions(false)} style={styles.allPromotionsBack}>
+              <Text style={styles.allPromotionsBackText}>‹</Text>
+            </TouchableOpacity>
+            <Text style={styles.allPromotionsTitle}>Tất cả khuyến mãi</Text>
+            <View style={styles.allPromotionsBack} />
+          </View>
+          <ScrollView contentContainerStyle={styles.allPromotionsList}>
+            {moviePromotions.map(promo => (
+              <TouchableOpacity key={promo.id} style={styles.allPromotionCard} onPress={() => {
+                setShowAllPromotions(false);
+                setTimeout(() => setSelectedPromotion(promo), 220);
+              }}>
+                {promo.imageUrl ? <Image source={{uri: promo.imageUrl}} style={styles.allPromotionImage} /> : (
+                  <View style={[styles.allPromotionImage, styles.allPromotionPlaceholder, {backgroundColor: promo.color}]}>
+                    <Text style={styles.promotionThumbText}>FilmGo</Text>
+                  </View>
+                )}
+                <View style={styles.allPromotionText}>
+                  <Text style={styles.allPromotionTitle} numberOfLines={2}>{promo.title}</Text>
+                  <Text style={styles.allPromotionSummary} numberOfLines={2}>{promo.summary}</Text>
+                  <Text style={styles.allPromotionLink}>Xem chi tiết ›</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {moviePromotions.length === 0 && <Text style={styles.emptyPromotion}>Hiện chưa có khuyến mãi.</Text>}
+          </ScrollView>
         </View>
       </Modal>
 
@@ -624,6 +781,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 16,
   },
+  promotionImage: {width: 104, height: 64, borderRadius: 3, marginRight: 16, resizeMode: 'cover'},
   promotionThumbText: {
     color: '#ffffff',
     fontSize: 16,
@@ -636,6 +794,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 22,
   },
+  emptyPromotion: {color: '#777', fontSize: 14, lineHeight: 20, paddingVertical: 12},
+  reviewSummary: {marginHorizontal: 18, marginTop: 26, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+  reviewSummaryTitle: {color: '#111', fontSize: 20, fontWeight: '900'},
+  reviewSummaryMeta: {color: '#d98b00', fontSize: 14, fontWeight: '800', marginTop: 5},
+  reviewState: {marginHorizontal: 18, marginTop: 14, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 11},
+  reviewStatePending: {backgroundColor: '#fff7d6'},
+  reviewStateApproved: {backgroundColor: '#e4f8ea'},
+  reviewStateRejected: {backgroundColor: '#ffe8e8'},
+  reviewStateText: {color: '#4b5563', fontSize: 13, lineHeight: 18, fontWeight: '700'},
   writeReviewBtn: {
     backgroundColor: '#ff2d7a',
     marginHorizontal: 18,
@@ -644,11 +811,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
+  writeReviewBtnDisabled: {backgroundColor: '#aab2bd'},
+  reviewAvailabilityText: {marginHorizontal: 18, marginTop: 12, color: '#667085', fontSize: 13, lineHeight: 19},
+  verifiedViewerNotice: {marginHorizontal: 18, marginTop: 12, alignSelf: 'flex-start', backgroundColor: '#e5f8eb', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7},
+  verifiedViewerNoticeText: {color: '#16803c', fontSize: 13, fontWeight: '800'},
   writeReviewText: {
     color: '#fff',
     fontWeight: '900',
     fontSize: 16,
   },
+  promotionModalBackdrop: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.48)'},
+  promotionModalCard: {maxHeight: '88%', backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: 'hidden'},
+  promotionModalImage: {width: '100%', height: 220, resizeMode: 'cover'},
+  promotionModalPlaceholder: {height: 180, alignItems: 'center', justifyContent: 'center'},
+  promotionModalBrand: {color: '#fff', fontSize: 32, fontWeight: '900'},
+  promotionModalBody: {padding: 20},
+  promotionModalTitle: {color: '#111', fontSize: 23, lineHeight: 30, fontWeight: '900'},
+  promotionModalDate: {color: BLUE, fontSize: 13, fontWeight: '700', marginTop: 8},
+  promotionModalSummary: {color: '#344054', fontSize: 16, lineHeight: 23, fontWeight: '700', marginTop: 18},
+  promotionModalContent: {color: '#475467', fontSize: 15, lineHeight: 24, marginTop: 14},
+  promotionCloseButton: {marginHorizontal: 20, marginBottom: 20, borderRadius: 11, backgroundColor: '#ff2d7a', paddingVertical: 14, alignItems: 'center'},
+  promotionCloseText: {color: '#fff', fontSize: 16, fontWeight: '900'},
+  allPromotionsPage: {flex: 1, backgroundColor: '#f5f7fa'},
+  allPromotionsHeader: {paddingTop: 42, paddingHorizontal: 14, paddingBottom: 14, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#dfe3e8'},
+  allPromotionsBack: {width: 42, height: 38, justifyContent: 'center'},
+  allPromotionsBackText: {fontSize: 38, lineHeight: 38, color: BLUE},
+  allPromotionsTitle: {flex: 1, textAlign: 'center', color: '#111', fontSize: 19, fontWeight: '900'},
+  allPromotionsList: {padding: 16, gap: 12, paddingBottom: 32},
+  allPromotionCard: {backgroundColor: '#fff', borderRadius: 14, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 6, shadowOffset: {width: 0, height: 2}},
+  allPromotionImage: {width: '100%', height: 150, resizeMode: 'cover'},
+  allPromotionPlaceholder: {alignItems: 'center', justifyContent: 'center'},
+  allPromotionText: {padding: 14},
+  allPromotionTitle: {color: '#101828', fontSize: 17, lineHeight: 23, fontWeight: '900'},
+  allPromotionSummary: {color: '#667085', fontSize: 14, lineHeight: 20, marginTop: 6},
+  allPromotionLink: {color: '#ff2d7a', fontSize: 13, fontWeight: '800', marginTop: 10},
   bookTicketBtn: {
     position: 'absolute',
     left: 16,
