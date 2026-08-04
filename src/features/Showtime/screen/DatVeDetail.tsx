@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import MockPaymentScreen from './MockPaymentScreen';
 import PayosPaymentScreen from './PayosPaymentScreen';
 import {
@@ -271,6 +271,8 @@ function DatVeDetail({
     });
   };
 
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (!paymentId) return;
     let stopped = false;
@@ -283,7 +285,7 @@ function DatVeDetail({
           stopped = true;
           setShowPaymentScreen(false);
           setPaymentId(null);
-          setShowPaymentScreen(false);
+          queryClient.invalidateQueries({ queryKey: ['myQuickBookings'] });
           Alert.alert(
             '🎉 Thanh toán thành công!',
             `Vé phim "${movie.title}" đã được phát hành.`,
@@ -310,7 +312,7 @@ function DatVeDetail({
       stopped = true;
       clearInterval(timer);
     };
-  }, [movie.title, onClose, onPaymentSuccess, paymentId]);
+  }, [movie.title, onClose, onPaymentSuccess, paymentId, queryClient]);
 
   const runMockResult = async (
     id: string,
