@@ -4,9 +4,10 @@ import Table from '../../components/Table';
 import { formatDateTime, formatVnd, getUserName, shortId } from '../../utils/adminFormatters';
 
 const paymentStatusMap = {
-  unpaid: { label: 'Chưa thanh toán', tone: 'warning' },
-  paid: { label: 'Đã thanh toán', tone: 'success' },
-  refunded: { label: 'Hoàn tiền', tone: 'info' },
+  cho_thanh_toan: { label: 'Chưa thanh toán', tone: 'warning' },
+  da_thanh_toan: { label: 'Đã thanh toán', tone: 'success' },
+  da_hoan_tien: { label: 'Đã hoàn tiền', tone: 'info' },
+  da_huy: { label: 'Đã hủy', tone: 'danger' },
 };
 
 const bookingStatusMap = {
@@ -20,7 +21,34 @@ const paymentMethodMap = {
   card: 'Thẻ',
   momo: 'Momo',
   vnpay: 'VNPay',
+  payos: 'PayOS',
+  PAYOS: 'PayOS',
+  ncb: 'Ngân hàng NCB',
+  NCB: 'Ngân hàng NCB',
 };
+
+function normalizePaymentStatus(value) {
+  const aliases = {
+    paid: 'da_thanh_toan',
+    unpaid: 'cho_thanh_toan',
+    pending: 'cho_thanh_toan',
+    refunded: 'da_hoan_tien',
+    cancelled: 'da_huy',
+  };
+  return aliases[value] || value || 'cho_thanh_toan';
+}
+
+function toLocalDateKey(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
 
 function StatusBadge({ map, value }) {
   const status = map[value] || { label: value || 'Chưa có', tone: 'info' };
@@ -32,6 +60,8 @@ function PaymentStatus() {
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -61,10 +91,15 @@ function PaymentStatus() {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     return bookings.filter(booking => {
+      const paymentStatus = normalizePaymentStatus(booking.paymentStatus);
       const matchesStatus =
-        statusFilter === 'all' || booking.paymentStatus === statusFilter;
+        statusFilter === 'all' || paymentStatus === statusFilter;
       const matchesMethod =
-        methodFilter === 'all' || booking.paymentMethod === methodFilter;
+        methodFilter === 'all' ||
+        String(booking.paymentMethod || '').toLowerCase() === methodFilter;
+      const createdDate = toLocalDateKey(booking.createdAt);
+      const matchesDateFrom = !dateFrom || (createdDate && createdDate >= dateFrom);
+      const matchesDateTo = !dateTo || (createdDate && createdDate <= dateTo);
 
       const searchable = [
         `DH-${shortId(booking)}`,
@@ -84,24 +119,36 @@ function PaymentStatus() {
       return (
         matchesStatus &&
         matchesMethod &&
+        matchesDateFrom &&
+        matchesDateTo &&
         (!normalizedKeyword || searchable.includes(normalizedKeyword))
       );
     });
-  }, [bookings, keyword, methodFilter, statusFilter]);
+  }, [bookings, dateFrom, dateTo, keyword, methodFilter, statusFilter]);
 
   const summary = useMemo(() => {
-    const paid = bookings.filter(item => item.paymentStatus === 'paid');
-    const unpaid = bookings.filter(item => item.paymentStatus === 'unpaid');
-    const refunded = bookings.filter(item => item.paymentStatus === 'refunded');
+    const paid = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_thanh_toan',
+    );
+    const unpaid = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'cho_thanh_toan',
+    );
+    const refunded = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_hoan_tien',
+    );
+    const cancelled = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_huy',
+    );
 
     return {
-      total: bookings.length,
+      total: filteredBookings.length,
       paid: paid.length,
       unpaid: unpaid.length,
       refunded: refunded.length,
+      cancelled: cancelled.length,
       revenue: paid.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
     };
-  }, [bookings]);
+  }, [filteredBookings]);
 
   const columns = [
     { key: 'code', title: 'Mã đơn', render: item => `DH-${shortId(item)}` },
@@ -120,7 +167,12 @@ function PaymentStatus() {
     {
       key: 'paymentStatus',
       title: 'Thanh toán',
-      render: item => <StatusBadge map={paymentStatusMap} value={item.paymentStatus} />,
+      render: item => (
+        <StatusBadge
+          map={paymentStatusMap}
+          value={normalizePaymentStatus(item.paymentStatus)}
+        />
+      ),
     },
     {
       key: 'status',
@@ -157,7 +209,16 @@ function PaymentStatus() {
           <span>Hoàn tiền</span>
           <strong>{summary.refunded}</strong>
         </article>
+        <article className="metricCard">
+          <span>Đã hủy</span>
+          <strong>{summary.cancelled}</strong>
+        </article>
       </div>
+
+      <p className="paymentReconcileHint">
+        Đối soát: {summary.paid} đã thanh toán + {summary.unpaid} chưa thanh toán +{' '}
+        {summary.refunded} hoàn tiền + {summary.cancelled} đã hủy = {summary.total} đơn
+      </p>
 
       <div className="panel paymentFilters">
         <input
@@ -171,9 +232,10 @@ function PaymentStatus() {
           aria-label="Lọc trạng thái thanh toán"
         >
           <option value="all">Tất cả thanh toán</option>
-          <option value="unpaid">Chưa thanh toán</option>
-          <option value="paid">Đã thanh toán</option>
-          <option value="refunded">Hoàn tiền</option>
+          <option value="cho_thanh_toan">Chưa thanh toán</option>
+          <option value="da_thanh_toan">Đã thanh toán</option>
+          <option value="da_hoan_tien">Đã hoàn tiền</option>
+          <option value="da_huy">Đã hủy</option>
         </select>
         <select
           value={methodFilter}
@@ -184,7 +246,39 @@ function PaymentStatus() {
           <option value="card">Thẻ</option>
           <option value="momo">Momo</option>
           <option value="vnpay">VNPay</option>
+          <option value="payos">PayOS</option>
+          <option value="ncb">Ngân hàng NCB</option>
         </select>
+        <label className="paymentDateFilter">
+          <span>Từ ngày</span>
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={event => setDateFrom(event.target.value)}
+          />
+        </label>
+        <label className="paymentDateFilter">
+          <span>Đến ngày</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={event => setDateTo(event.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => {
+            setKeyword('');
+            setStatusFilter('all');
+            setMethodFilter('all');
+            setDateFrom('');
+            setDateTo('');
+          }}>
+          Xóa bộ lọc
+        </button>
       </div>
 
       {error && <p className="loginError">{error}</p>}

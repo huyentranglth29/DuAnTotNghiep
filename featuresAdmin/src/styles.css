@@ -1726,6 +1726,100 @@ th {
   background: #d1fae5;
 }
 
+.notificationRecipientButton {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.notificationRecipientButton:hover {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
+}
+
+.notificationRecipientList {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 18px 20px 20px;
+  overflow: hidden;
+}
+
+.notificationRecipientModal {
+  width: min(1080px, calc(100vw - 56px));
+  max-height: min(820px, calc(100vh - 56px));
+  border-radius: 14px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+}
+
+.notificationRecipientModal header {
+  padding: 18px 20px;
+}
+
+.notificationRecipientModal header h2 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notificationRecipientSummary {
+  margin: 0;
+  color: #64748b;
+}
+
+.notificationRecipientTableWrap {
+  min-height: 0;
+  max-height: 62vh;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.notificationRecipientTableWrap table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+}
+
+.notificationRecipientTableWrap th,
+.notificationRecipientTableWrap td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.notificationRecipientTableWrap th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #475569;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .notificationRecipientModal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .notificationRecipientModal header,
+  .notificationRecipientList {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .notificationRecipientModal header h2 {
+    font-size: 17px;
+  }
+}
+
 .notificationRecipientBox {
   display: grid;
   gap: 8px;
@@ -3545,6 +3639,32 @@ th {
   margin: 0;
 }
 
+.modalCloseButton {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #334155;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modalCloseButton span {
+  font-size: 22px;
+  line-height: 14px;
+}
+
+.modalCloseButton:hover {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
 .modal > .formGrid,
 .modal > form {
   max-height: 100%;
@@ -4156,11 +4276,39 @@ th {
   gap: 16px;
 }
 
+.paymentPage .metricGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.paymentReconcileHint {
+  margin: -6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
 .paymentFilters {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 220px 220px;
+  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 180px)) auto;
   gap: 12px;
-  align-items: center;
+  align-items: end;
+}
+
+.paymentDateFilter {
+  display: grid;
+  gap: 5px;
+}
+
+.paymentDateFilter span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.paymentFilters > .ghost {
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .paymentHistoryFilters {
@@ -4303,6 +4451,7 @@ th {
 }
 
 @media (max-width: 980px) {
+  .paymentPage .metricGrid,
   .paymentFilters,
   .paymentHistoryFilters,
   .bookingFilters,

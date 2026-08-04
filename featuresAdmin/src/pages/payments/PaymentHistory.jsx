@@ -4,9 +4,10 @@ import Table from '../../components/Table';
 import {formatDateTime, formatVnd, getUserName, shortId} from '../../utils/adminFormatters';
 
 const paymentStatusMap = {
-  unpaid: {label: 'Chưa thanh toán', tone: 'warning'},
-  paid: {label: 'Đã thanh toán', tone: 'success'},
-  refunded: {label: 'Hoàn tiền', tone: 'info'},
+  cho_thanh_toan: {label: 'Chưa thanh toán', tone: 'warning'},
+  da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
+  da_hoan_tien: {label: 'Đã hoàn tiền', tone: 'info'},
+  da_huy: {label: 'Đã hủy', tone: 'danger'},
 };
 
 const paymentMethodMap = {
@@ -14,10 +15,26 @@ const paymentMethodMap = {
   card: 'Thẻ',
   momo: 'Momo',
   vnpay: 'VNPay',
+  payos: 'PayOS',
+  PAYOS: 'PayOS',
+  ncb: 'Ngân hàng NCB',
+  NCB: 'Ngân hàng NCB',
 };
 
+function normalizePaymentStatus(value) {
+  const aliases = {
+    paid: 'da_thanh_toan',
+    unpaid: 'cho_thanh_toan',
+    pending: 'cho_thanh_toan',
+    refunded: 'da_hoan_tien',
+    cancelled: 'da_huy',
+  };
+  return aliases[value] || value || 'cho_thanh_toan';
+}
+
 function StatusBadge({value}) {
-  const status = paymentStatusMap[value] || {label: value || 'Chưa có', tone: 'info'};
+  const normalized = normalizePaymentStatus(value);
+  const status = paymentStatusMap[normalized] || {label: normalized || 'Chưa có', tone: 'info'};
   return <span className={`badge ${status.tone}`}>{status.label}</span>;
 }
 
@@ -64,13 +81,15 @@ function PaymentHistory() {
     const toTime = toDate ? new Date(`${toDate}T23:59:59`).getTime() : null;
 
     return bookings.filter(booking => {
+      const paymentStatus = normalizePaymentStatus(booking.paymentStatus);
       const historyTime = new Date(booking.updatedAt || booking.createdAt).getTime();
       const matchesFrom = !fromTime || historyTime >= fromTime;
       const matchesTo = !toTime || historyTime <= toTime;
       const matchesStatus =
-        statusFilter === 'all' || booking.paymentStatus === statusFilter;
+        statusFilter === 'all' || paymentStatus === statusFilter;
       const matchesMethod =
-        methodFilter === 'all' || booking.paymentMethod === methodFilter;
+        methodFilter === 'all' ||
+        String(booking.paymentMethod || '').toLowerCase() === methodFilter;
 
       const searchable = [
         `DH-${shortId(booking)}`,
@@ -97,14 +116,22 @@ function PaymentHistory() {
   }, [bookings, fromDate, keyword, methodFilter, statusFilter, toDate]);
 
   const summary = useMemo(() => {
-    const paid = filteredBookings.filter(item => item.paymentStatus === 'paid');
-    const refunded = filteredBookings.filter(item => item.paymentStatus === 'refunded');
+    const paid = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_thanh_toan',
+    );
+    const refunded = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_hoan_tien',
+    );
+    const cancelled = filteredBookings.filter(
+      item => normalizePaymentStatus(item.paymentStatus) === 'da_huy',
+    );
     const latest = filteredBookings[0];
 
     return {
       total: filteredBookings.length,
       paidRevenue: paid.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
       refunded: refunded.length,
+      cancelled: cancelled.length,
       latestTime: latest ? formatDateTime(latest.updatedAt || latest.createdAt) : 'Chưa có',
     };
   }, [filteredBookings]);
@@ -159,6 +186,10 @@ function PaymentHistory() {
           <strong>{summary.refunded}</strong>
         </article>
         <article className="metricCard">
+          <span>Đã hủy</span>
+          <strong>{summary.cancelled}</strong>
+        </article>
+        <article className="metricCard">
           <span>Gần nhất</span>
           <strong className="paymentLatest">{summary.latestTime}</strong>
         </article>
@@ -176,9 +207,10 @@ function PaymentHistory() {
           aria-label="Lọc kết quả thanh toán"
         >
           <option value="all">Tất cả kết quả</option>
-          <option value="paid">Đã thanh toán</option>
-          <option value="unpaid">Chưa thanh toán</option>
-          <option value="refunded">Hoàn tiền</option>
+          <option value="da_thanh_toan">Đã thanh toán</option>
+          <option value="cho_thanh_toan">Chưa thanh toán</option>
+          <option value="da_hoan_tien">Đã hoàn tiền</option>
+          <option value="da_huy">Đã hủy</option>
         </select>
         <select
           value={methodFilter}
@@ -189,6 +221,8 @@ function PaymentHistory() {
           <option value="card">Thẻ</option>
           <option value="momo">Momo</option>
           <option value="vnpay">VNPay</option>
+          <option value="payos">PayOS</option>
+          <option value="ncb">Ngân hàng NCB</option>
         </select>
         <input
           type="date"

@@ -32,6 +32,7 @@ const Voucher = require("../models/Voucher");
 const Genre = require("../models/Genre");
 const QuickBooking = require("../models/QuickBooking");
 const Payment = require("../models/Payment");
+const MovieReminder = require("../models/MovieReminder");
 const { createNotification } = require("../services/notificationService");
 const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateService");
 const adminBooking = require("../controllers/adminBookingController");
@@ -274,6 +275,63 @@ const enrichNotificationsWithRecipients = async (items = []) => {
     };
   });
 };
+
+router.get("/notifications/:id/recipients", async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({success: false, message: "ID thông báo không hợp lệ"});
+    }
+
+    const notification = await Notification.findById(req.params.id).lean();
+    if (!notification) {
+      return res.status(404).json({success: false, message: "Không tìm thấy thông báo"});
+    }
+
+    let scope = "enabledUsers";
+    let users = [];
+    if (notification.user) {
+      scope = "singleUser";
+      users = await User.find({_id: notification.user})
+        .select("fullName email phone notificationEnabled")
+        .lean();
+    } else if (
+      notification.type === "phim" &&
+      notification.entityId &&
+      notification.action === "nhac_mo_ban"
+    ) {
+      scope = "movieReminder";
+      const reminderUserIds = await MovieReminder.find({movie: notification.entityId})
+        .distinct("user");
+      users = await User.find({_id: {$in: reminderUserIds}})
+        .select("fullName email phone notificationEnabled")
+        .sort({fullName: 1})
+        .lean();
+    } else {
+      users = await User.find(notificationRecipientMatch)
+        .select("fullName email phone notificationEnabled")
+        .sort({fullName: 1})
+        .limit(500)
+        .lean();
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        scope,
+        count: users.length,
+        recipients: users.map((user) => ({
+          id: user._id,
+          fullName: user.fullName || "Người dùng FilmGo",
+          email: user.email || "",
+          phone: user.phone || "",
+          notificationEnabled: user.notificationEnabled !== false,
+        })),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
+});
 
 const genreSlug = (value = "") =>
   String(value)
