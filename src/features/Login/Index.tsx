@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Svg, {Circle, Path, Rect} from 'react-native-svg';
+import {useLanguage} from '../../contexts/LanguageContext';
+import {t} from '../../utils/i18n';
 
 const ORANGE = '#cf7a00';
 const TEXT_GRAY = '#b8b8b8';
@@ -33,6 +35,7 @@ function Login({
   onLoginPress,
   onGoogleLoginPress,
 }: LoginProps) {
+  const {language} = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [securePassword, setSecurePassword] = useState(true);
@@ -41,7 +44,10 @@ function Login({
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Thông báo', 'Vui lòng nhập email và mật khẩu.');
+      Alert.alert(
+        t(language, 'Thông báo', 'Notice'),
+        t(language, 'Vui lòng nhập email và mật khẩu.', 'Please enter your email and password.'),
+      );
       return;
     }
 
@@ -51,20 +57,20 @@ function Login({
       const isSuccess = await onLoginPress?.({email, password});
 
       if (isSuccess) {
-        Alert.alert('Thành công', 'Đăng nhập thành công.');
+        Alert.alert(t(language, 'Thành công', 'Success'), t(language, 'Đăng nhập thành công.', 'Login successful.'));
         return;
       }
 
       Alert.alert(
-        'Thông báo',
-        'Email hoặc mật khẩu không đúng.',
+        t(language, 'Thông báo', 'Notice'),
+        t(language, 'Email hoặc mật khẩu không đúng.', 'Email or password is incorrect.'),
       );
     } catch (error) {
       Alert.alert(
-        'Đăng nhập thất bại',
+        t(language, 'Đăng nhập thất bại', 'Login failed'),
         error instanceof Error
           ? error.message
-          : 'Không thể đăng nhập. Vui lòng thử lại.',
+          : t(language, 'Không thể đăng nhập. Vui lòng thử lại.', 'Unable to log in. Please try again.'),
       );
     } finally {
       setIsLoggingIn(false);
@@ -80,14 +86,14 @@ function Login({
     try {
       const isSuccess = await onGoogleLoginPress();
       if (isSuccess) {
-        Alert.alert('Thành công', 'Đăng nhập Google thành công.');
+        Alert.alert(t(language, 'Thành công', 'Success'), t(language, 'Đăng nhập Google thành công.', 'Google login successful.'));
       }
     } catch (error) {
       Alert.alert(
-        'Đăng nhập Google thất bại',
+        t(language, 'Đăng nhập Google thất bại', 'Google login failed'),
         error instanceof Error
           ? error.message
-          : 'Không thể đăng nhập bằng Google.',
+          : t(language, 'Không thể đăng nhập bằng Google.', 'Unable to log in with Google.'),
       );
     } finally {
       setIsGoogleLoggingIn(false);
@@ -108,7 +114,7 @@ function Login({
           <TextInput
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="Email hoặc tên đăng nhập"
+            placeholder={t(language, 'Email hoặc tên đăng nhập', 'Email or username')}
             placeholderTextColor={TEXT_GRAY}
             value={email}
             onChangeText={setEmail}
@@ -119,7 +125,7 @@ function Login({
         <View style={styles.inputBox}>
           <LockIcon />
           <TextInput
-            placeholder="Mật khẩu"
+            placeholder={t(language, 'Mật khẩu', 'Password')}
             placeholderTextColor={TEXT_GRAY}
             value={password}
             onChangeText={setPassword}
@@ -138,7 +144,7 @@ function Login({
           activeOpacity={0.7}
           style={styles.forgotButton}
           onPress={onForgotPasswordPress}>
-          <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+          <Text style={styles.forgotText}>{t(language, 'Quên mật khẩu?', 'Forgot password?')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -147,7 +153,7 @@ function Login({
           style={[styles.loginButton, isLoggingIn && styles.loginButtonDisabled]}
           onPress={handleLogin}>
           <Text style={styles.primaryButtonText}>
-            {isLoggingIn ? 'ĐANG ĐĂNG NHẬP...' : 'ĐĂNG NHẬP'}
+            {isLoggingIn ? t(language, 'ĐANG ĐĂNG NHẬP...', 'SIGNING IN...') : t(language, 'ĐĂNG NHẬP', 'LOG IN')}
           </Text>
         </TouchableOpacity>
 
@@ -162,14 +168,14 @@ function Login({
           <GoogleIcon />
           <Text style={styles.googleButtonText}>
             {isGoogleLoggingIn
-              ? 'ĐANG ĐĂNG NHẬP GOOGLE...'
-              : 'Tiếp tục với Google'}
+              ? t(language, 'ĐANG ĐĂNG NHẬP GOOGLE...', 'SIGNING IN WITH GOOGLE...')
+              : t(language, 'Tiếp tục với Google', 'Continue with Google')}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>
           <View style={styles.divider} />
-          <Text style={styles.dividerText}>Or</Text>
+          <Text style={styles.dividerText}>{t(language, 'Hoặc', 'Or')}</Text>
           <View style={styles.divider} />
         </View>
 
@@ -177,7 +183,7 @@ function Login({
           activeOpacity={0.75}
           style={styles.registerButton}
           onPress={onRegisterPress}>
-          <Text style={styles.registerText}>Đăng kí tài khoản FilmGo</Text>
+          <Text style={styles.registerText}>{t(language, 'Đăng kí tài khoản FilmGo', 'Create a FilmGo account')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

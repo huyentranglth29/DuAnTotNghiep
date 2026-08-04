@@ -11,6 +11,8 @@ import {
 import MemberHomeScreen from './member/MemberHomeScreen';
 import { MemberScreenName } from './member/memberData';
 import {useAuth} from '../../../contexts/AuthContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 type MemberScreenProps = {
   onBack: () => void;
@@ -18,24 +20,25 @@ type MemberScreenProps = {
 };
 
 function MemberScreen({ onBack, onLogout }: MemberScreenProps) {
+  const {language} = useLanguage();
   const [screen, setScreen] = useState<MemberScreenName>('home');
   const {isAuthenticated, openLoginModal} = useAuth();
 
   if (!isAuthenticated) {
     return (
       <View style={styles.guestScreen}>
-        <Text style={styles.guestTitle}>Đăng nhập để đồng bộ và quản lý tài khoản</Text>
+        <Text style={styles.guestTitle}>{t(language, 'Đăng nhập để đồng bộ và quản lý tài khoản', 'Log in to sync and manage your account')}</Text>
         <Text style={styles.guestText}>
-          Bạn vẫn có thể quay lại các tab khác bình thường.
+          {t(language, 'Bạn vẫn có thể quay lại các tab khác bình thường.', 'You can still return to the other tabs normally.')}
         </Text>
         <Pressable style={styles.loginButton} onPress={() => openLoginModal('login')}>
-          <Text style={styles.loginButtonText}>Đăng nhập</Text>
+          <Text style={styles.loginButtonText}>{t(language, 'Đăng nhập', 'Log in')}</Text>
         </Pressable>
         <Pressable style={styles.registerButton} onPress={() => openLoginModal('register')}>
-          <Text style={styles.registerButtonText}>Đăng ký</Text>
+          <Text style={styles.registerButtonText}>{t(language, 'Đăng ký', 'Register')}</Text>
         </Pressable>
         <Pressable style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>Quay lại</Text>
+          <Text style={styles.backButtonText}>{t(language, 'Quay lại', 'Back')}</Text>
         </Pressable>
       </View>
     );

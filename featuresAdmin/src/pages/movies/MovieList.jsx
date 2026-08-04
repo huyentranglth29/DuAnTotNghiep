@@ -342,12 +342,16 @@ function MovieList() {
   };
 
   const toggleQuickFilter = key => {
-    setDraft(current => {
-      const next = {...current, [key]: !current[key]};
-      setFilters(prev => ({...prev, [key]: next[key]}));
-      setPage(1);
-      return next;
-    });
+    const otherKey = key === 'showingToday' ? 'hasShowtimes' : 'showingToday';
+    const enabled = !filters[key];
+    const next = {
+      ...filters,
+      [key]: enabled,
+      [otherKey]: enabled ? false : filters[otherKey],
+    };
+    setDraft(next);
+    setFilters(next);
+    setPage(1);
   };
 
   const applyStatFilter = statusKey => {
@@ -508,13 +512,15 @@ function MovieList() {
           </select>
           <button
             type="button"
-            className={`movieChip ${draft.showingToday ? 'is-active' : ''}`}
+            className={`movieChip ${filters.showingToday ? 'is-active' : ''}`}
+            aria-pressed={filters.showingToday}
             onClick={() => toggleQuickFilter('showingToday')}>
             Đang chiếu hôm nay
           </button>
           <button
             type="button"
-            className={`movieChip ${draft.hasShowtimes ? 'is-active' : ''}`}
+            className={`movieChip ${filters.hasShowtimes ? 'is-active' : ''}`}
+            aria-pressed={filters.hasShowtimes}
             onClick={() => toggleQuickFilter('hasShowtimes')}>
             Có suất chiếu
           </button>

@@ -14,6 +14,7 @@ import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
 import {resolveMediaUrl} from '../../config/api.config';
 import {AUTH_USER_KEY} from '../../services/voucherService';
 import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
+import {useLanguage} from '../../contexts/LanguageContext';
 
 const BLUE = '#005f98';
 
@@ -24,6 +25,8 @@ type CurrentUser = {
 };
 
 function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const [dangTim, setDangTim] = useState(false);
   const [tuKhoa, setTuKhoa] = useState('');
   const [tuKhoaDebounced, setTuKhoaDebounced] = useState('');
@@ -59,7 +62,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
   const displayName =
     currentUser.fullName?.trim() ||
     currentUser.email?.split('@')[0] ||
-    'Thành viên FilmGo';
+    (isEnglish ? 'FilmGo Member' : 'Thành viên FilmGo');
   const avatarLetter = displayName.charAt(0).toUpperCase() || 'F';
   const avatarUri = resolveMediaUrl(currentUser.avatar);
 
@@ -95,14 +98,14 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
           </Pressable>
           <View style={styles.memberInfo}>
             <Text style={styles.greeting}>
-              Chào <Text style={styles.userName}>{displayName}</Text>
+              {isEnglish ? 'Hello' : 'Chào'} <Text style={styles.userName}>{displayName}</Text>
             </Text>
             <View style={styles.memberRow}>
               <Text style={styles.memberIcon}>♟</Text>
               <Text style={styles.memberText}>MEMBER</Text>
               <Text style={styles.starText}>☆ 0</Text>
               <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
-                <Text style={styles.ticketText}>▣ Vé</Text>
+                <Text style={styles.ticketText}>▣ {isEnglish ? 'Tickets' : 'Vé'}</Text>
               </Pressable>
             </View>
           </View>
@@ -133,7 +136,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
                 }
               }}
               onFocus={moTimKiem}
-              placeholder="Tìm tên phim..."
+              placeholder={isEnglish ? 'Search movies...' : 'Tìm tên phim...'}
               placeholderTextColor="#9aa3ad"
               style={styles.input}
               returnKeyType="search"

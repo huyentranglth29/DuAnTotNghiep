@@ -19,6 +19,8 @@ import {
 import {MovieBookingInfo} from './MovieName';
 import {SelectedShowtimeInfo} from './ChonGio';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 const BLUE = '#00689d';
 const ORANGE = '#ff7817';
@@ -45,6 +47,8 @@ function asSelected(item: SuatChieuApi): SelectedShowtimeInfo {
 }
 
 function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const showingMoviesQuery = useMoviesDangChieu();
   const upcomingMoviesQuery = useMoviesSapChieu();
   const showtimesQuery = useQuery({
@@ -117,9 +121,9 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
         <View style={styles.premiereBadge}>
           <Text style={styles.premiereBadgeText}>EARLY ACCESS</Text>
         </View>
-        <Text style={styles.heading}>Suất chiếu sớm</Text>
+        <Text style={styles.heading}>{t(language, 'Suất chiếu sớm', 'Early screenings')}</Text>
         <Text style={styles.subheading}>
-          Xem trước phim nổi bật tại FilmGo Hà Trung
+          {t(language, 'Xem trước phim nổi bật tại FilmGo Hà Trung', 'Preview featured movies at FilmGo Hà Trung')}
         </Text>
         <View style={styles.heroNote}>
           <Text style={styles.heroNoteIcon}>★</Text>
@@ -149,17 +153,17 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                 style={[styles.dateCard, active && styles.dateCardActive]}>
                 <Text style={[styles.weekday, active && styles.activeText]}>
                   {key === toDateKey(new Date())
-                    ? 'HÔM NAY'
+                    ? (isEnglish ? 'TODAY' : 'HÔM NAY')
                     : WEEKDAY[date.getDay()]}
                 </Text>
                 <Text style={[styles.dateNumber, active && styles.activeText]}>
                   {String(date.getDate()).padStart(2, '0')}
                 </Text>
                 <Text style={[styles.dateMonth, active && styles.activeText]}>
-                  Tháng {date.getMonth() + 1}
+                  {isEnglish ? 'Month' : 'Tháng'} {date.getMonth() + 1}
                 </Text>
                 <Text style={[styles.dateCount, active && styles.dateCountActive]}>
-                  {count} suất sớm
+                  {count} {isEnglish ? 'early shows' : 'suất sớm'}
                 </Text>
               </TouchableOpacity>
             );
@@ -171,7 +175,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
         <ActivityIndicator style={styles.loader} color={BLUE} />
       ) : error ? (
         <View style={styles.stateBox}>
-          <Text style={styles.stateTitle}>Không tải được suất chiếu sớm</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Không tải được suất chiếu sớm', 'Unable to load early screenings')}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => {
@@ -179,22 +183,22 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
               upcomingMoviesQuery.refetch();
               showtimesQuery.refetch();
             }}>
-            <Text style={styles.retryText}>Thử lại</Text>
+            <Text style={styles.retryText}>{t(language, 'Thử lại', 'Try again')}</Text>
           </TouchableOpacity>
         </View>
       ) : grouped.length === 0 ? (
         <View style={styles.stateBox}>
           <Text style={styles.emptyIcon}>🎟️</Text>
-          <Text style={styles.stateTitle}>Chưa có suất chiếu sớm</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Chưa có suất chiếu sớm', 'No early screenings yet')}</Text>
           <Text style={styles.stateHint}>
-            Admin chưa đánh dấu suất nào là “Suất chiếu sớm”.
+            {t(language, 'Admin chưa đánh dấu suất nào là “Suất chiếu sớm”.', 'Admin has not marked any showtime as an early screening.')}
           </Text>
         </View>
       ) : (
         <View style={styles.list}>
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Đặc quyền xem trước</Text>
-            <Text style={styles.liveLabel}>● Đang mở bán</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'Đặc quyền xem trước', 'Preview privilege')}</Text>
+            <Text style={styles.liveLabel}>{t(language, '● Đang mở bán', '● On sale now')}</Text>
           </View>
           {grouped.map(({movie: phim, showtimes: items}) => {
             const movie = phimSangBooking(phim);
@@ -207,7 +211,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                   <View style={styles.posterWrap}>
                     <Image source={{uri: phim.posterUrl}} style={styles.poster} />
                     <View style={styles.earlyRibbon}>
-                      <Text style={styles.earlyRibbonText}>CHIẾU SỚM</Text>
+                      <Text style={styles.earlyRibbonText}>{t(language, 'CHIẾU SỚM', 'EARLY SHOWING')}</Text>
                     </View>
                     <View
                       style={[
@@ -222,19 +226,19 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                       {phim.tieuDe}
                     </Text>
                     <Text numberOfLines={2} style={styles.movieMeta}>
-                      {phim.theLoai || 'Đang cập nhật'} ·{' '}
+                      {phim.theLoai || t(language, 'Đang cập nhật', 'Updating')} ·{' '}
                       {phim.thoiLuong || '—'}
                     </Text>
                     <View style={styles.ratingRow}>
                       <Text style={styles.rating}>★ {phim.diemDanhGia || 'Mới'}</Text>
                       <Text style={styles.hotText}>HOT</Text>
                     </View>
-                    <Text style={styles.detailLink}>Chi tiết phim  ›</Text>
+                    <Text style={styles.detailLink}>{t(language, 'Chi tiết phim  ›', 'Movie details  ›')}</Text>
                   </View>
                 </TouchableOpacity>
 
                 <View style={styles.divider} />
-                <Text style={styles.chooseLabel}>CHỌN SUẤT CHIẾU</Text>
+                <Text style={styles.chooseLabel}>{t(language, 'CHỌN SUẤT CHIẾU', 'CHOOSE SHOWTIME')}</Text>
                 <View style={styles.timeGrid}>
                   {items.map(item => (
                     <TouchableOpacity
