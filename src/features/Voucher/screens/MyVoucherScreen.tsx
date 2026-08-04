@@ -20,6 +20,8 @@ import {
   restoreAuthSession,
 } from '../../../services/voucherService';
 import {useAuth} from '../../../contexts/AuthContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 type MyVoucherScreenProps = {
   onAddVoucher: () => void;
@@ -32,6 +34,7 @@ function MyVoucherScreen({
   onOpenHistory,
   onOpenGuide,
 }: MyVoucherScreenProps) {
+  const {language} = useLanguage();
   const {requestAuth} = useAuth();
   const [items, setItems] = useState<FilmGoVoucher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,10 +85,10 @@ function MyVoucherScreen({
       setClaimingCode(code);
       try {
         await claimVoucher(code);
-        Alert.alert('Nhận voucher thành công', `${code} đã được thêm vào kho của bạn.`);
+        Alert.alert(t(language, 'Nhận voucher thành công', 'Voucher received successfully'), t(language, `${code} đã được thêm vào kho của bạn.`, `${code} has been added to your wallet.`));
         await load();
       } catch (err) {
-        Alert.alert('Không thể nhận voucher', (err as Error)?.message || 'Vui lòng thử lại');
+        Alert.alert(t(language, 'Không thể nhận voucher', 'Unable to receive voucher'), (err as Error)?.message || t(language, 'Vui lòng thử lại', 'Please try again'));
       } finally {
         setClaimingCode('');
       }
@@ -93,8 +96,8 @@ function MyVoucherScreen({
 
     if (!requestAuth(
       {
-        title: 'Đăng nhập để tiếp tục',
-        message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+        title: t(language, 'Đăng nhập để tiếp tục', 'Log in to continue'),
+        message: t(language, 'Đăng nhập để lưu voucher vào kho của bạn.', 'Log in to save vouchers to your wallet.'),
       },
       runReceive,
     )) {
@@ -106,7 +109,7 @@ function MyVoucherScreen({
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor={VOUCHER_BLUE} />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>VOUCHER CỦA TÔI</Text>
+        <Text style={styles.headerTitle}>{t(language, 'VOUCHER CỦA TÔI', 'MY VOUCHERS')}</Text>
         <TouchableOpacity
           activeOpacity={0.75}
           style={styles.headerIconButton}
@@ -129,8 +132,7 @@ function MyVoucherScreen({
 
       {guestMode && (
         <Text style={styles.banner}>
-          Chưa đăng nhập API — đang hiện voucher đang mở. Đăng nhập để lưu vào
-          kho.
+          {t(language, 'Chưa đăng nhập API — đang hiện voucher đang mở. Đăng nhập để lưu vào kho.', 'Not logged in to the API yet — showing currently available vouchers. Log in to save them to your wallet.')}
         </Text>
       )}
 
@@ -139,16 +141,16 @@ function MyVoucherScreen({
       ) : items.length === 0 && availableItems.length === 0 ? (
         <View style={styles.empty}>
           <GiftIcon color="#dddddd" size={94} strokeWidth={5} />
-          <Text style={styles.emptyTitle}>Kho chưa có voucher nào</Text>
+          <Text style={styles.emptyTitle}>{t(language, 'Kho chưa có voucher nào', 'No vouchers in your wallet yet')}</Text>
           <Text style={styles.emptyDescription}>
             {error ||
-              'Bạn hãy nhận voucher miễn phí hoặc thêm voucher mới nhé'}
+              t(language, 'Bạn hãy nhận voucher miễn phí hoặc thêm voucher mới nhé', 'You can claim free vouchers or add a new voucher here')}
           </Text>
           <TouchableOpacity style={styles.guideLink} onPress={onOpenGuide}>
-            <Text style={styles.guideLinkText}>Xem hướng dẫn dùng voucher</Text>
+            <Text style={styles.guideLinkText}>{t(language, 'Xem hướng dẫn dùng voucher', 'View voucher usage guide')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryText}>Thử lại</Text>
+            <Text style={styles.retryText}>{t(language, 'Thử lại', 'Try again')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -158,23 +160,23 @@ function MyVoucherScreen({
           contentContainerStyle={styles.list}
           ListHeaderComponent={availableItems.length ? (
             <View style={styles.newSection}>
-              <Text style={styles.sectionTitle}>🎁 VOUCHER MỚI DÀNH CHO BẠN</Text>
-              <Text style={styles.sectionSubtitle}>Nhận ngay ưu đãi mới từ FilmGo, không cần nhập mã.</Text>
+              <Text style={styles.sectionTitle}>{t(language, '🎁 VOUCHER MỚI DÀNH CHO BẠN', '🎁 NEW VOUCHERS FOR YOU')}</Text>
+              <Text style={styles.sectionSubtitle}>{t(language, 'Nhận ngay ưu đãi mới từ FilmGo, không cần nhập mã.', 'Get the latest FilmGo offers instantly — no code required.')}</Text>
               {availableItems.map(item => (
                 <View key={item._id || item.code} style={styles.newCard}>
                   <View style={styles.newCardContent}>
                     <Text style={styles.code}>{item.code}</Text>
-                    <Text style={styles.desc} numberOfLines={2}>{item.description || 'Ưu đãi FilmGo'}</Text>
+                    <Text style={styles.desc} numberOfLines={2}>{item.description || t(language, 'Ưu đãi FilmGo', 'FilmGo offer')}</Text>
                     <Text style={styles.value}>{formatVoucherValue(item)}</Text>
                   </View>
                   <TouchableOpacity disabled={claimingCode === item.code} style={styles.claimButton} onPress={() => receiveNow(item.code)}>
-                    <Text style={styles.claimText}>{claimingCode === item.code ? 'Đang nhận...' : 'Nhận ngay'}</Text>
+                    <Text style={styles.claimText}>{claimingCode === item.code ? t(language, 'Đang nhận...', 'Receiving...') : t(language, 'Nhận ngay', 'Claim now')}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
-              <Text style={styles.ownedTitle}>VOUCHER CỦA TÔI ({items.length})</Text>
+              <Text style={styles.ownedTitle}>{t(language, `VOUCHER CỦA TÔI (${items.length})`, `MY VOUCHERS (${items.length})`)}</Text>
             </View>
-          ) : items.length ? <Text style={styles.ownedTitle}>VOUCHER CỦA TÔI ({items.length})</Text> : null}
+          ) : items.length ? <Text style={styles.ownedTitle}>{t(language, `VOUCHER CỦA TÔI (${items.length})`, `MY VOUCHERS (${items.length})`)}</Text> : null}
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={load} />
           }
@@ -185,12 +187,12 @@ function MyVoucherScreen({
                 <Text style={styles.value}>{formatVoucherValue(item)}</Text>
               </View>
               <Text style={styles.desc} numberOfLines={2}>
-                {item.description || 'Ưu đãi FilmGo'}
+                {item.description || t(language, 'Ưu đãi FilmGo', 'FilmGo offer')}
               </Text>
               <Text style={styles.meta}>
                 {item.walletStatus
-                  ? `Trạng thái: ${item.walletStatus}`
-                  : `Còn ${item.remaining ?? '—'} lượt`}
+                  ? t(language, `Trạng thái: ${item.walletStatus}`, `Status: ${item.walletStatus}`)
+                  : t(language, `Còn ${item.remaining ?? '—'} lượt`, `${item.remaining ?? '—'} uses left`)}
               </Text>
             </View>
           )}

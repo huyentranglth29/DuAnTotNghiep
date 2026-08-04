@@ -14,10 +14,11 @@ import DatVeDetail from '../features/Showtime/screen/DatVeDetail';
 import MovieNameDetail from '../features/Showtime/screen/MovieNameDetail';
 import WriteReview from '../features/Showtime/screen/WriteReview';
 import {useAuth} from '../contexts/AuthContext';
+import {useLanguage} from '../contexts/LanguageContext';
 
 const BLUE = '#005f98';
 
-const scheduleTabs = ['SẮP CHIẾU', 'ĐANG CHIẾU', 'SUẤT CHIẾU SỚM'];
+type ScheduleTab = 'upcoming' | 'nowShowing' | 'early';
 
 type ShowtimeNavigatorProps = {
   dangTim: boolean;
@@ -33,7 +34,14 @@ function ShowtimeNavigator({
   onGoToMyTickets,
 }: ShowtimeNavigatorProps) {
   const {requestAuth} = useAuth();
-  const [activeScheduleTab, setActiveScheduleTab] = useState('ĐANG CHIẾU');
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
+  const scheduleTabs: Array<{key: ScheduleTab; label: string}> = [
+    {key: 'upcoming', label: isEnglish ? 'COMING SOON' : 'SẮP CHIẾU'},
+    {key: 'nowShowing', label: isEnglish ? 'NOW SHOWING' : 'ĐANG CHIẾU'},
+    {key: 'early', label: isEnglish ? 'EARLY SCREENINGS' : 'SUẤT CHIẾU SỚM'},
+  ];
+  const [activeScheduleTab, setActiveScheduleTab] = useState<ScheduleTab>('nowShowing');
   const [selectedMovie, setSelectedMovie] = useState<MovieBookingInfo | null>(
     null,
   );
@@ -65,7 +73,7 @@ function ShowtimeNavigator({
     return (
       <WriteReview
         movieId={selectedMovie.id ?? ''}
-        title={selectedMovie.title ?? 'Bộ phim'}
+        title={selectedMovie.title ?? (isEnglish ? 'Movie' : 'Bộ phim')}
         onBack={() => setShowWriteReview(false)}
       />
     );
@@ -175,19 +183,19 @@ function ShowtimeNavigator({
     <View>
       <View style={styles.scheduleTabBar}>
         {scheduleTabs.map(item => {
-          const isActive = activeScheduleTab === item;
+          const isActive = activeScheduleTab === item.key;
           return (
             <TouchableOpacity
-              key={item}
+              key={item.key}
               activeOpacity={0.75}
               style={styles.scheduleTabItem}
-              onPress={() => setActiveScheduleTab(item)}>
+              onPress={() => setActiveScheduleTab(item.key)}>
               <Text
                 style={[
                   styles.scheduleTabText,
                   isActive && styles.scheduleTabTextActive,
                 ]}>
-                {item}
+                {item.label}
               </Text>
               {isActive && <View style={styles.scheduleUnderline} />}
             </TouchableOpacity>
@@ -198,12 +206,18 @@ function ShowtimeNavigator({
       {dangTim ? (
         <KetQuaTimKiem
           tuKhoa={tuKhoaDebounced}
-          trangThai={layTrangThaiTuTab(activeScheduleTab)}
+          trangThai={layTrangThaiTuTab(
+            activeScheduleTab === 'upcoming'
+              ? 'SẮP CHIẾU'
+              : activeScheduleTab === 'early'
+                ? 'SUẤT CHIẾU SỚM'
+                : 'ĐANG CHIẾU',
+          )}
           onMoviePress={chonPhim}
         />
-      ) : activeScheduleTab === 'SẮP CHIẾU' ? (
+      ) : activeScheduleTab === 'upcoming' ? (
         <SapChieu onMoviePress={chonPhim} />
-      ) : activeScheduleTab === 'ĐANG CHIẾU' ? (
+      ) : activeScheduleTab === 'nowShowing' ? (
         <DangChieu
           onMoviePress={chonPhim}
           onShowtimePress={(movie, showtime) => {

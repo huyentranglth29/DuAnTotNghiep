@@ -15,6 +15,8 @@ import {
   getGoogleIdToken,
   mapGoogleSignInError,
 } from '../services/googleAuth';
+import {useLanguage} from '../contexts/LanguageContext';
+import {t} from '../utils/i18n';
 
 type LoginScreen = 'login' | 'porgotPass' | 'register';
 type RegisteredUser = {
@@ -61,6 +63,7 @@ function LoginNavigator({
   onClose,
   initialScreen = 'login',
 }: LoginNavigatorProps) {
+  const {language} = useLanguage();
   const [activeScreen, setActiveScreen] = useState<LoginScreen>(initialScreen);
   const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(
     null,
@@ -193,7 +196,7 @@ function LoginNavigator({
     <View style={styles.container}>
       {onClose ? (
         <Pressable style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeText}>Đóng</Text>
+          <Text style={styles.closeText}>{t(language, 'Đóng', 'Close')}</Text>
         </Pressable>
       ) : null}
       {content}

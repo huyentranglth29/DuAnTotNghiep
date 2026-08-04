@@ -19,6 +19,8 @@ import {
 import {MovieBookingInfo} from './MovieName';
 import {SelectedShowtimeInfo} from './ChonGio';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 const BLUE = '#00689d';
 const PINK = '#ec197e';
@@ -49,6 +51,8 @@ function movieIdOf(item: SuatChieuApi) {
 }
 
 function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const {data, isLoading, isError, refetch, isFetching} = useMoviesDangChieu();
   const movies = useMemo(() => data ?? [], [data]);
   const showtimesQuery = useQuery({
@@ -70,7 +74,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
     return keys.slice(0, 10);
   }, [showtimes]);
   const [chosenDate, setChosenDate] = useState('');
-  const [formatFilter, setFormatFilter] = useState('Tất cả');
+  const [formatFilter, setFormatFilter] = useState(isEnglish ? 'All formats' : 'Tất cả');
   const selectedDate = chosenDate || dates[0] || '';
 
   const availableFormats = useMemo(() => {
@@ -85,7 +89,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
           .filter((item): item is string => Boolean(item)),
       ),
     );
-    return ['Tất cả', ...formats];
+    return [isEnglish ? 'All formats' : 'Tất cả', ...formats];
   }, [selectedDate, showtimes]);
 
   const showtimesByMovie = useMemo(() => {
@@ -94,7 +98,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
       .filter(
         item =>
           (!selectedDate || toDateKey(item.startTime) === selectedDate) &&
-          (formatFilter === 'Tất cả' || item.room?.type === formatFilter),
+          (formatFilter === (isEnglish ? 'All formats' : 'Tất cả') || item.room?.type === formatFilter),
       )
       .forEach(item => {
         const id = movieIdOf(item);
@@ -127,14 +131,14 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
       <View style={styles.intro}>
         <View>
           <Text style={styles.eyebrow}>FILMGO HÀ TRUNG</Text>
-          <Text style={styles.heading}>Lịch chiếu phim</Text>
+          <Text style={styles.heading}>{t(language, 'Lịch chiếu phim', 'Movie showtimes')}</Text>
           <Text style={styles.subheading}>
-            Chọn ngày và suất chiếu phù hợp với bạn
+            {t(language, 'Chọn ngày và suất chiếu phù hợp với bạn', 'Choose a suitable date and showtime')}
           </Text>
         </View>
         <View style={styles.movieCount}>
           <Text style={styles.movieCountNumber}>{visibleMovies.length}</Text>
-          <Text style={styles.movieCountLabel}>phim</Text>
+          <Text style={styles.movieCountLabel}>{t(language, 'phim', 'movies')}</Text>
         </View>
       </View>
 
@@ -143,7 +147,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         <View style={styles.cinemaInfo}>
           <Text style={styles.cinemaTitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <Text style={styles.cinemaAddress}>
-            Hà Trung, Thanh Hóa · Rạp đang chọn
+            {t(language, 'Hà Trung, Thanh Hóa · Rạp đang chọn', 'Hà Trung, Thanh Hóa · Selected cinema')}
           </Text>
         </View>
         <View style={styles.activeDot} />
@@ -171,16 +175,16 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                 onPress={() => setChosenDate(key)}
                 style={[styles.dateCard, active && styles.dateCardActive]}>
                 <Text style={[styles.dateWeekday, active && styles.dateTextActive]}>
-                  {today ? 'HÔM NAY' : WEEKDAY[date.getDay()]}
+                  {today ? (isEnglish ? 'TODAY' : 'HÔM NAY') : WEEKDAY[date.getDay()]}
                 </Text>
                 <Text style={[styles.dateNumber, active && styles.dateTextActive]}>
                   {String(date.getDate()).padStart(2, '0')}
                 </Text>
                 <Text style={[styles.dateMonth, active && styles.dateTextActive]}>
-                  Tháng {date.getMonth() + 1}
+                  {isEnglish ? 'Month' : 'Tháng'} {date.getMonth() + 1}
                 </Text>
                 <Text style={[styles.dateCount, active && styles.dateCountActive]}>
-                  {count} suất
+                  {count} {isEnglish ? 'shows' : 'suất'}
                 </Text>
               </TouchableOpacity>
             );
@@ -207,7 +211,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                     styles.filterChipText,
                     active && styles.filterChipTextActive,
                   ]}>
-                  {format === 'Tất cả' ? 'Tất cả định dạng' : format}
+                  {format === (isEnglish ? 'All formats' : 'Tất cả') ? (isEnglish ? 'All formats' : 'Tất cả định dạng') : format}
                 </Text>
               </TouchableOpacity>
             );
@@ -219,7 +223,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         <View style={styles.nearestBanner}>
           <Text style={styles.nearestIcon}>⚡</Text>
           <View style={styles.nearestContent}>
-            <Text style={styles.nearestLabel}>SUẤT GẦN NHẤT</Text>
+            <Text style={styles.nearestLabel}>{t(language, 'SUẤT GẦN NHẤT', 'NEXT SHOWTIME')}</Text>
             <Text style={styles.nearestText}>
               {formatGio(nearestShowtime.startTime)} ·{' '}
               {nearestShowtime.movie?.title || 'Phim đang chiếu'}
@@ -235,9 +239,9 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         <ActivityIndicator style={styles.loader} color={BLUE} />
       ) : isError || showtimesQuery.isError ? (
         <View style={styles.stateBox}>
-          <Text style={styles.stateTitle}>Không tải được lịch chiếu</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Không tải được lịch chiếu', 'Unable to load showtimes')}</Text>
           <Text style={styles.stateHint}>
-            Kiểm tra backend rồi tải lại dữ liệu từ MongoDB.
+            {t(language, 'Kiểm tra backend rồi tải lại dữ liệu từ MongoDB.', 'Check the backend and reload data from MongoDB.')}
           </Text>
           <TouchableOpacity
             style={styles.retryBtn}
@@ -245,22 +249,22 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
               refetch();
               showtimesQuery.refetch();
             }}>
-            <Text style={styles.retryText}>Thử lại</Text>
+            <Text style={styles.retryText}>{t(language, 'Thử lại', 'Try again')}</Text>
           </TouchableOpacity>
         </View>
       ) : visibleMovies.length === 0 ? (
         <View style={styles.stateBox}>
           <Text style={styles.emptyIcon}>🎬</Text>
-          <Text style={styles.stateTitle}>Ngày này chưa có lịch chiếu</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Ngày này chưa có lịch chiếu', 'No showtimes on this date')}</Text>
           <Text style={styles.stateHint}>
-            Hãy chọn ngày khác hoặc thêm suất chiếu trên Admin.
+            {t(language, 'Hãy chọn ngày khác hoặc thêm suất chiếu trên Admin.', 'Please choose another date.')}
           </Text>
         </View>
       ) : (
         <View style={styles.scheduleList}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Phim & suất chiếu</Text>
-            <Text style={styles.liveText}>● Dữ liệu trực tiếp</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'Phim & suất chiếu', 'Movies & showtimes')}</Text>
+            <Text style={styles.liveText}>● {t(language, 'Dữ liệu trực tiếp', 'Live data')}</Text>
           </View>
           {visibleMovies.map(phim => {
             const movie = phimSangBooking(phim);
@@ -306,21 +310,21 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                       )}
                     </View>
                     <Text numberOfLines={2} style={styles.movieMeta}>
-                      {phim.theLoai || 'Đang cập nhật'} ·{' '}
+                      {phim.theLoai || t(language, 'Đang cập nhật', 'Updating')} ·{' '}
                       {phim.thoiLuong || '—'}
                     </Text>
                     <View style={styles.ratingRow}>
-                      <Text style={styles.rating}>★ {phim.diemDanhGia || 'Mới'}</Text>
-                      <Text style={styles.subtitleBadge}>PHỤ ĐỀ</Text>
+                      <Text style={styles.rating}>★ {phim.diemDanhGia || t(language, 'Mới', 'New')}</Text>
+                      <Text style={styles.subtitleBadge}>{t(language, 'PHỤ ĐỀ', 'SUBTITLED')}</Text>
                     </View>
-                    <Text style={styles.detailLink}>Xem chi tiết phim  ›</Text>
+                    <Text style={styles.detailLink}>{t(language, 'Xem chi tiết phim', 'View movie details')}  ›</Text>
                   </View>
                 </TouchableOpacity>
 
                 <View style={styles.divider} />
                 {movieShowtimes.length === 0 ? (
                   <Text style={styles.noShowtime}>
-                    Chưa có suất đặt được trong ngày này
+                    {t(language, 'Chưa có suất đặt được trong ngày này', 'No bookable showtimes on this date')}
                   </Text>
                 ) : (
                   <>
@@ -358,7 +362,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         </View>
       )}
       {(isFetching || showtimesQuery.isFetching) && !isLoading && (
-        <Text style={styles.refreshHint}>Đang đồng bộ lịch mới từ Admin...</Text>
+        <Text style={styles.refreshHint}>{isEnglish ? 'Syncing the latest showtimes...' : 'Đang đồng bộ lịch mới từ Admin...'}</Text>
       )}
     </View>
   );

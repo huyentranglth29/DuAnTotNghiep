@@ -14,6 +14,8 @@ import {
   layDanhSachSuatChieu,
   toDateKey,
 } from '../../../services/showtimeService';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 const BLUE = '#005f98';
 
@@ -48,8 +50,10 @@ function MovieName({
   onDetailPress,
   onShowtimePress,
 }: MovieNameProps) {
-  const genre = movie.genre ?? 'Giật gân, Kinh dị';
-  const duration = movie.duration ?? '109 phút';
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
+  const genre = movie.genre ?? (isEnglish ? 'Thriller, Horror' : 'Giật gân, Kinh dị');
+  const duration = movie.duration ?? (isEnglish ? '109 minutes' : '109 phút');
   const isUpcoming = movie.status === 'sap-chieu';
   const ticketSaleOpen =
     !movie.ticketSaleStartAt ||
@@ -102,7 +106,7 @@ function MovieName({
       return {
         key,
         day: `${d.getDate()}`.padStart(2, '0'),
-        label: key === todayKey ? 'Hôm nay' : `${WEEKDAY[d.getDay()]}`,
+        label: key === todayKey ? (isEnglish ? 'Today' : 'Hôm nay') : `${WEEKDAY[d.getDay()]}`,
       };
     });
   }, [dateKeys]);
@@ -121,7 +125,7 @@ function MovieName({
             />
           </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>ĐẶT VÉ THEO PHIM</Text>
+        <Text style={styles.headerTitle}>{t(language, 'ĐẶT VÉ THEO PHIM', 'BOOK TICKETS BY MOVIE')}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
@@ -138,21 +142,21 @@ function MovieName({
               activeOpacity={0.75}
               style={styles.detailButton}
               onPress={onDetailPress}>
-              <Text style={styles.detailText}>Chi tiết phim</Text>
+              <Text style={styles.detailText}>{t(language, 'Chi tiết phim', 'Movie details')}</Text>
             </TouchableOpacity>
           </View>
         </ImageBackground>
 
         {bookingLocked ? (
           <View style={styles.upcomingNotice}>
-            <Text style={styles.upcomingNoticeTitle}>Phim sắp chiếu</Text>
+            <Text style={styles.upcomingNoticeTitle}>{t(language, 'Phim sắp chiếu', 'Upcoming movie')}</Text>
             <Text style={styles.upcomingNoticeText}>
-              Lịch chiếu và đặt vé sẽ được FilmGo cập nhật sau.
+              {t(language, 'Lịch chiếu và đặt vé sẽ được FilmGo cập nhật sau.', 'Showtimes and ticket sales will be updated later by FilmGo.')}
             </Text>
           </View>
         ) : <><View style={styles.dateRow}>
           {dateItems.length === 0 ? (
-            <Text style={styles.noDate}>Chưa có ngày chiếu từ Admin</Text>
+            <Text style={styles.noDate}>{t(language, 'Chưa có ngày chiếu từ Admin', 'No screening dates from Admin yet')}</Text>
           ) : (
             dateItems.map(date => {
               const isActive = selectedDateKey === date.key;

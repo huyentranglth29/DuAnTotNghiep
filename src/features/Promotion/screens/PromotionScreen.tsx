@@ -16,6 +16,8 @@ import {promotionItems} from '../data/promotions';
 import {PromotionItem, PromotionTab} from '../types';
 import {resolveMediaUrl} from '../../../config/api.config';
 import {getNewsEvents} from '../../../services/apiService';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 const BLUE = '#005f98';
 
@@ -83,6 +85,7 @@ const mapNewsEventToPromotion = (
 };
 
 function PromotionScreen({onDetailChange}: PromotionScreenProps) {
+  const {language} = useLanguage();
   const [activeTab, setActiveTab] = useState<PromotionTab>('promotions');
   const [selectedItem, setSelectedItem] = useState<PromotionItem | null>(null);
   const [items, setItems] = useState<PromotionItem[]>([]);
@@ -136,7 +139,7 @@ function PromotionScreen({onDetailChange}: PromotionScreenProps) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={BLUE} />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>TIN MỚI VÀ ƯU ĐÃI</Text>
+        <Text style={styles.headerTitle}>{t(language, 'TIN MỚI VÀ ƯU ĐÃI', 'NEWS & OFFERS')}</Text>
       </View>
 
       <PromotionTabs activeTab={activeTab} onChangeTab={setActiveTab} />
@@ -144,7 +147,7 @@ function PromotionScreen({onDetailChange}: PromotionScreenProps) {
       {loading ? (
         <View style={styles.stateBox}>
           <ActivityIndicator color={BLUE} />
-          <Text style={styles.stateText}>Đang tải tin mới...</Text>
+          <Text style={styles.stateText}>{t(language, 'Đang tải tin mới...', 'Loading news...')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -154,7 +157,7 @@ function PromotionScreen({onDetailChange}: PromotionScreenProps) {
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity onPress={loadNewsEvents}>
-                <Text style={styles.retryText}>Thử lại</Text>
+                <Text style={styles.retryText}>{t(language, 'Thử lại', 'Try again')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -168,9 +171,9 @@ function PromotionScreen({onDetailChange}: PromotionScreenProps) {
             ))
           ) : (
             <View style={styles.stateBox}>
-              <Text style={styles.stateTitle}>Chưa có bài viết</Text>
+              <Text style={styles.stateTitle}>{t(language, 'Chưa có bài viết', 'No posts yet')}</Text>
               <Text style={styles.stateText}>
-                Admin chưa đăng nội dung cho mục này.
+                {t(language, 'Admin chưa đăng nội dung cho mục này.', 'Admin has not published any content for this section yet.')}
               </Text>
             </View>
           )}

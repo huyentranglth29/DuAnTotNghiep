@@ -11,6 +11,8 @@ import {
   layDanhSachSuatChieu,
   SuatChieuApi,
 } from '../../../services/showtimeService';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 export type SelectedShowtimeInfo = {
   id: string;
@@ -30,6 +32,8 @@ type ChonGioProps = {
 };
 
 function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}: ChonGioProps) {
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const [items, setItems] = useState<SuatChieuApi[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +60,7 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
         }
       } catch (err) {
         if (!cancelled) {
-          setError((err as Error)?.message || 'Không tải được suất chiếu');
+          setError((err as Error)?.message || (isEnglish ? 'Unable to load showtimes' : 'Không tải được suất chiếu'));
           setItems([]);
         }
       } finally {
@@ -70,7 +74,7 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
     return () => {
       cancelled = true;
     };
-  }, [movieId, selectedDateKey]);
+  }, [isEnglish, movieId, selectedDateKey]);
 
   const groups = useMemo(() => {
     const map = new Map<
@@ -81,13 +85,13 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
     items.forEach(item => {
       const date = new Date(item.startTime);
       const dateLabel = Number.isNaN(date.getTime())
-        ? 'Ngày chiếu'
-        : date.toLocaleDateString('vi-VN', {
+        ? (isEnglish ? 'Show date' : 'Ngày chiếu')
+        : date.toLocaleDateString(isEnglish ? 'en-US' : 'vi-VN', {
             weekday: 'long',
             day: '2-digit',
             month: '2-digit',
           });
-      const roomName = item.room?.name || 'Phòng chiếu';
+      const roomName = item.room?.name || (isEnglish ? 'Screen' : 'Phòng chiếu');
       const roomType = item.room?.type || '2D';
       const key = `${dateLabel}|${roomName}|${roomType}`;
       if (!map.has(key)) {
@@ -97,11 +101,11 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
     });
 
     return Array.from(map.values());
-  }, [items]);
+  }, [isEnglish, items]);
 
   if (!movieId) {
     return (
-      <Text style={styles.empty}>Chưa có mã phim để tải suất chiếu.</Text>
+      <Text style={styles.empty}>{t(language, 'Chưa có mã phim để tải suất chiếu.', 'No movie ID available to load showtimes.')}</Text>
     );
   }
 
@@ -117,8 +121,8 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
     return (
       <Text style={styles.empty}>
         {selectedDateKey
-          ? 'Chưa có suất chiếu còn đặt được cho ngày đã chọn.'
-          : 'Phim này chưa có suất chiếu còn đặt được. Vui lòng quay lại sau.'}
+          ? t(language, 'Chưa có suất chiếu còn đặt được cho ngày đã chọn.', 'No bookable showtimes for the selected date.')
+          : t(language, 'Phim này chưa có suất chiếu còn đặt được. Vui lòng quay lại sau.', 'This movie has no bookable showtimes. Please check back later.')}
       </Text>
     );
   }
