@@ -196,10 +196,6 @@ function ShowtimeList() {
 
   const updateFilter = (key, value) => {
     setFilters(current => ({...current, [key]: value}));
-  };
-
-  const applyFilters = event => {
-    event.preventDefault();
     setPage(1);
   };
 
@@ -303,7 +299,7 @@ function ShowtimeList() {
             <button type="submit">Tìm kiếm</button>
           </form>
 
-          <form className="showtimeFilters" onSubmit={applyFilters}>
+          <div className="showtimeFilters">
             <SelectDropdown
               label="Chọn Phim"
               value={filters.movie}
@@ -363,12 +359,11 @@ function ShowtimeList() {
               ]}
             />
             <div className="filterActions">
-              <button type="submit">Lọc</button>
               <button className="ghost" type="button" onClick={clearFilters}>
                 Xóa bộ lọc
               </button>
             </div>
-          </form>
+          </div>
         </>
       )}
 
