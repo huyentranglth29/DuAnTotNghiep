@@ -290,6 +290,7 @@ const updateOrder = async (req, res) => {
         return res.status(409).json({ success: false, message: "Chỉ check-in đơn đã thanh toán" });
       }
       booking.checkedIn = true;
+      booking.checkedInSeats = [...booking.seats];
       booking.checkedInAt = new Date();
     } else if (action === "note") {
       booking.note = String(req.body.note || "").trim();

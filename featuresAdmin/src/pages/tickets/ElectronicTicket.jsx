@@ -1,7 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
 import ticketApi from '../../api/ticketApi';
 import {QRBlock} from '../../components/AdminUi';
-import {formatDateTime, formatVnd, getSeatLabel, getUserName} from '../../utils/adminFormatters';
+import {formatDate, formatDateTime, formatVnd, getSeatLabel, getUserName} from '../../utils/adminFormatters';
+import {ticketQrPayload} from '../../utils/ticketVerification';
 
 const ticketStatusMap = {
   valid: {label: 'Hợp lệ', tone: 'success'},
@@ -20,20 +21,23 @@ function StatusBadge({map, value}) {
   return <span className={`badge ${status.tone}`}>{status.label}</span>;
 }
 
-function Barcode({value = ''}) {
-  const source = String(value || 'FILMGO');
-  const bars = Array.from({length: 34}, (_, index) => {
-    const code = source.charCodeAt(index % source.length) || index;
-    return 1 + ((code + index) % 4);
-  });
+function showtimeParts(value, fallbackDate, fallbackTime) {
+  if (!value) return {date: fallbackDate || 'Chưa có ngày', time: fallbackTime || 'Chưa có giờ'};
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return {date: fallbackDate || 'Chưa có ngày', time: fallbackTime || 'Chưa có giờ'};
+  }
+  return {
+    date: formatDate(value),
+    time: date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}),
+  };
+}
 
-  return (
-    <div className="electronicBarcode" aria-label={`Barcode ${source}`}>
-      {bars.map((width, index) => (
-        <span key={`${width}-${index}`} style={{width}} />
-      ))}
-    </div>
-  );
+function comboLabel(combos = []) {
+  if (!Array.isArray(combos) || combos.length === 0) return 'Không có combo';
+  return combos
+    .map(item => `${item.name || 'Combo'} × ${Number(item.quantity || 1)}`)
+    .join(', ');
 }
 
 function ElectronicTicket() {
@@ -115,6 +119,36 @@ function ElectronicTicket() {
     getSeatLabel(selectedTicket) || booking.seatLabels?.join(', ') || 'Chưa có ghế';
   const showtime = selectedTicket?.showtime?.startTime;
   const ticketCode = selectedTicket?.code || booking.ticketCode || '';
+  const qrValue = selectedTicket?.qrValue || ticketCode;
+  const paymentStatus =
+    selectedTicket?.status === 'used'
+      ? 'paid'
+      : selectedTicket?.paymentStatus || booking.paymentStatus || 'unpaid';
+  const showtimeInfo = showtimeParts(
+    showtime,
+    selectedTicket?.bookingDate || booking.bookingDate,
+    selectedTicket?.bookingTime || booking.bookingTime,
+  );
+  const roomName =
+    selectedTicket?.roomName || selectedTicket?.showtime?.room?.name || booking.roomName || 'Chưa có phòng';
+  const cinemaName =
+    selectedTicket?.cinemaName || booking.cinemaName || booking.cinema || 'FilmGo Hà Trung (Thanh Hóa)';
+  const orderCode = selectedTicket?.orderCode || booking.ticketCode || booking._id || 'Chưa có mã đơn';
+  const bookedAt = selectedTicket?.bookedAt || booking.createdAt || selectedTicket?.createdAt;
+  const combos = selectedTicket?.combos || booking.combos || [];
+  const qrPayload = ticketQrPayload({
+    code: qrValue,
+    customerName: customer,
+    movieTitle,
+    cinemaName,
+    roomName,
+    seatLabel,
+    showDate: showtimeInfo.date,
+    showTime: showtimeInfo.time,
+    price: selectedTicket?.price || booking.totalPrice,
+    paymentStatus,
+    status: selectedTicket?.status,
+  });
 
   return (
     <section className="electronicTicketPage">
@@ -155,17 +189,19 @@ function ElectronicTicket() {
       ) : !selectedTicket ? (
         <div className="placeholder">Không có vé điện tử phù hợp.</div>
       ) : (
-        <div className="electronicTicketLayout">
+        <div className="electronicTicketLayout single">
           <article className="electronicTicketCard">
             <div className="electronicTicketStatus">
               <StatusBadge map={ticketStatusMap} value={selectedTicket.status} />
-              <StatusBadge map={paymentStatusMap} value={booking.paymentStatus} />
+              <StatusBadge map={paymentStatusMap} value={paymentStatus} />
             </div>
 
             <div className="electronicTicketTop">
-              <span>FILMGO E-TICKET</span>
-              <h3>{movieTitle}</h3>
-              <p>{booking.cinemaName || 'FilmGo Cinema'}</p>
+              <div>
+                <span>FILMGO E-TICKET</span>
+                <h3>{movieTitle}</h3>
+                <p>{cinemaName}</p>
+              </div>
             </div>
 
             <div className="electronicTicketGrid">
@@ -174,8 +210,20 @@ function ElectronicTicket() {
                 <strong>{customer}</strong>
               </div>
               <div>
-                <small>Suất chiếu</small>
-                <strong>{formatDateTime(showtime)}</strong>
+                <small>Ngày chiếu</small>
+                <strong>{showtimeInfo.date}</strong>
+              </div>
+              <div>
+                <small>Giờ chiếu</small>
+                <strong>{showtimeInfo.time}</strong>
+              </div>
+              <div>
+                <small>Phòng</small>
+                <strong>{roomName}</strong>
+              </div>
+              <div>
+                <small>Rạp</small>
+                <strong>{cinemaName}</strong>
               </div>
               <div>
                 <small>Ghế</small>
@@ -185,6 +233,18 @@ function ElectronicTicket() {
                 <small>Giá vé</small>
                 <strong>{formatVnd(selectedTicket.price || booking.totalPrice)}</strong>
               </div>
+              <div>
+                <small>Mã đơn</small>
+                <strong>{orderCode}</strong>
+              </div>
+              <div>
+                <small>Ngày đặt</small>
+                <strong>{formatDateTime(bookedAt) || 'Chưa có dữ liệu'}</strong>
+              </div>
+              <div className="electronicTicketCombo">
+                <small>Combo</small>
+                <strong>{comboLabel(combos)}</strong>
+              </div>
             </div>
 
             <div className="electronicTicketCut" />
@@ -192,20 +252,12 @@ function ElectronicTicket() {
             <div className="electronicTicketCode">
               <small>Mã vé điện tử</small>
               <strong>{ticketCode}</strong>
-              <Barcode value={ticketCode} />
+              <div className="electronicTicketMainQr">
+                <QRBlock value={qrPayload} size={220} />
+              </div>
+              <p>Quét QR bằng điện thoại bất kỳ để đọc thông tin vé, không cần Internet.</p>
             </div>
           </article>
-
-          <aside className="panel electronicTicketQr">
-            <QRBlock value={ticketCode} />
-            <h3>{ticketCode}</h3>
-            <p>Xuất trình QR hoặc mã vé này tại quầy/checkin.</p>
-            <div className="formActions">
-              <button type="button" onClick={() => window.print()}>
-                In vé điện tử
-              </button>
-            </div>
-          </aside>
         </div>
       )}
     </section>

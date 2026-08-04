@@ -70,6 +70,10 @@ const quickBookingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    checkedInSeats: {
+      type: [String],
+      default: [],
+    },
     checkedInAt: {
       type: Date,
       default: null,

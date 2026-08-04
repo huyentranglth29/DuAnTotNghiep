@@ -1,11 +1,14 @@
 import {useEffect, useRef, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import ticketApi from '../../api/ticketApi';
 import {PageTitle, QRBlock} from '../../components/AdminUi';
 import {formatDateTime, getSeatLabel} from '../../utils/adminFormatters';
+import {ticketCodeFromQr} from '../../utils/ticketVerification';
 
 const SCANNER_ID = 'filmgo-ticket-scanner';
 
 function TicketCheckin() {
+  const navigate = useNavigate();
   const scannerRef = useRef(null);
   const [code, setCode] = useState('');
   const [ticket, setTicket] = useState(null);
@@ -14,7 +17,7 @@ function TicketCheckin() {
   const [scanning, setScanning] = useState(false);
 
   const findTicket = async nextCode => {
-    const keyword = String(nextCode || '').trim();
+    const keyword = ticketCodeFromQr(nextCode);
     if (!keyword) {
       setError('Vui lòng nhập hoặc quét mã vé.');
       return;
@@ -71,7 +74,7 @@ function TicketCheckin() {
         {facingMode: 'environment'},
         {fps: 10, qrbox: {width: 240, height: 240}},
         decodedText => {
-          setCode(decodedText);
+          setCode(ticketCodeFromQr(decodedText));
           findTicket(decodedText);
           stopScanner();
         },
@@ -88,6 +91,11 @@ function TicketCheckin() {
 
   const handleCheckin = async () => {
     if (!ticket) return;
+    const paymentStatus = ticket.paymentStatus || ticket.booking?.paymentStatus;
+    if (paymentStatus !== 'paid') {
+      window.alert('Chỉ check-in vé đã thanh toán.');
+      return;
+    }
     setSaving(true);
 
     try {
@@ -138,8 +146,17 @@ function TicketCheckin() {
             <p><span>Ghế</span><strong>{getSeatLabel(ticket)}</strong></p>
             <p><span>Suất chiếu</span><strong>{formatDateTime(ticket.showtime?.startTime)}</strong></p>
             <p><span>Trạng thái</span><strong>{ticket.status}</strong></p>
-            <button type="button" disabled={saving || ticket.status === 'used'} onClick={handleCheckin}>
+            <button
+              type="button"
+              disabled={saving || ticket.status === 'used' || ticket.status === 'cancelled'}
+              onClick={handleCheckin}>
               {ticket.status === 'used' ? 'Đã checkin' : 'Xác nhận checkin'}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => navigate(`/tickets/qr?code=${encodeURIComponent(ticket.code)}`)}>
+              Xem chi tiết / In phiếu
             </button>
           </div>
         )}

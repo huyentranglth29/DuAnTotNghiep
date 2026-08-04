@@ -35,15 +35,40 @@ const populateLegacyTickets = [
   { path: "seat", populate: { path: "room", select: "name type" } },
 ];
 
-const quickTicketStatus = (booking) => {
+const quickTicketStatus = (booking, seatLabel) => {
   if (["cancelled", "refunded"].includes(booking.status)) return "cancelled";
-  return booking.checkedIn ? "used" : "valid";
+  const checkedSeats = Array.isArray(booking.checkedInSeats) ? booking.checkedInSeats : [];
+  if (checkedSeats.includes(seatLabel)) return "used";
+  // Tương thích dữ liệu cũ: checkedIn=true trước khi có check-in theo từng ghế.
+  if (booking.checkedIn && checkedSeats.length === 0) return "used";
+  return "valid";
 };
 
 const quickPaymentStatus = (status) => {
   if (status === "paid") return "paid";
   if (status === "refunded") return "refunded";
   return "unpaid";
+};
+
+const normalizeLegacyTicket = (ticket) => {
+  const booking = ticket.booking ? { ...ticket.booking } : {};
+  // Một vé đã phát hành còn hiệu lực/đã dùng bắt buộc phải được thanh toán.
+  if (["valid", "used"].includes(ticket.status)) booking.paymentStatus = "paid";
+  if (ticket.status === "cancelled" && booking.paymentStatus === "paid") {
+    booking.paymentStatus = "refunded";
+  }
+
+  return {
+    ...ticket,
+    paymentStatus: booking.paymentStatus || "unpaid",
+    cinemaName: booking.cinemaName || "FilmGo Hà Trung (Thanh Hóa)",
+    roomName: ticket.showtime?.room?.name || booking.roomName || "",
+    orderCode: booking.ticketCode || String(booking._id || ""),
+    bookedAt: booking.createdAt || ticket.createdAt,
+    combos: booking.combos || [],
+    qrValue: ticket.code,
+    booking,
+  };
 };
 
 const loadShowtimes = async (bookings) => {
@@ -73,9 +98,18 @@ const expandQuickBooking = (booking, showtime) => {
     _id: `quick-${booking._id}-${index}`,
     code: `${bookingCode}-${seatLabel}`,
     price,
-    status: quickTicketStatus(booking),
+    status: quickTicketStatus(booking, seatLabel),
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
+    paymentStatus: quickPaymentStatus(booking.status),
+    cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
+    roomName: showtime?.room?.name || "",
+    orderCode: bookingCode,
+    bookedAt: booking.createdAt,
+    bookingDate: booking.bookingDate || "",
+    bookingTime: booking.bookingTime || "",
+    combos: booking.combos || [],
+    qrValue: `${bookingCode}-${seatLabel}`,
     seatLabel,
     source: "quickBooking",
     showtime: showtime || null,
@@ -88,6 +122,10 @@ const expandQuickBooking = (booking, showtime) => {
       status: booking.status,
       paymentStatus: quickPaymentStatus(booking.status),
       paymentMethod: booking.paymentMethod,
+      cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
+      bookingDate: booking.bookingDate || "",
+      bookingTime: booking.bookingTime || "",
+      combos: booking.combos || [],
       user: customer,
       showtime: showtime || null,
       createdAt: booking.createdAt,
@@ -111,9 +149,23 @@ const getAll = async (req, res) => {
       expandQuickBooking(booking, showtimeMap.get(String(booking.showtimeId || ""))),
     );
 
-    const data = [...legacyTickets, ...quickTickets]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, limit);
+    const keyword = String(req.query.keyword || "").trim().toLocaleLowerCase("vi");
+    const allTickets = [...legacyTickets.map(normalizeLegacyTicket), ...quickTickets]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const filteredTickets = keyword
+      ? allTickets.filter((ticket) => [
+        ticket.code,
+        ticket.orderCode,
+        ticket.booking?.movieTitle,
+        ticket.booking?.user?.fullName,
+        ticket.booking?.user?.email,
+        ticket.seatLabel,
+        ticket.seat?.row && ticket.seat?.number
+          ? `${ticket.seat.row}${ticket.seat.number}`
+          : "",
+      ].filter(Boolean).join(" ").toLocaleLowerCase("vi").includes(keyword))
+      : allTickets;
+    const data = filteredTickets.slice(0, limit);
 
     return res.json({
       success: true,
@@ -122,8 +174,8 @@ const getAll = async (req, res) => {
       pagination: {
         page: 1,
         limit,
-        total: legacyTickets.length + quickTickets.length,
-        totalPages: Math.max(1, Math.ceil((legacyTickets.length + quickTickets.length) / limit)),
+        total: filteredTickets.length,
+        totalPages: Math.max(1, Math.ceil(filteredTickets.length / limit)),
       },
     });
   } catch (error) {
@@ -131,4 +183,55 @@ const getAll = async (req, res) => {
   }
 };
 
-module.exports = { getAll };
+const update = async (req, res) => {
+  try {
+    const id = String(req.params.id || "");
+    const quickMatch = id.match(/^quick-([a-f\d]{24})-\d+$/i);
+
+    if (quickMatch) {
+      const booking = await QuickBooking.findById(quickMatch[1]);
+      if (!booking) return res.status(404).json({ success: false, message: "Không tìm thấy đơn vé" });
+      if (booking.status !== "paid") {
+        return res.status(409).json({ success: false, message: "Chỉ check-in vé đã thanh toán" });
+      }
+      const seatIndex = Number(id.slice(id.lastIndexOf("-") + 1));
+      const seatLabel = booking.seats?.[seatIndex];
+      if (!seatLabel) {
+        return res.status(404).json({ success: false, message: "Không tìm thấy ghế của vé" });
+      }
+      const checkedSeats = new Set(booking.checkedInSeats || []);
+      if (checkedSeats.has(seatLabel)) {
+        return res.status(409).json({ success: false, message: `Vé ghế ${seatLabel} đã được sử dụng` });
+      }
+      checkedSeats.add(seatLabel);
+      booking.checkedInSeats = [...checkedSeats];
+      booking.checkedIn = booking.seats.every((seat) => checkedSeats.has(seat));
+      booking.checkedInAt = new Date();
+      await booking.save();
+      return res.json({
+        success: true,
+        message: `Check-in vé ghế ${seatLabel} thành công`,
+        data: { seatLabel, checkedInSeats: booking.checkedInSeats, checkedIn: booking.checkedIn },
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "ID vé không hợp lệ" });
+    }
+    const ticket = await Ticket.findById(id).populate("booking");
+    if (!ticket) return res.status(404).json({ success: false, message: "Không tìm thấy vé" });
+    if (ticket.status === "cancelled") {
+      return res.status(409).json({ success: false, message: "Không thể check-in vé đã hủy" });
+    }
+    if (ticket.booking?.paymentStatus !== "paid") {
+      return res.status(409).json({ success: false, message: "Chỉ check-in vé đã thanh toán" });
+    }
+    ticket.status = "used";
+    await ticket.save();
+    return res.json({ success: true, message: "Check-in vé thành công", data: ticket });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { getAll, update };

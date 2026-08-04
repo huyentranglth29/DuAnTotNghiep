@@ -1871,7 +1871,7 @@ th {
 
 .qrPage {
   display: grid;
-  width: 360px;
+  width: min(100%, 620px);
   gap: 16px;
 }
 
@@ -1879,6 +1879,37 @@ th {
   width: 180px;
   height: 180px;
   margin: auto;
+}
+
+.qrTicketDetail {
+  overflow: hidden;
+  border: 1px solid #dbe3ea;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.qrTicketDetail header {
+  padding: 20px;
+  color: #fff;
+  background: linear-gradient(135deg, #07111f, #0b6098);
+}
+
+.qrTicketDetail header span { color: #bfdbfe; font-size: 11px; font-weight: 900; }
+.qrTicketDetail header h3 { margin: 7px 0 4px; font-size: 24px; }
+.qrTicketDetail header p { margin: 0; color: #dbeafe; }
+.qrTicketImage { display: grid; place-items: center; padding: 20px 20px 8px; }
+.qrTicketImage .qrBox { width: 244px; height: 244px; padding: 11px; box-sizing: border-box; }
+.qrTicketImage .qrBox svg { width: 220px; height: 220px; }
+.qrTicketCode { display: block; color: #dc2626; text-align: center; letter-spacing: .08em; }
+.qrTicketInfoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 20px; }
+.qrTicketInfoGrid div { display: grid; gap: 4px; }
+.qrTicketInfoGrid .wide { grid-column: 1 / -1; }
+.qrTicketInfoGrid span { color: #64748b; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.qrTicketDetail footer { padding: 14px 20px; color: #64748b; text-align: center; background: #f8fafc; }
+
+@media (max-width: 560px) {
+  .qrTicketInfoGrid { grid-template-columns: 1fr; }
+  .qrTicketInfoGrid .wide { grid-column: auto; }
 }
 
 .scanPanel {
@@ -4728,6 +4759,10 @@ th {
   align-items: start;
 }
 
+.electronicTicketLayout.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .electronicTicketCard {
   overflow: hidden;
   border: 1px solid #e5e7eb;
@@ -4745,9 +4780,31 @@ th {
 }
 
 .electronicTicketTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
   padding: 22px 24px 18px;
   color: #fff;
   background: linear-gradient(135deg, #07111f, #0b6098);
+}
+
+.electronicTicketCornerQr {
+  flex: 0 0 auto;
+  padding: 4px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.electronicTicketCornerQr .qrBox {
+  padding: 0;
+  border: 0;
+}
+
+.electronicTicketCornerQr svg {
+  display: block;
+  width: 92px;
+  height: 92px;
 }
 
 .electronicTicketTop span {
@@ -4795,6 +4852,10 @@ th {
   font-size: 16px;
 }
 
+.electronicTicketGrid .electronicTicketCombo {
+  grid-column: 1 / -1;
+}
+
 .electronicTicketCut {
   height: 1px;
   margin: 0 24px;
@@ -4813,6 +4874,28 @@ th {
   color: #dc2626;
   font-size: 28px;
   letter-spacing: .12em;
+}
+
+.electronicTicketMainQr .qrBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 244px;
+  height: 244px;
+  padding: 11px;
+  box-sizing: border-box;
+}
+
+.electronicTicketMainQr .qrBox svg {
+  display: block;
+  width: 220px;
+  height: 220px;
+}
+
+.electronicTicketCode p {
+  margin: 0;
+  color: #64748b;
+  text-align: center;
 }
 
 .electronicBarcode {
@@ -4834,12 +4917,33 @@ th {
   display: grid;
   justify-items: center;
   gap: 12px;
+  align-content: start;
   text-align: center;
+}
+
+.electronicTicketQr .qrBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 180px;
+  padding: 11px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.electronicTicketQr .qrBox svg {
+  display: block;
+  flex: 0 0 156px;
+  width: 156px;
+  height: 156px;
 }
 
 .electronicTicketQr h3 {
   margin: 0;
+  max-width: 100%;
   color: #dc2626;
+  overflow-wrap: anywhere;
   letter-spacing: .08em;
 }
 
@@ -4871,11 +4975,116 @@ th {
   }
 }
 
+.publicTicketVerify {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #172033;
+  background: linear-gradient(145deg, #eef6fb, #f8fafc);
+}
+
+.publicTicketVerifyCard,
+.publicTicketError {
+  width: min(100%, 680px);
+  overflow: hidden;
+  border: 1px solid #dbe3ea;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .12);
+}
+
+.publicTicketVerifyCard header {
+  padding: 24px;
+  color: #fff;
+  background: linear-gradient(135deg, #07111f, #0b6098);
+}
+
+.publicTicketVerifyCard header span {
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.publicTicketVerifyCard header h1 {
+  margin: 8px 0 4px;
+  font-size: clamp(24px, 5vw, 34px);
+}
+
+.publicTicketVerifyCard header p,
+.publicTicketVerifyCard footer {
+  margin: 0;
+  color: #dbeafe;
+}
+
+.publicTicketResult {
+  padding: 12px 24px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.publicTicketResult.success { color: #166534; background: #dcfce7; }
+.publicTicketResult.info { color: #1d4ed8; background: #dbeafe; }
+.publicTicketResult.danger { color: #b91c1c; background: #fee2e2; }
+.publicTicketResult.muted { color: #475569; background: #e2e8f0; }
+
+.publicTicketVerifyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 24px;
+}
+
+.publicTicketVerifyGrid div {
+  display: grid;
+  gap: 5px;
+}
+
+.publicTicketVerifyGrid .wide { grid-column: 1 / -1; }
+
+.publicTicketVerifyGrid span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.publicTicketVerifyGrid strong { overflow-wrap: anywhere; }
+.publicTicketSeat { color: #dc2626; font-size: 28px; }
+
+.publicTicketVerifyCard footer {
+  padding: 16px 24px;
+  color: #64748b;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.publicTicketError { padding: 28px; text-align: center; }
+
+@media (max-width: 560px) {
+  .publicTicketVerify { padding: 12px; }
+  .publicTicketVerifyGrid { grid-template-columns: 1fr; padding: 20px; }
+  .publicTicketVerifyGrid .wide { grid-column: auto; }
+}
+
 @media (max-width: 980px) {
   .electronicTicketToolbar,
   .electronicTicketLayout,
   .electronicTicketGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .electronicTicketTop {
+    align-items: center;
+  }
+
+  .electronicTicketCornerQr svg {
+    width: 72px;
+    height: 72px;
   }
 }
 
@@ -11466,4 +11675,141 @@ section:has(.reviewActions) .toolbar button[type='submit'] {
 .aiPage .aiStarterGrid button {
   max-width: 100%;
   white-space: normal;
+}
+
+/* Bản in vé độc lập: chỉ in nội dung vé, không in giao diện quản trị. */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    color: #111827 !important;
+    background: #fff !important;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .adminLayout {
+    display: block !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  .adminLayout > main,
+  .pageContent,
+  .electronicTicketPage {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  #root,
+  .adminLayout,
+  .adminLayout > main,
+  .pageContent,
+  .electronicTicketPage,
+  .electronicTicketLayout,
+  .electronicTicketCard,
+  .electronicTicketCard * {
+    visibility: visible !important;
+  }
+
+  .sidebar,
+  .header,
+  .electronicTicketPage > .pageTitle,
+  .electronicTicketToolbar,
+  .electronicTicketQr,
+  .loginError,
+  .placeholder {
+    display: none !important;
+  }
+
+  .electronicTicketLayout {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .electronicTicketCard,
+  .adminDarkMode .electronicTicketCard {
+    display: block !important;
+    width: 100% !important;
+    max-width: 186mm !important;
+    margin: 0 auto !important;
+    overflow: hidden !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #111827 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .electronicTicketStatus,
+  .adminDarkMode .electronicTicketStatus {
+    color: #111827 !important;
+    background: #f8fafc !important;
+  }
+
+  .electronicTicketTop {
+    color: #fff !important;
+    background: linear-gradient(135deg, #07111f, #0b6098) !important;
+  }
+
+  .electronicTicketGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    color: #111827 !important;
+    background: #fff !important;
+  }
+
+  .electronicTicketGrid small,
+  .electronicTicketCode small {
+    color: #64748b !important;
+  }
+
+  .electronicTicketGrid strong {
+    color: #111827 !important;
+  }
+
+  .electronicTicketCode,
+  .adminDarkMode .electronicTicketCode {
+    color: #111827 !important;
+    background: #fbfdff !important;
+  }
+
+  .electronicBarcode span {
+    background: #111827 !important;
+  }
+
+  #ticket-qr-print-area,
+  #ticket-qr-print-area * {
+    visibility: visible !important;
+  }
+
+  #ticket-qr-print-area {
+    position: absolute !important;
+    inset: 0 auto auto 50% !important;
+    width: 180mm !important;
+    max-width: 100% !important;
+    transform: translateX(-50%);
+    border-color: #cbd5e1 !important;
+    color: #111827 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
 }

@@ -41,10 +41,10 @@ export function DataBars({items = [], labelKey = 'label', valueKey = 'value', fo
   );
 }
 
-export function QRBlock({value = ''}) {
+export function QRBlock({value = '', size = 156}) {
   return (
     <div className="qrBox" aria-label={`QR ${value}`}>
-      <QRCodeSVG value={String(value || 'FILMGO')} size={156} level="M" includeMargin />
+      <QRCodeSVG value={String(value || 'FILMGO')} size={size} level="L" includeMargin />
     </div>
   );
 }
