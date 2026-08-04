@@ -124,7 +124,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
         <View style={styles.heroNote}>
           <Text style={styles.heroNoteIcon}>★</Text>
           <Text style={styles.heroNoteText}>
-            Lịch và giá vé được cập nhật trực tiếp từ Admin
+            Lịch chiếu được cập nhật trực tiếp từ Admin
           </Text>
         </View>
       </View>
@@ -257,9 +257,6 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                       <Text style={styles.roomName}>
                         {item.room?.name || 'Phòng chiếu'}
                       </Text>
-                      <Text style={styles.price}>
-                        {Number(item.price).toLocaleString('vi-VN')}đ
-                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -341,7 +338,6 @@ const styles = StyleSheet.create({
   timeValue: {fontSize: 15, color: '#ce5600', fontWeight: '900'},
   timeType: {fontSize: 8, color: '#fff', fontWeight: '900', backgroundColor: ORANGE, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2},
   roomName: {fontSize: 8, color: '#8b796d', marginTop: 4},
-  price: {fontSize: 9, color: '#5f4b3c', fontWeight: '800', marginTop: 3},
 });
 
 export default SuatChieuSom;

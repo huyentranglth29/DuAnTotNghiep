@@ -22,6 +22,7 @@ export const getUserName = item =>
 
 export const getSeatLabel = item => {
   if (!item) return '';
+  if (item.seatLabel) return item.seatLabel;
   if (item.row && item.number) return `${item.row}${item.number}`;
   if (item.seat?.row && item.seat?.number) return `${item.seat.row}${item.seat.number}`;
   return '';

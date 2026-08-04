@@ -428,10 +428,17 @@ async function processVnpayResult(query) {
     return { ok: true, code: "00", message: "Thanh toán thành công", payment };
   }
 
-  await releasePayment(payment, "that_bai");
+  // VNPay response code 24: khách hàng chủ động hủy giao dịch.
+  const unsuccessfulStatus = query.vnp_ResponseCode === "24" ? "da_huy" : "that_bai";
+  await releasePayment(payment, unsuccessfulStatus);
   payment.responseCode = query.vnp_ResponseCode;
   await payment.save();
-  return { ok: false, code: "00", message: "Thanh toán thất bại", payment };
+  return {
+    ok: false,
+    code: "00",
+    message: unsuccessfulStatus === "da_huy" ? "Đã hủy thanh toán" : "Thanh toán thất bại",
+    payment,
+  };
 }
 
 const createVnpayPayment = async (req, res, next) => {

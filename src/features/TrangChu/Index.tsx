@@ -35,10 +35,6 @@ import MovieNameDetail from '../Showtime/screen/MovieNameDetail';
 import DatVe from '../Showtime/components/DatVe';
 import DatVeDetail from '../Showtime/screen/DatVeDetail';
 import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
-import {
-  formatGio,
-  layDanhSachSuatChieu,
-} from '../../services/showtimeService';
 import {claimVoucher} from '../../services/voucherService';
 import {useAuth} from '../../contexts/AuthContext';
 
@@ -151,8 +147,6 @@ function TrangChu() {
 
   // State cho Đặt Vé Nhanh
   const [selectedMovie, setSelectedMovie] = useState<Phim | null>(null);
-  const selectedCinema = 'FilmGo Hà Trung';
-  const [selectedTime, setSelectedTime] = useState<string>('');
   const [showMovieDropdown, setShowMovieDropdown] = useState(false);
   const [quickMovieSearch, setQuickMovieSearch] = useState('');
   const filteredQuickMovies = listQuickMovies.filter(movie =>
@@ -160,15 +154,6 @@ function TrangChu() {
       quickMovieSearch.trim().toLocaleLowerCase('vi-VN'),
     ),
   );
-  const quickShowtimesQuery = useQuery({
-    queryKey: ['quick-showtimes', selectedMovie?.id],
-    queryFn: () =>
-      layDanhSachSuatChieu({
-        movieId: String(selectedMovie!.id),
-        bookable: true,
-      }),
-    enabled: Boolean(selectedMovie?.id),
-  });
 
   // State cho Chi tiết Phim
   const [selectedDetailMovie, setSelectedDetailMovie] = useState<Phim | null>(null);
@@ -224,46 +209,10 @@ function TrangChu() {
       Alert.alert('Thông báo', 'Vui lòng chọn phim muốn xem!');
       return;
     }
-    if (!selectedCinema) {
-      Alert.alert('Thông báo', 'Vui lòng chọn rạp chiếu!');
-      return;
-    }
-    if (!selectedTime) {
-      Alert.alert('Thông báo', 'Vui lòng chọn suất chiếu!');
-      return;
-    }
 
-    const item = quickShowtimesQuery.data?.find(showtime => showtime._id === selectedTime);
-    if (!item) {
-      Alert.alert('Thông báo', 'Suất chiếu không còn khả dụng, vui lòng chọn lại!');
-      return;
-    }
-
-    const realShowtime = {
-      id: item._id,
-      startTime: item.startTime,
-      endTime: item.endTime,
-      price: Number(item.price) || 0,
-      roomName: item.room?.name || 'Phòng chiếu',
-      roomType: item.room?.type || '2D',
-      cinemaName: selectedCinema,
-    };
-
-    const startBooking = () => {
-      setSelectedDetailMovie(selectedMovie);
-      setSelectedShowtime(realShowtime);
-      setShowBooking(true);
-    };
-
-    if (!requestAuth(
-      {
-        title: 'Đăng nhập để tiếp tục',
-        message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
-      },
-      startBooking,
-    )) {
-      return;
-    }
+    setSelectedShowtime(null);
+    setShowBooking(false);
+    setSelectedDetailMovie(selectedMovie);
   };
 
   const renderMovieCard = ({item}: {item: Phim}) => {
@@ -747,42 +696,6 @@ function TrangChu() {
               </TouchableOpacity>
             </View>
 
-            {/* Rạp chiếu mặc định duy nhất */}
-            <View style={styles.dropdownContainer}>
-              <Text style={styles.dropdownLabel}>Rạp chiếu</Text>
-              <View style={styles.fixedCinemaBox}>
-                <Text style={styles.fixedCinemaText}>FilmGo Hà Trung (Thanh Hóa)</Text>
-              </View>
-            </View>
-
-            {/* Chọn suất chiếu */}
-            <View style={styles.timeSelectContainer}>
-              <Text style={styles.dropdownLabel}>Suất chiếu</Text>
-              <View style={styles.timeButtonsRow}>
-                {(quickShowtimesQuery.data ?? []).map(showtime => {
-                  const isSelected = selectedTime === showtime._id;
-                  return (
-                    <TouchableOpacity
-                      key={showtime._id}
-                      style={[styles.timeBtn, isSelected && styles.timeBtnSelected]}
-                      onPress={() => setSelectedTime(showtime._id)}>
-                      <Text
-                        style={[
-                          styles.timeBtnText,
-                          isSelected && styles.timeBtnTextSelected,
-                        ]}>
-                        {formatGio(showtime.startTime)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-                {selectedMovie && !quickShowtimesQuery.isLoading &&
-                (quickShowtimesQuery.data ?? []).length === 0 ? (
-                  <Text>Chưa có suất chiếu khả dụng</Text>
-                ) : null}
-              </View>
-            </View>
-
             {/* Nút đặt vé */}
             <TouchableOpacity style={styles.quickBookBtn} onPress={handleQuickBook}>
               <Text style={styles.quickBookBtnText}>ĐẶT VÉ NGAY</Text>
@@ -972,7 +885,6 @@ function TrangChu() {
                     style={[styles.moviePickerItem, selected && styles.moviePickerItemSelected]}
                     onPress={() => {
                       setSelectedMovie(movie);
-                      setSelectedTime('');
                       setShowMovieDropdown(false);
                     }}>
                     <Image source={{uri: movie.posterUrl}} style={styles.moviePickerPoster} />
@@ -1170,21 +1082,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     zIndex: 5,
   },
-  fixedCinemaBox: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    backgroundColor: '#f8f9fa',
-  },
-  fixedCinemaText: {
-    fontSize: 14,
-    color: '#005f98',
-    fontWeight: '600',
-  },
   quickBookHeader: {
     fontSize: 15,
     fontWeight: '900',
@@ -1337,35 +1234,6 @@ const styles = StyleSheet.create({
   moviePickerEmpty: {alignItems: 'center', paddingTop: 70},
   moviePickerEmptyIcon: {fontSize: 45},
   moviePickerEmptyText: {fontSize: 13, color: '#888888', marginTop: 12},
-  timeSelectContainer: {
-    marginBottom: 16,
-  },
-  timeButtonsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  timeBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#d0d0d0',
-    borderRadius: 15,
-    backgroundColor: '#ffffff',
-  },
-  timeBtnSelected: {
-    backgroundColor: '#e51937',
-    borderColor: '#e51937',
-  },
-  timeBtnText: {
-    fontSize: 13,
-    color: '#555555',
-  },
-  timeBtnTextSelected: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-  },
   quickBookBtn: {
     height: 44,
     backgroundColor: '#e51937',

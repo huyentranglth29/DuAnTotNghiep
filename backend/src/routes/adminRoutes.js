@@ -32,11 +32,14 @@ const Voucher = require("../models/Voucher");
 const Genre = require("../models/Genre");
 const QuickBooking = require("../models/QuickBooking");
 const Payment = require("../models/Payment");
+const MovieReminder = require("../models/MovieReminder");
 const { createNotification } = require("../services/notificationService");
 const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateService");
 const adminBooking = require("../controllers/adminBookingController");
 const adminSeatMap = require("../controllers/adminSeatMapController");
 const adminAi = require("../controllers/adminAiController");
+const adminTicket = require("../controllers/adminTicketController");
+const adminPayment = require("../controllers/adminPaymentController");
 
 const startOfTodayVN = () => {
   const key = new Intl.DateTimeFormat("en-CA", {
@@ -151,6 +154,9 @@ router.get("/bookings", adminBooking.listOrders);
 router.get("/bookings/:id", adminBooking.getOrderById);
 router.put("/bookings/:id", adminBooking.updateOrder);
 
+// Giao dịch thanh toán, gồm cả chờ, hủy, thất bại và hết hạn.
+router.get("/payments", adminPayment.listPayments);
+
 // Quản lý người dùng (thống kê + list + lock/unlock/soft-delete)
 router.get("/users/stats", adminUser.getUserStats);
 router.get("/users/export", adminUser.exportUsers);
@@ -194,10 +200,26 @@ const normalizeNotificationBody = async (body = {}) => {
     next.target = "all";
   } else {
     next.user = null;
-    next.target = ["all", "vip", "newUser"].includes(target) ? target : "all";
+    next.target = "all";
   }
 
   return next;
+};
+
+const notificationRecipientMatch = {
+  role: "user",
+  status: "active",
+  $and: [
+    {
+      $or: [
+        {notificationEnabled: true},
+        {notificationEnabled: {$exists: false}},
+      ],
+    },
+    {
+      $or: [{deleted: false}, {deleted: {$exists: false}}, {deleted: null}],
+    },
+  ],
 };
 
 const enrichNotificationsWithRecipients = async (items = []) => {
@@ -214,10 +236,19 @@ const enrichNotificationsWithRecipients = async (items = []) => {
     ),
   ];
 
-  if (!userIds.length) return items;
+  const recipientCount = await User.countDocuments(notificationRecipientMatch);
+
+  if (!userIds.length) {
+    return items.map((item) => ({
+      ...item,
+      recipientScope: "enabledUsers",
+      recipientLabel: `Người dùng đã bật thông báo (${recipientCount} người)`,
+      recipientCount,
+    }));
+  }
 
   const users = await User.find({_id: {$in: userIds}})
-    .select("fullName email notificationEnabled")
+    .select("fullName email notificationEnabled phone")
     .lean();
   const userMap = new Map(users.map((user) => [String(user._id), user]));
 
@@ -229,16 +260,83 @@ const enrichNotificationsWithRecipients = async (items = []) => {
         : String(rawUser || "");
     const user = userMap.get(userId);
 
-    if (!user) return item;
+    if (!user) {
+      return {
+        ...item,
+        recipientScope: "enabledUsers",
+        recipientLabel: `Người dùng đã bật thông báo (${recipientCount} người)`,
+        recipientCount,
+      };
+    }
 
     return {
       ...item,
       user,
-      recipientName: user.fullName || user.email || "Người dùng",
+      recipientScope: "singleUser",
+      recipientName: user.fullName || "Người dùng",
       recipientEmail: user.email || "",
+      recipientLabel: user.fullName || "Người dùng",
+      recipientCount: 1,
     };
   });
 };
+
+router.get("/notifications/:id/recipients", async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({success: false, message: "ID thông báo không hợp lệ"});
+    }
+
+    const notification = await Notification.findById(req.params.id).lean();
+    if (!notification) {
+      return res.status(404).json({success: false, message: "Không tìm thấy thông báo"});
+    }
+
+    let scope = "enabledUsers";
+    let users = [];
+    if (notification.user) {
+      scope = "singleUser";
+      users = await User.find({_id: notification.user})
+        .select("fullName email phone notificationEnabled")
+        .lean();
+    } else if (
+      notification.type === "phim" &&
+      notification.entityId &&
+      notification.action === "nhac_mo_ban"
+    ) {
+      scope = "movieReminder";
+      const reminderUserIds = await MovieReminder.find({movie: notification.entityId})
+        .distinct("user");
+      users = await User.find({_id: {$in: reminderUserIds}})
+        .select("fullName email phone notificationEnabled")
+        .sort({fullName: 1})
+        .lean();
+    } else {
+      users = await User.find(notificationRecipientMatch)
+        .select("fullName email phone notificationEnabled")
+        .sort({fullName: 1})
+        .limit(500)
+        .lean();
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        scope,
+        count: users.length,
+        recipients: users.map((user) => ({
+          id: user._id,
+          fullName: user.fullName || "Người dùng FilmGo",
+          email: user.email || "",
+          phone: user.phone || "",
+          notificationEnabled: user.notificationEnabled !== false,
+        })),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({success: false, message: error.message});
+  }
+});
 
 const genreSlug = (value = "") =>
   String(value)
@@ -403,20 +501,37 @@ const resources = {
   }),
   tickets: createAdminCrudController(Ticket, {
     populate: [
-      { path: "booking", select: "ticketCode movieTitle roomName totalPrice status paymentStatus" },
+      {
+        path: "booking",
+        select: "ticketCode movieTitle roomName cinemaName totalPrice status paymentStatus paymentMethod user showtime createdAt updatedAt",
+        populate: [
+          { path: "user", select: "fullName email phone" },
+          {
+            path: "showtime",
+            select: "movie room startTime endTime",
+            populate: [
+              { path: "movie", select: "title posterUrl" },
+              { path: "room", select: "name type" },
+            ],
+          },
+        ],
+      },
       {
         path: "showtime",
         populate: [
-          { path: "movie", select: "title" },
-          { path: "room", select: "name" },
+          { path: "movie", select: "title posterUrl" },
+          { path: "room", select: "name type" },
         ],
       },
-      { path: "seat", populate: { path: "room", select: "name" } },
+      { path: "seat", populate: { path: "room", select: "name type" } },
     ],
     keywordFields: ["code", "status"],
   }),
   reviews: createAdminCrudController(Review, {
-    populate: "movie user",
+    populate: [
+      { path: "movie", select: "title posterUrl" },
+      { path: "user", select: "fullName email phone avatar" },
+    ],
     keywordFields: ["comment", "status"],
   }),
   notifications: createAdminCrudController(Notification, {
@@ -430,6 +545,9 @@ const resources = {
     keywordFields: ["title", "summary", "content", "category", "status"],
   }),
 };
+
+// Vé trên ứng dụng khách được lưu trong QuickBooking; gộp chúng với vé legacy.
+resources.tickets.getAll = adminTicket.getAll;
 
 const showtimeCrud = createAdminCrudController(Showtime, {
   populate: [

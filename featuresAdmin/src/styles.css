@@ -31,6 +31,10 @@ select {
   grid-template-columns: 230px 1fr;
 }
 
+.adminLayout > main {
+  min-width: 0;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -1057,6 +1061,21 @@ th {
   background: #ffffff;
 }
 
+.actionGroup button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionGroup button.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fee2e2;
+}
+
+.reviewActions {
+  min-width: 174px;
+}
+
 .tabs {
   display: flex;
   gap: 18px;
@@ -1237,6 +1256,241 @@ th {
 
   .statusHeader {
     display: grid;
+  }
+}
+
+/* Ticket management */
+.ticketManagementPage {
+  display: grid;
+  gap: 18px;
+}
+
+.ticketManagementPage .pageTitle p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.ticketFilters {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.55fr) repeat(4, minmax(145px, 1fr)) auto;
+  gap: 10px;
+  padding: 16px;
+  align-items: center;
+}
+
+.ticketFilters input,
+.ticketFilters select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+
+.ticketFilters input:focus,
+.ticketFilters select:focus {
+  border-color: #60a5fa;
+  outline: 3px solid rgba(59, 130, 246, 0.12);
+}
+
+.ticketTableWrap {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.ticketTable {
+  width: 100%;
+  min-width: 1280px;
+  border-collapse: collapse;
+}
+
+.ticketTable th {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5eaf2;
+  background: #f8fafc;
+  color: #56657a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ticketTable td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #edf1f6;
+  color: #172033;
+  vertical-align: middle;
+}
+
+.ticketTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ticketTable tbody tr:hover {
+  background: #f8fbff;
+}
+
+.ticketTable td small {
+  display: block;
+  max-width: 230px;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #718096;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticketCodeCell {
+  color: #2563eb;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.ticketMovieCell {
+  display: flex;
+  min-width: 235px;
+  align-items: center;
+  gap: 11px;
+}
+
+.ticketMovieCell img,
+.ticketMovieCell > span {
+  width: 42px;
+  height: 56px;
+  flex: 0 0 42px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.ticketMovieCell > span {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #dbeafe, #eff6ff);
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.ticketMovieCell strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ticketSeatBadge {
+  display: inline-grid;
+  min-width: 42px;
+  min-height: 34px;
+  padding: 0 10px;
+  place-items: center;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+.ticketTableWrap .tableFooter {
+  min-width: 1280px;
+  padding: 13px 16px;
+  border-top: 1px solid #edf1f6;
+}
+
+.ticketDetailModal {
+  width: min(920px, calc(100vw - 48px));
+  max-height: min(780px, calc(100vh - 48px));
+}
+
+.ticketDetailContent {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.ticketDetailHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eff6ff, #f8fbff);
+}
+
+.ticketDetailHero > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ticketDetailHero span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ticketDetailHero strong {
+  color: #1d4ed8;
+  font-size: 24px;
+}
+
+.ticketDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ticketDetailGrid > div {
+  display: flex;
+  min-height: 92px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 16px;
+  border: 1px solid #e5eaf2;
+  border-radius: 12px;
+  background: #fafbfd;
+}
+
+.ticketDetailGrid > div > span:first-child {
+  margin-bottom: 7px;
+  color: #718096;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ticketDetailGrid strong {
+  line-height: 1.4;
+}
+
+.ticketDetailGrid small {
+  margin-top: 4px;
+  color: #718096;
+}
+
+@media (max-width: 1280px) {
+  .ticketFilters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ticketFilters,
+  .ticketDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ticketDetailModal {
+    width: calc(100vw - 24px);
   }
 }
 
@@ -1687,6 +1941,160 @@ th {
 
 .notificationForm textarea {
   min-height: 130px;
+}
+
+.notificationRecipient {
+  display: inline-flex;
+  max-width: 320px;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.notificationRecipient--singleUser {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.notificationRecipient--enabledUsers {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.notificationRecipientButton {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.notificationRecipientButton:hover {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
+}
+
+.notificationRecipientList {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 18px 20px 20px;
+  overflow: hidden;
+}
+
+.notificationRecipientModal {
+  width: min(1080px, calc(100vw - 56px));
+  max-height: min(820px, calc(100vh - 56px));
+  border-radius: 14px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
+}
+
+.notificationRecipientModal header {
+  padding: 18px 20px;
+}
+
+.notificationRecipientModal header h2 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notificationRecipientSummary {
+  margin: 0;
+  color: #64748b;
+}
+
+.notificationRecipientTableWrap {
+  min-height: 0;
+  max-height: 62vh;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.notificationRecipientTableWrap table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+}
+
+.notificationRecipientTableWrap th,
+.notificationRecipientTableWrap td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.notificationRecipientTableWrap th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #475569;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .notificationRecipientModal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .notificationRecipientModal header,
+  .notificationRecipientList {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .notificationRecipientModal header h2 {
+    font-size: 17px;
+  }
+}
+
+.notificationRecipientBox {
+  display: grid;
+  gap: 8px;
+}
+
+.notificationRecipientLabel {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notificationRecipientModes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.notificationRecipientModes button {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #334155;
+  background: #fff;
+  cursor: pointer;
+}
+
+.notificationRecipientModes button.active {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.notificationRecipientBox small {
+  color: #667085;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .audienceGroup {
@@ -3470,6 +3878,32 @@ th {
   margin: 0;
 }
 
+.modalCloseButton {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #334155;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modalCloseButton span {
+  font-size: 22px;
+  line-height: 14px;
+}
+
+.modalCloseButton:hover {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
 .modal > .formGrid,
 .modal > form {
   max-height: 100%;
@@ -4081,11 +4515,39 @@ th {
   gap: 16px;
 }
 
+.paymentPage .metricGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.paymentReconcileHint {
+  margin: -6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
 .paymentFilters {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 220px 220px;
+  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 180px)) auto;
   gap: 12px;
-  align-items: center;
+  align-items: end;
+}
+
+.paymentDateFilter {
+  display: grid;
+  gap: 5px;
+}
+
+.paymentDateFilter span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.paymentFilters > .ghost {
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .paymentHistoryFilters {
@@ -4228,6 +4690,7 @@ th {
 }
 
 @media (max-width: 980px) {
+  .paymentPage .metricGrid,
   .paymentFilters,
   .paymentHistoryFilters,
   .bookingFilters,
@@ -10812,4 +11275,195 @@ a.overviewMetric.overviewClickable {
     height: auto !important;
     min-height: 360px !important;
   }
+}
+
+@media (max-width: 760px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .adminLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adminLayout > main {
+    min-width: 0;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    height: auto;
+    padding: 10px 12px;
+    overflow: visible;
+  }
+
+  .sidebar > div {
+    display: contents;
+  }
+
+  .sidebar h1 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .sidebar nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .sidebar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sidebar a,
+  .menuGroup div a {
+    flex: 0 0 auto;
+    padding: 8px 11px;
+    white-space: nowrap;
+  }
+
+  .menuGroup {
+    display: contents;
+  }
+
+  .menuGroup summary {
+    display: none;
+  }
+
+  .menuGroup div {
+    display: contents;
+    margin: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .logoutButton {
+    width: auto;
+    margin-top: 0;
+    padding: 8px 11px;
+  }
+
+  .header {
+    height: auto;
+    min-height: 58px;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .headerTitle {
+    min-width: 0;
+  }
+
+  .headerTitle span {
+    display: none;
+  }
+
+  .headerUser {
+    margin-left: auto;
+    gap: 8px;
+  }
+
+  .headerAdminProfile {
+    padding-right: 8px;
+  }
+
+  .headerAdminMeta small {
+    display: none;
+  }
+
+  .pageContent {
+    min-width: 0;
+    padding: 18px 14px 24px;
+  }
+
+  .pageTitle {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .toolbar,
+  .filterRow,
+  .formActions {
+    flex-wrap: wrap;
+  }
+
+  .toolbar input,
+  .toolbar button,
+  .filterRow label,
+  .filterRow button {
+    width: 100%;
+  }
+
+  .loginSplit {
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .loginPanel {
+    min-width: 0;
+    padding: 24px 18px;
+  }
+
+  .loginCard {
+    width: 100%;
+    max-width: 390px;
+    padding: 22px;
+  }
+
+  .loginOptions {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .cinemaHero {
+    display: none;
+  }
+}
+
+.reviewListPage .toolbar button,
+section:has(.reviewActions) .toolbar button {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.reviewListPage .toolbar button[type='submit'],
+section:has(.reviewActions) .toolbar button[type='submit'] {
+  color: #ffffff;
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.aiPage .aiStarterGrid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-content: flex-start;
+  overflow: visible !important;
+}
+
+.aiPage .aiStarterGrid button {
+  max-width: 100%;
+  white-space: normal;
 }

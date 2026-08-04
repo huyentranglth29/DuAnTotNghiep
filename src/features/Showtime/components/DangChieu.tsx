@@ -347,9 +347,6 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                           <Text style={styles.timeType}>
                             {item.room?.type || '2D'}
                           </Text>
-                          <Text style={styles.timePrice}>
-                            {Number(item.price).toLocaleString('vi-VN')}đ
-                          </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -563,7 +560,6 @@ const styles = StyleSheet.create({
   },
   timeValue: {fontSize: 15, color: BLUE, fontWeight: '900'},
   timeType: {fontSize: 8, color: '#7990a0', fontWeight: '800', marginTop: 1},
-  timePrice: {fontSize: 9, color: '#526577', marginTop: 3},
   refreshHint: {textAlign: 'center', color: '#94a3b8', fontSize: 11, marginTop: 2},
 });
 
