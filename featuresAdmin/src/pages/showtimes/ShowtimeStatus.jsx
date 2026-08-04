@@ -8,6 +8,23 @@ import {
   shortCode,
 } from '../../utils/showtimeHelpers';
 
+const STATUS_OPTIONS = [
+  {value: 'scheduled', label: 'Chưa bắt đầu'},
+  {value: 'completed', label: 'Đã kết thúc'},
+  {value: 'cancelled', label: 'Đã hủy'},
+];
+
+function getStatusOptions(displayStatus) {
+  if (displayStatus.key !== 'showing') {
+    return STATUS_OPTIONS;
+  }
+
+  return [
+    {value: 'showing', label: 'Đang diễn ra', disabled: true},
+    ...STATUS_OPTIONS,
+  ];
+}
+
 function ShowtimeStatus() {
   const [, setClockTick] = useState(() => Date.now());
   const [showtimes, setShowtimes] = useState([]);
@@ -111,13 +128,18 @@ function ShowtimeStatus() {
                       <td>
                         <select
                           disabled={savingId === item._id}
-                          value={item.status || 'scheduled'}
+                          value={status.key}
                           onChange={event =>
                             updateStatus(item._id, event.target.value)
                           }>
-                          <option value="scheduled">Lên lịch</option>
-                          <option value="completed">Đã kết thúc</option>
-                          <option value="cancelled">Đã hủy</option>
+                          {getStatusOptions(status).map(option => (
+                            <option
+                              key={option.value}
+                              value={option.value}
+                              disabled={option.disabled}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                       </td>
                     </tr>
