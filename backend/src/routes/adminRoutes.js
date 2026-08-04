@@ -38,6 +38,8 @@ const {syncAllMovieScheduleStates} = require("../services/movieScheduleStateServ
 const adminBooking = require("../controllers/adminBookingController");
 const adminSeatMap = require("../controllers/adminSeatMapController");
 const adminAi = require("../controllers/adminAiController");
+const adminTicket = require("../controllers/adminTicketController");
+const adminPayment = require("../controllers/adminPaymentController");
 
 const startOfTodayVN = () => {
   const key = new Intl.DateTimeFormat("en-CA", {
@@ -151,6 +153,9 @@ router.get("/bookings/movies", adminBooking.getOrderMovies);
 router.get("/bookings", adminBooking.listOrders);
 router.get("/bookings/:id", adminBooking.getOrderById);
 router.put("/bookings/:id", adminBooking.updateOrder);
+
+// Giao dịch thanh toán, gồm cả chờ, hủy, thất bại và hết hạn.
+router.get("/payments", adminPayment.listPayments);
 
 // Quản lý người dùng (thống kê + list + lock/unlock/soft-delete)
 router.get("/users/stats", adminUser.getUserStats);
@@ -496,15 +501,29 @@ const resources = {
   }),
   tickets: createAdminCrudController(Ticket, {
     populate: [
-      { path: "booking", select: "ticketCode movieTitle roomName totalPrice status paymentStatus" },
+      {
+        path: "booking",
+        select: "ticketCode movieTitle roomName cinemaName totalPrice status paymentStatus paymentMethod user showtime createdAt updatedAt",
+        populate: [
+          { path: "user", select: "fullName email phone" },
+          {
+            path: "showtime",
+            select: "movie room startTime endTime",
+            populate: [
+              { path: "movie", select: "title posterUrl" },
+              { path: "room", select: "name type" },
+            ],
+          },
+        ],
+      },
       {
         path: "showtime",
         populate: [
-          { path: "movie", select: "title" },
-          { path: "room", select: "name" },
+          { path: "movie", select: "title posterUrl" },
+          { path: "room", select: "name type" },
         ],
       },
-      { path: "seat", populate: { path: "room", select: "name" } },
+      { path: "seat", populate: { path: "room", select: "name type" } },
     ],
     keywordFields: ["code", "status"],
   }),
@@ -526,6 +545,9 @@ const resources = {
     keywordFields: ["title", "summary", "content", "category", "status"],
   }),
 };
+
+// Vé trên ứng dụng khách được lưu trong QuickBooking; gộp chúng với vé legacy.
+resources.tickets.getAll = adminTicket.getAll;
 
 const showtimeCrud = createAdminCrudController(Showtime, {
   populate: [
