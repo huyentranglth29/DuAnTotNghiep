@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import {Language, useLanguage} from '../../../contexts/LanguageContext';
 import {getAuthProfile, updateAuthProfile} from '../../../services/voucherService';
 
 const BLUE = '#005f98';
@@ -24,12 +25,45 @@ type SettingRow = {
 
 type SettingDetailScreen = 'faq' | 'paymentPolicy' | 'privacyPolicy';
 type FaqGroup = 'online' | 'general';
-
-const settingRows: SettingRow[] = [
-  { title: 'Hỏi đáp', screen: 'faq' },
-  { title: 'Chính sách thanh toán', screen: 'paymentPolicy' },
-  { title: 'Chính sách bảo mật', screen: 'privacyPolicy' },
-];
+const translations: Record<Language, {
+  settings: string;
+  language: string;
+  vietnamese: string;
+  english: string;
+  other: string;
+  notifications: string;
+  notificationError: string;
+  rows: SettingRow[];
+}> = {
+  vi: {
+    settings: 'CÀI ĐẶT',
+    language: 'Ngôn ngữ',
+    vietnamese: 'Tiếng Việt',
+    english: 'Tiếng Anh',
+    other: 'Khác',
+    notifications: 'Thông báo',
+    notificationError: 'Không thể cập nhật cài đặt thông báo.',
+    rows: [
+      {title: 'Hỏi đáp', screen: 'faq'},
+      {title: 'Chính sách thanh toán', screen: 'paymentPolicy'},
+      {title: 'Chính sách bảo mật', screen: 'privacyPolicy'},
+    ],
+  },
+  en: {
+    settings: 'SETTINGS',
+    language: 'Language',
+    vietnamese: 'Vietnamese',
+    english: 'English',
+    other: 'Other',
+    notifications: 'Notifications',
+    notificationError: 'Unable to update notification settings.',
+    rows: [
+      {title: 'FAQ', screen: 'faq'},
+      {title: 'Payment Policy', screen: 'paymentPolicy'},
+      {title: 'Privacy Policy', screen: 'privacyPolicy'},
+    ],
+  },
+};
 
 const onlineQuestions = [
   'Vì sao tôi đã đặt vé thành công mà chưa nhận được xác nhận đặt vé?',
@@ -58,9 +92,10 @@ const generalQuestions = [
 ];
 
 function SettingScreen({ onBack }: SettingScreenProps) {
-  const [language, setLanguage] = useState<'vi' | 'en'>('vi');
+  const {language, setLanguage} = useLanguage();
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [detailScreen, setDetailScreen] = useState<SettingDetailScreen | null>(null);
+  const text = translations[language];
 
   useEffect(() => {
     let mounted = true;
@@ -87,10 +122,10 @@ function SettingScreen({ onBack }: SettingScreenProps) {
     } catch (error) {
       setNotificationEnabled(previous);
       Alert.alert(
-        'Thông báo',
+        text.notifications,
         error instanceof Error
           ? error.message
-          : 'Không thể cập nhật cài đặt thông báo.',
+          : text.notificationError,
       );
     }
   };
@@ -109,16 +144,16 @@ function SettingScreen({ onBack }: SettingScreenProps) {
 
   return (
     <View style={styles.screen}>
-      <Header title="CÀI ĐẶT" onBack={onBack} />
+      <Header title={text.settings} onBack={onBack} />
 
       <View style={styles.content}>
-        <Text style={styles.sectionLabel}>Ngôn ngữ</Text>
+        <Text style={styles.sectionLabel}>{text.language}</Text>
         <TouchableOpacity
           activeOpacity={0.75}
           style={styles.languageRow}
           onPress={() => setLanguage('vi')}
         >
-          <Text style={styles.languageText}>Tiếng Việt</Text>
+          <Text style={styles.languageText}>{text.vietnamese}</Text>
           {language === 'vi' && <Text style={styles.checkMark}>✓</Text>}
         </TouchableOpacity>
         <TouchableOpacity
@@ -126,13 +161,13 @@ function SettingScreen({ onBack }: SettingScreenProps) {
           style={styles.languageRow}
           onPress={() => setLanguage('en')}
         >
-          <Text style={styles.languageText}>English</Text>
+          <Text style={styles.languageText}>{text.english}</Text>
           {language === 'en' && <Text style={styles.checkMark}>✓</Text>}
         </TouchableOpacity>
 
-        <Text style={[styles.sectionLabel, styles.otherLabel]}>Khác</Text>
+        <Text style={[styles.sectionLabel, styles.otherLabel]}>{text.other}</Text>
         <View style={styles.switchRow}>
-          <Text style={styles.settingText}>Thông báo</Text>
+          <Text style={styles.settingText}>{text.notifications}</Text>
           <Switch
             value={notificationEnabled}
             trackColor={{ false: '#bfc2c5', true: '#9bd2ff' }}
@@ -141,7 +176,7 @@ function SettingScreen({ onBack }: SettingScreenProps) {
           />
         </View>
 
-        {settingRows.map(row => (
+        {text.rows.map(row => (
           <TouchableOpacity
             key={row.title}
             activeOpacity={0.75}

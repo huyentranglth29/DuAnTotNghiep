@@ -11,6 +11,7 @@ import { MAU_CHU_DE } from '../theme/cinemaNoir';
 import {useQueryClient} from '@tanstack/react-query';
 import CustomerAiScreen from '../features/CustomerAi/CustomerAiScreen';
 import iconAi from '../assets/logo/iconai.jpg';
+import {useLanguage} from '../contexts/LanguageContext';
 
 const BLUE = '#005f98';
 const GRAY = '#a9afb5';
@@ -24,15 +25,23 @@ type TabItem = {
   icon: 'home' | 'flag' | 'ticket' | 'gift' | 'grid';
 };
 
-const tabs: TabItem[] = [
-  { key: 'home', label: 'Trang chủ', icon: 'home' },
-  { key: 'movieSchedule', label: 'Lịch chiếu', icon: 'flag' },
-  { key: 'voucher', label: 'Voucher', icon: 'ticket' },
-  { key: 'member', label: 'Ưu đãi', icon: 'gift' },
-  { key: 'different', label: 'Khác', icon: 'grid' },
-];
-
 function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
+  const {language} = useLanguage();
+  const tabs: TabItem[] = language === 'vi'
+    ? [
+        {key: 'home', label: 'Trang chủ', icon: 'home'},
+        {key: 'movieSchedule', label: 'Lịch chiếu', icon: 'flag'},
+        {key: 'voucher', label: 'Voucher', icon: 'ticket'},
+        {key: 'member', label: 'Ưu đãi', icon: 'gift'},
+        {key: 'different', label: 'Khác', icon: 'grid'},
+      ]
+    : [
+        {key: 'home', label: 'Home', icon: 'home'},
+        {key: 'movieSchedule', label: 'Showtimes', icon: 'flag'},
+        {key: 'voucher', label: 'Voucher', icon: 'ticket'},
+        {key: 'member', label: 'Offers', icon: 'gift'},
+        {key: 'different', label: 'More', icon: 'grid'},
+      ];
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const aiFabOffset = useRef(new Animated.ValueXY({x: 0, y: 0})).current;

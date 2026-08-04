@@ -6,6 +6,7 @@ import TabNavigator from './src/Navigation/TabNavigator';
 import AuthPromptModal from './src/components/AuthPromptModal';
 import PresenceHeartbeat from './src/components/PresenceHeartbeat';
 import {AuthProvider, useAuth} from './src/contexts/AuthContext';
+import {LanguageProvider} from './src/contexts/LanguageContext';
 import QueryProvider from './src/providers/QueryProvider';
 
 function AppShell() {
@@ -49,11 +50,13 @@ function AppShell() {
 function App() {
   return (
     <SafeAreaProvider>
-      <QueryProvider>
-        <AuthProvider>
-          <AppShell />
-        </AuthProvider>
-      </QueryProvider>
+      <LanguageProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <AppShell />
+          </AuthProvider>
+        </QueryProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

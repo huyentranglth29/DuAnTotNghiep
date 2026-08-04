@@ -19,6 +19,8 @@ import {
 } from '../../../services/movieReminderService';
 import {MovieBookingInfo} from './MovieName';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 const BLUE = '#00689d';
 const PINK = '#ec197e';
@@ -27,11 +29,11 @@ type SapChieuProps = {
   onMoviePress: (movie: MovieBookingInfo) => void;
 };
 
-function getRelease(value?: string) {
-  if (!value) return {label: 'Sắp công bố', month: 'MỚI', days: null};
+function getRelease(value?: string, isEnglish = false) {
+  if (!value) return {label: isEnglish ? 'Coming soon' : 'Sắp công bố', month: isEnglish ? 'NEW' : 'MỚI', days: null};
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return {label: value, month: 'MỚI', days: null};
+    return {label: value, month: isEnglish ? 'NEW' : 'MỚI', days: null};
   }
   const days = Math.ceil((date.getTime() - Date.now()) / 86_400_000);
   return {
@@ -41,12 +43,14 @@ function getRelease(value?: string) {
       month: '2-digit',
       year: 'numeric',
     }),
-    month: `THÁNG ${date.getMonth() + 1}`,
+    month: isEnglish ? `MONTH ${date.getMonth() + 1}` : `THÁNG ${date.getMonth() + 1}`,
     days,
   };
 }
 
 function SapChieu({onMoviePress}: SapChieuProps) {
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const {data, isLoading, isError, refetch, isFetching} = useMoviesSapChieu();
   const movies = useMemo(() => data ?? [], [data]);
   const [remindedMovieIds, setRemindedMovieIds] = useState<Set<string>>(new Set());
@@ -70,7 +74,7 @@ function SapChieu({onMoviePress}: SapChieuProps) {
   );
   const genres = useMemo(
     () => [
-      'Tất cả',
+      isEnglish ? 'All' : 'Tất cả',
       ...Array.from(
         new Set(
           movies
@@ -80,11 +84,11 @@ function SapChieu({onMoviePress}: SapChieuProps) {
         ),
       ),
     ],
-    [movies],
+    [isEnglish, movies],
   );
-  const [genre, setGenre] = useState('Tất cả');
+  const [genre, setGenre] = useState(isEnglish ? 'All' : 'Tất cả');
   const visibleMovies =
-    genre === 'Tất cả'
+    genre === (isEnglish ? 'All' : 'Tất cả')
       ? movies
       : movies.filter(movie =>
           String(movie.theLoai || '')
@@ -96,15 +100,15 @@ function SapChieu({onMoviePress}: SapChieuProps) {
     <View style={styles.container}>
       <View style={styles.hero}>
         <View style={styles.heroCircle} />
-        <Text style={styles.eyebrow}>SẮP RA MẮT TẠI FILMGO</Text>
-        <Text style={styles.heading}>Phim sắp chiếu</Text>
+        <Text style={styles.eyebrow}>{isEnglish ? 'COMING SOON AT FILMGO' : 'SẮP RA MẮT TẠI FILMGO'}</Text>
+        <Text style={styles.heading}>{t(language, 'Phim sắp chiếu', 'Upcoming movies')}</Text>
         <Text style={styles.subheading}>
-          Khám phá trước những bộ phim đáng mong chờ
+          {t(language, 'Khám phá trước những bộ phim đáng mong chờ', 'Discover the most anticipated movies before release')}
         </Text>
         <View style={styles.heroStats}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{movies.length}</Text>
-            <Text style={styles.statLabel}>phim mới</Text>
+            <Text style={styles.statLabel}>{t(language, 'phim mới', 'new movies')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
@@ -145,27 +149,27 @@ function SapChieu({onMoviePress}: SapChieuProps) {
         <ActivityIndicator style={styles.loader} color={BLUE} />
       ) : isError ? (
         <View style={styles.stateBox}>
-          <Text style={styles.stateTitle}>Không tải được phim sắp chiếu</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Không tải được phim sắp chiếu', 'Unable to load upcoming movies')}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Thử lại</Text>
+            <Text style={styles.retryText}>{t(language, 'Thử lại', 'Try again')}</Text>
           </TouchableOpacity>
         </View>
       ) : visibleMovies.length === 0 ? (
         <View style={styles.stateBox}>
           <Text style={styles.emptyIcon}>⏳</Text>
-          <Text style={styles.stateTitle}>Chưa có phim phù hợp</Text>
+          <Text style={styles.stateTitle}>{t(language, 'Chưa có phim phù hợp', 'No matching movies yet')}</Text>
           <Text style={styles.stateHint}>
-            Chọn thể loại khác hoặc thêm phim trên Admin.
+            {t(language, 'Chọn thể loại khác hoặc thêm phim trên Admin.', 'Try another genre or add movies from Admin.')}
           </Text>
         </View>
       ) : (
         <View style={styles.movieList}>
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Danh sách sắp ra mắt</Text>
-            <Text style={styles.dataLabel}>● Từ Admin</Text>
+            <Text style={styles.sectionTitle}>{t(language, 'Danh sách sắp ra mắt', 'Upcoming releases')}</Text>
+            <Text style={styles.dataLabel}>{t(language, '● Từ Admin', '● From Admin')}</Text>
           </View>
           {visibleMovies.map((phim, index) => {
-            const release = getRelease(phim.ngayPhatHanh);
+            const release = getRelease(phim.ngayPhatHanh, isEnglish);
             const saleAt = phim.moBanVeTu ? new Date(phim.moBanVeTu) : null;
             const saleOpened = !saleAt || saleAt <= new Date();
             const hasBookableShowtime = bookableMovieIds.has(String(phim.id));
@@ -202,7 +206,7 @@ function SapChieu({onMoviePress}: SapChieuProps) {
                     </View>
                     {release.days !== null && release.days > 0 && (
                       <Text style={styles.countdown}>
-                        Còn {release.days} ngày
+                        {t(language, `Còn ${release.days} ngày`, `${release.days} days left`)}
                       </Text>
                     )}
                   </View>
@@ -210,18 +214,18 @@ function SapChieu({onMoviePress}: SapChieuProps) {
                     {phim.tieuDe}
                   </Text>
                   <Text numberOfLines={2} style={styles.movieMeta}>
-                    {phim.theLoai || 'Đang cập nhật'} ·{' '}
+                    {phim.theLoai || t(language, 'Đang cập nhật', 'Updating')} ·{' '}
                     {phim.thoiLuong || '—'}
                   </Text>
                   <View style={styles.releaseBox}>
                     <Text style={styles.calendarIcon}>▣</Text>
                     <View>
-                      <Text style={styles.releaseLabel}>Dự kiến khởi chiếu</Text>
+                      <Text style={styles.releaseLabel}>{t(language, 'Dự kiến khởi chiếu', 'Expected release')}</Text>
                       <Text style={styles.releaseDate}>{release.label}</Text>
                     </View>
                   </View>
                   {saleAt && <Text style={styles.saleDate}>
-                    Mở bán vé từ {saleAt.toLocaleString('vi-VN', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
+                    {t(language, `Mở bán vé từ ${saleAt.toLocaleString('vi-VN', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}`, `Tickets on sale from ${saleAt.toLocaleString('en-GB', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}`)}
                   </Text>}
                   <TouchableOpacity
                     style={[styles.upcomingAction, saleOpened && hasBookableShowtime && styles.upcomingActionPrimary]}
@@ -232,7 +236,7 @@ function SapChieu({onMoviePress}: SapChieuProps) {
                         return;
                       }
                       if (saleOpened) {
-                        Alert.alert('Đang cập nhật lịch', 'FilmGo chưa mở suất chiếu để đặt vé cho phim này.');
+                        Alert.alert(t(language, 'Đang cập nhật lịch', 'Schedule update'), t(language, 'FilmGo chưa mở suất chiếu để đặt vé cho phim này.', 'FilmGo has not opened showtimes for ticket booking yet.'));
                         return;
                       }
                       const movieId = String(phim.id);
@@ -247,14 +251,14 @@ function SapChieu({onMoviePress}: SapChieuProps) {
                         } else {
                           await dangKyNhacPhim(movieId);
                           setRemindedMovieIds(current => new Set(current).add(movieId));
-                          Alert.alert('Đã đăng ký nhắc', `FilmGo sẽ nhắc bạn khi ${phim.tieuDe} mở bán vé.`);
+                          Alert.alert(t(language, 'Đã đăng ký nhắc', 'Reminder registered'), t(language, `FilmGo sẽ nhắc bạn khi ${phim.tieuDe} mở bán vé.`, `FilmGo will remind you when ${phim.tieuDe} goes on sale.`));
                         }
                       } catch (error) {
-                        Alert.alert('Cần đăng nhập', (error as Error).message || 'Vui lòng đăng nhập để dùng chức năng nhắc tôi.');
+                        Alert.alert(t(language, 'Cần đăng nhập', 'Login required'), (error as Error).message || t(language, 'Vui lòng đăng nhập để dùng chức năng nhắc tôi.', 'Please log in to use the reminder feature.'));
                       }
                     }}>
                     <Text style={[styles.upcomingActionText, saleOpened && hasBookableShowtime && styles.upcomingActionTextPrimary]}>
-                      {saleOpened ? (hasBookableShowtime ? 'Đặt vé' : 'Đang cập nhật lịch') : (reminded ? 'Đã nhắc tôi' : 'Nhắc tôi')}
+                      {saleOpened ? (hasBookableShowtime ? t(language, 'Đặt vé', 'Book now') : t(language, 'Đang cập nhật lịch', 'Schedule update')) : (reminded ? t(language, 'Đã nhắc tôi', 'Reminder set') : t(language, 'Nhắc tôi', 'Remind me'))}
                     </Text>
                   </TouchableOpacity>
                   <Text style={styles.detailLink}>Xem thông tin phim  ›</Text>

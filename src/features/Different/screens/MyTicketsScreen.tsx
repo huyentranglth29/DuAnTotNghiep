@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import QRCode from 'react-native-qrcode-svg';
 import { getQuickBookings } from '../../../services/apiService';
 import {useAuth} from '../../../contexts/AuthContext';
 
@@ -37,10 +38,43 @@ type Ticket = {
   comboPickupCode?: string;
   comboStatus?: 'khong_co' | 'cho_nhan' | 'da_nhan';
   paymentMethod?: string;
+  roomName?: string;
+  roomType?: string;
+  checkedIn?: boolean;
+  checkedInSeats?: string[];
+  user?: {
+    fullName?: string;
+  };
 };
 
 type MyTicketsScreenProps = {
   onBack: () => void;
+};
+
+const buildOfflineTicketQr = (item: Ticket, seat: string, ticketCode: string) => {
+  const seatCount = Math.max(item.seats?.length || 0, 1);
+  const ticketPrice = Number(item.ticketTotal || item.totalPrice || 0) / seatCount;
+  const status = item.status === 'cancelled'
+    ? 'Đã hủy'
+    : item.status === 'refunded'
+      ? 'Đã hoàn tiền'
+      : item.checkedIn || item.checkedInSeats?.includes(seat)
+        ? 'Đã sử dụng'
+        : 'Hợp lệ';
+  return [
+    'FILMGO - VÉ XEM PHIM',
+    `Mã vé: ${ticketCode}`,
+    `Người đặt: ${item.user?.fullName || 'Khách FilmGo'}`,
+    `Phim: ${item.movieTitle || '—'}`,
+    `Rạp: ${item.cinema || '—'}`,
+    `Phòng: ${item.roomName || '—'}${item.roomType ? ` (${item.roomType})` : ''}`,
+    `Ghế: ${seat || '—'}`,
+    `Ngày chiếu: ${item.bookingDate || '—'}`,
+    `Giờ chiếu: ${item.bookingTime || '—'}`,
+    `Giá vé: ${ticketPrice.toLocaleString('vi-VN')}đ`,
+    `Thanh toán: ${item.status === 'paid' ? 'Đã thanh toán' : status}`,
+    `Trạng thái: ${status}`,
+  ].join('\n');
 };
 
 function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
@@ -78,21 +112,6 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
     fetchTickets();
   };
 
-  const renderBarcode = () => {
-    return (
-      <View style={styles.barcodeContainer}>
-        <View style={styles.barcodeLines}>
-          {[1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2].map((val, idx) => (
-            <View
-              key={idx}
-              style={[styles.barcodeLine, {width: val}]}
-            />
-          ))}
-        </View>
-      </View>
-    );
-  };
-
   const getStatusMeta = (status?: Ticket['status']) => {
     if (status === 'cancelled') {
       return {label: '✕ ĐÃ HỦY', style: styles.statusBadgeCancelled};
@@ -109,6 +128,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
   const renderTicketItem = ({ item }: { item: Ticket }) => {
     const statusMeta = getStatusMeta(item.status);
     const isInactive = item.status === 'cancelled' || item.status === 'refunded';
+    const seats = item.seats?.length ? item.seats : [''];
 
     return (
       <View style={[styles.ticketCard, isInactive && styles.ticketCardInactive]}>
@@ -209,15 +229,37 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 
         {/* Phần dưới của vé (cuống vé / mã nhận vé) */}
         <View style={styles.ticketBottom}>
-          <Text style={styles.codeLabel}>MÃ NHẬN VÉ</Text>
-          <Text style={[styles.codeVal, isInactive && styles.codeValInactive]}>{item.code}</Text>
-          {!isInactive ? renderBarcode() : null}
+          <Text style={styles.codeLabel}>QR CHECK-IN THEO GHẾ</Text>
+          <View style={styles.seatQrList}>
+            {seats.map(seat => {
+              const ticketCode = seat ? `${item.code}-${seat}` : item.code;
+              const used = Boolean(
+                item.checkedIn || (seat && item.checkedInSeats?.includes(seat)),
+              );
+              return (
+                <View key={ticketCode} style={styles.seatQrCard}>
+                  <View style={styles.seatQrHeader}>
+                    <Text style={styles.seatQrSeat}>{seat ? `Ghế ${seat}` : 'Vé FilmGo'}</Text>
+                    {used ? <Text style={styles.seatQrUsed}>ĐÃ DÙNG</Text> : null}
+                  </View>
+                  {!isInactive ? (
+                    <View style={styles.qrCodeFrame}>
+                      <QRCode value={buildOfflineTicketQr(item, seat, ticketCode)} size={190} ecl="L" />
+                    </View>
+                  ) : null}
+                  <Text style={[styles.codeVal, isInactive && styles.codeValInactive]}>
+                    {ticketCode}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
           <Text style={styles.ticketNote}>
             {isInactive
               ? item.status === 'refunded'
                 ? 'Vé này đã được hoàn tiền, không còn hiệu lực'
                 : 'Vé này đã bị hủy, không còn hiệu lực'
-              : 'Xuất trình mã này tại quầy'}
+              : 'Xuất trình QR của đúng ghế tại quầy hoặc cửa phòng chiếu'}
           </Text>
         </View>
       </View>
@@ -556,18 +598,46 @@ const styles = StyleSheet.create({
     marginTop: 4,
     letterSpacing: 2,
   },
-  barcodeContainer: {
-    marginTop: 14,
-    alignItems: 'center',
+  seatQrList: {
+    width: '100%',
+    marginTop: 12,
+    gap: 14,
   },
-  barcodeLines: {
+  seatQrCard: {
+    alignItems: 'center',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#dbe3ea',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  seatQrHeader: {
+    width: '100%',
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  barcodeLine: {
-    height: 44,
-    backgroundColor: '#111111',
-    marginRight: 2,
+  seatQrSeat: {
+    color: '#173247',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  seatQrUsed: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    color: '#1d4ed8',
+    backgroundColor: '#dbeafe',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  qrCodeFrame: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
   },
   ticketNote: {
     fontSize: 11,

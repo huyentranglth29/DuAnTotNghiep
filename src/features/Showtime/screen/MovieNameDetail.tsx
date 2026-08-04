@@ -17,6 +17,8 @@ import ChonGio, {SelectedShowtimeInfo} from '../components/ChonGio';
 import {getMyReview, getNewsEvents, getReviewEligibility, getReviews} from '../../../services/apiService';
 import {resolveMediaUrl} from '../../../config/api.config';
 import {useAuth} from '../../../contexts/AuthContext';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 const BLUE = '#005f98';
 
 type MovieNameDetailProps = {
@@ -164,12 +166,14 @@ const mapApiReview = (item: ReviewApi, index: number): MovieReview => ({
 
 function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: MovieNameDetailProps) {
   const {isAuthenticated} = useAuth();
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const ticketSaleOpen =
     !movie.ticketSaleStartAt ||
     new Date(movie.ticketSaleStartAt) <= new Date();
   const bookingLocked = movie.status === 'sap-chieu' && !ticketSaleOpen;
-  const duration = movie.duration ?? '109 phút';
-  const genre = movie.genre ?? 'Giật gân, Kinh dị';
+  const duration = movie.duration ?? (isEnglish ? '109 minutes' : '109 phút');
+  const genre = movie.genre ?? (isEnglish ? 'Thriller, Horror' : 'Giật gân, Kinh dị');
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
@@ -300,7 +304,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         y: 400,
         animated: true,
       });
-      Alert.alert('Thông báo', 'Vui lòng chọn khung giờ chiếu ở bên dưới!');
+      Alert.alert(t(language, 'Thông báo', 'Notice'), t(language, 'Vui lòng chọn khung giờ chiếu ở bên dưới!', 'Please select a showtime below!'));
     }
   };
 
@@ -309,11 +313,11 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
     : 0;
 
   const myReviewStatus = myReview?.status === 'approved'
-    ? {label: 'Đánh giá của bạn đã được duyệt', tone: styles.reviewStateApproved}
+    ? {label: t(language, 'Đánh giá của bạn đã được duyệt', 'Your review has been approved'), tone: styles.reviewStateApproved}
     : myReview?.status === 'rejected'
-      ? {label: 'Đánh giá của bạn đã bị từ chối — bạn có thể chỉnh sửa và gửi lại', tone: styles.reviewStateRejected}
+      ? {label: t(language, 'Đánh giá của bạn đã bị từ chối — bạn có thể chỉnh sửa và gửi lại', 'Your review was rejected — you can edit and resubmit it'), tone: styles.reviewStateRejected}
       : myReview
-        ? {label: 'Đánh giá của bạn đang chờ duyệt', tone: styles.reviewStatePending}
+        ? {label: t(language, 'Đánh giá của bạn đang chờ duyệt', 'Your review is pending approval'), tone: styles.reviewStatePending}
         : null;
 
   return (
@@ -333,7 +337,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
                 />
               </Svg>
             </TouchableOpacity>
-            <Text style={styles.topTitle}>Chi tiết phim</Text>
+            <Text style={styles.topTitle}>{t(language, 'Chi tiết phim', 'Movie details')}</Text>
           </View>
 
           <TouchableOpacity
@@ -372,25 +376,27 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         </View>
 
         <View style={styles.detailsGrid}>
-          <Text style={styles.detailLabel}>ĐẠO DIỄN</Text>
-          <Text style={styles.detailValue}>{movie.director || 'Đang cập nhật'}</Text>
-          <Text style={styles.detailLabel}>DIỄN VIÊN</Text>
+          <Text style={styles.detailLabel}>{t(language, 'ĐẠO DIỄN', 'DIRECTOR')}</Text>
+          <Text style={styles.detailValue}>{movie.director || (isEnglish ? 'Updating' : 'Đang cập nhật')}</Text>
+          <Text style={styles.detailLabel}>{t(language, 'DIỄN VIÊN', 'CAST')}</Text>
           <Text style={styles.detailValue}>
-            {movie.cast?.join(', ') || 'Đang cập nhật'}
+            {movie.cast?.join(', ') || (isEnglish ? 'Updating' : 'Đang cập nhật')}
           </Text>
-          <Text style={styles.detailLabel}>THỂ LOẠI</Text>
+          <Text style={styles.detailLabel}>{t(language, 'THỂ LOẠI', 'GENRE')}</Text>
           <Text style={styles.detailValue}>{genre}</Text>
-          <Text style={styles.detailLabel}>THỜI LƯỢNG</Text>
+          <Text style={styles.detailLabel}>{t(language, 'THỜI LƯỢNG', 'DURATION')}</Text>
           <Text style={styles.detailValue}>{duration}</Text>
-          <Text style={styles.detailLabel}>NGÔN NGỮ</Text>
-          <Text style={styles.detailValue}>Tiếng Anh</Text>
+          <Text style={styles.detailLabel}>{t(language, 'NGÔN NGỮ', 'LANGUAGE')}</Text>
+          <Text style={styles.detailValue}>{isEnglish ? 'English' : 'Tiếng Anh'}</Text>
           <Text style={styles.detailLabel}>
-            {movie.status === 'sap-chieu' ? 'DỰ KIẾN KHỞI CHIẾU' : 'NGÀY KHỞI CHIẾU'}
+            {movie.status === 'sap-chieu'
+              ? (t(language, 'DỰ KIẾN KHỞI CHIẾU', 'EXPECTED RELEASE'))
+              : (t(language, 'NGÀY KHỞI CHIẾU', 'RELEASE DATE'))}
           </Text>
           <Text style={styles.detailValue}>
             {movie.releaseDate
               ? new Date(movie.releaseDate).toLocaleDateString('vi-VN')
-              : 'Đang cập nhật'}
+              : (isEnglish ? 'Updating' : 'Đang cập nhật')}
           </Text>
         </View>
 
@@ -401,13 +407,13 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         {/* Phim sắp chiếu chỉ công bố thông tin; chưa mở lịch đặt vé. */}
         {bookingLocked ? (
           <View style={styles.upcomingScheduleNotice}>
-            <Text style={styles.upcomingScheduleTitle}>SẮP CHIẾU TẠI FILMGO</Text>
+            <Text style={styles.upcomingScheduleTitle}>{t(language, 'SẮP CHIẾU TẠI FILMGO', 'COMING SOON TO FILMGO')}</Text>
             <Text style={styles.upcomingScheduleText}>
-              Lịch chiếu và thời gian mở bán vé sẽ được cập nhật sau.
+              {t(language, 'Lịch chiếu và thời gian mở bán vé sẽ được cập nhật sau.', 'Showtimes and ticket sales will be updated later.')}
             </Text>
           </View>
         ) : <View style={styles.showtimeSection}>
-          <Text style={styles.sectionTitle}>📅 LỊCH CHIẾU</Text>
+          <Text style={styles.sectionTitle}>📅 {t(language, 'LỊCH CHIẾU', 'SHOWTIMES')}</Text>
           <Text style={styles.showtimeSubtitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <ChonGio
             movieId={movie.id}
@@ -421,12 +427,12 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
         </View>}
 
         <View style={styles.promotionHeader}>
-          <Text style={styles.sectionTitle}>KHUYẾN MÃI</Text>
+          <Text style={styles.sectionTitle}>{t(language, 'KHUYẾN MÃI', 'PROMOTIONS')}</Text>
           <TouchableOpacity
             activeOpacity={0.75}
             style={styles.allButton}
             onPress={() => setShowAllPromotions(true)}>
-            <Text style={styles.allButtonText}>Tất cả</Text>
+            <Text style={styles.allButtonText}>{t(language, 'Tất cả', 'All')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -448,15 +454,17 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
             </TouchableOpacity>
           ))}
           {moviePromotions.length === 0 && (
-            <Text style={styles.emptyPromotion}>Hiện chưa có chương trình khuyến mãi đang áp dụng.</Text>
+            <Text style={styles.emptyPromotion}>{t(language, 'Hiện chưa có chương trình khuyến mãi đang áp dụng.', 'There are no active promotions.')}</Text>
           )}
         </View>
 
         <View style={styles.reviewSummary}>
           <View>
-            <Text style={styles.reviewSummaryTitle}>ĐÁNH GIÁ PHIM</Text>
+            <Text style={styles.reviewSummaryTitle}>{t(language, 'ĐÁNH GIÁ PHIM', 'MOVIE REVIEWS')}</Text>
             <Text style={styles.reviewSummaryMeta}>
-              {movieReviews.length ? `★ ${averageRating.toFixed(1)}/5 · ${movieReviews.length} lượt đánh giá` : 'Chưa có đánh giá về phim này'}
+              {movieReviews.length
+                ? `★ ${averageRating.toFixed(1)}/5 · ${movieReviews.length} ${t(language, 'lượt đánh giá', 'reviews')}`
+                : t(language, 'Chưa có đánh giá về phim này', 'No reviews for this movie yet')}
             </Text>
           </View>
         </View>
@@ -469,15 +477,15 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
 
         {!reviewEligibility.canReview ? (
           <Text style={styles.reviewAvailabilityText}>
-            Bạn có thể đánh giá sau khi suất chiếu đầu tiên của phim kết thúc.
+            {t(language, 'Bạn có thể đánh giá sau khi suất chiếu đầu tiên của phim kết thúc.', 'You can review this movie after its first showtime ends.')}
           </Text>
         ) : reviewEligibility.verifiedViewer ? (
           <View style={styles.verifiedViewerNotice}>
-            <Text style={styles.verifiedViewerNoticeText}>✓ Bạn đã xem phim tại FilmGo</Text>
+            <Text style={styles.verifiedViewerNoticeText}>✓ {t(language, 'Bạn đã xem phim tại FilmGo', 'You watched this movie at FilmGo')}</Text>
           </View>
         ) : (
           <Text style={styles.reviewAvailabilityText}>
-            Khách mua vé tại quầy vẫn có thể chia sẻ cảm nhận sau khi xem phim.
+            {t(language, 'Khách mua vé tại quầy vẫn có thể chia sẻ cảm nhận sau khi xem phim.', 'Customers who buy tickets at the counter can still share a review after watching.')}
           </Text>
         )}
 
@@ -487,7 +495,11 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
           disabled={!reviewEligibility.canReview}
           onPress={() => onWriteReview?.(movie)}>
           <Text style={styles.writeReviewText}>
-            {!reviewEligibility.canReview ? 'Chưa thể đánh giá' : myReview ? 'Chỉnh sửa đánh giá' : 'Viết đánh giá'}
+            {!reviewEligibility.canReview
+              ? t(language, 'Chưa thể đánh giá', 'Review unavailable')
+              : myReview
+                ? t(language, 'Chỉnh sửa đánh giá', 'Edit review')
+                : t(language, 'Viết đánh giá', 'Write a review')}
           </Text>
         </TouchableOpacity>
 
@@ -507,7 +519,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
               style={styles.closeTrailerBtn}
               onPress={() => setShowTrailerModal(false)}
             >
-              <Text style={styles.closeTrailerText}>✕ Đóng</Text>
+              <Text style={styles.closeTrailerText}>✕ {isEnglish ? 'Close' : 'Đóng'}</Text>
             </TouchableOpacity>
             <Text style={styles.trailerTitleText} numberOfLines={1}>
               Trailer - {movie.title}
@@ -523,11 +535,11 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
               <Image source={movie.poster} style={styles.trailerPosterSmall} />
               {isPlaying ? (
                 <View style={styles.playingStatusBadge}>
-                  <Text style={styles.playingStatusText}>🔴 Đang phát Trailer</Text>
+                  <Text style={styles.playingStatusText}>🔴 {isEnglish ? 'Playing trailer' : 'Đang phát Trailer'}</Text>
                 </View>
               ) : (
                 <View style={styles.playingStatusBadge}>
-                  <Text style={styles.playingStatusText}>⏸ Tạm dừng</Text>
+                  <Text style={styles.playingStatusText}>⏸ {isEnglish ? 'Paused' : 'Tạm dừng'}</Text>
                 </View>
               )}
             </View>
@@ -576,7 +588,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
               </View>
             </ScrollView>
             <TouchableOpacity style={styles.promotionCloseButton} onPress={() => setSelectedPromotion(null)}>
-              <Text style={styles.promotionCloseText}>Đóng</Text>
+              <Text style={styles.promotionCloseText}>{isEnglish ? 'Close' : 'Đóng'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -591,7 +603,7 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
             <TouchableOpacity onPress={() => setShowAllPromotions(false)} style={styles.allPromotionsBack}>
               <Text style={styles.allPromotionsBackText}>‹</Text>
             </TouchableOpacity>
-            <Text style={styles.allPromotionsTitle}>Tất cả khuyến mãi</Text>
+            <Text style={styles.allPromotionsTitle}>{isEnglish ? 'All promotions' : 'Tất cả khuyến mãi'}</Text>
             <View style={styles.allPromotionsBack} />
           </View>
           <ScrollView contentContainerStyle={styles.allPromotionsList}>
@@ -608,17 +620,17 @@ function MovieNameDetail({ movie, onBack, onWriteReview, onShowtimeSelect }: Mov
                 <View style={styles.allPromotionText}>
                   <Text style={styles.allPromotionTitle} numberOfLines={2}>{promo.title}</Text>
                   <Text style={styles.allPromotionSummary} numberOfLines={2}>{promo.summary}</Text>
-                  <Text style={styles.allPromotionLink}>Xem chi tiết ›</Text>
+                  <Text style={styles.allPromotionLink}>{isEnglish ? 'View details' : 'Xem chi tiết'} ›</Text>
                 </View>
               </TouchableOpacity>
             ))}
-            {moviePromotions.length === 0 && <Text style={styles.emptyPromotion}>Hiện chưa có khuyến mãi.</Text>}
+            {moviePromotions.length === 0 && <Text style={styles.emptyPromotion}>{isEnglish ? 'No promotions available.' : 'Hiện chưa có khuyến mãi.'}</Text>}
           </ScrollView>
         </View>
       </Modal>
 
       {!bookingLocked && <TouchableOpacity activeOpacity={0.8} style={styles.bookTicketBtn} onPress={handleBookTicketPress}>
-        <Text style={styles.bookTicketBtnText}>ĐẶT VÉ NGAY</Text>
+        <Text style={styles.bookTicketBtnText}>{isEnglish ? 'BOOK NOW' : 'ĐẶT VÉ NGAY'}</Text>
       </TouchableOpacity>}
     </View>
   );

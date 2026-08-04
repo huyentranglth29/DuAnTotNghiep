@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import MenuIcon, { MenuIconName } from '../component/MenuIcon';
+import {useLanguage} from '../../../contexts/LanguageContext';
 
 const TITLE_COLOR = '#173247';
 
@@ -20,7 +21,7 @@ export type DifferentScreenName =
   | 'myTickets';
 
 type MenuItem = {
-  title: string;
+  title: {vi: string; en: string};
   icon: MenuIconName;
   color: string;
   backgroundColor: string;
@@ -29,42 +30,42 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   {
-    title: 'Vé của tôi',
+    title: {vi: 'Vé của tôi', en: 'My Tickets'},
     icon: 'voucher',
     color: '#e51937',
     backgroundColor: '#fff3f7',
     screen: 'myTickets',
   },
   {
-    title: 'Voucher miễn phí',
+    title: {vi: 'Voucher miễn phí', en: 'Free Vouchers'},
     icon: 'voucher',
     color: '#f5bf31',
     backgroundColor: '#fffaf0',
     screen: 'voucher',
   },
   {
-    title: 'Thành viên',
+    title: {vi: 'Thành viên', en: 'Membership'},
     icon: 'member',
     color: '#a7d62b',
     backgroundColor: '#fbfff1',
     screen: 'member',
   },
   {
-    title: 'Thông báo',
+    title: {vi: 'Thông báo', en: 'Notifications'},
     icon: 'notification',
     color: '#f28b1d',
     backgroundColor: '#fff7ef',
     screen: 'notification',
   },
   {
-    title: 'Tuyển dụng',
+    title: {vi: 'Tuyển dụng', en: 'Careers'},
     icon: 'career',
     color: '#ee7898',
     backgroundColor: '#fff3f7',
     screen: 'career',
   },
   {
-    title: 'Cài đặt',
+    title: {vi: 'Cài đặt', en: 'Settings'},
     icon: 'setting',
     color: '#b956b7',
     backgroundColor: '#fbf2fc',
@@ -77,6 +78,7 @@ type DifferentMenuScreenProps = {
 };
 
 function DifferentMenuScreen({ onOpenScreen }: DifferentMenuScreenProps) {
+  const {language} = useLanguage();
   const handlePress = (screen?: DifferentScreenName) => {
     if (!screen || screen === 'menu') {
       return;
@@ -91,12 +93,12 @@ function DifferentMenuScreen({ onOpenScreen }: DifferentMenuScreenProps) {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.heading}>KHÁC</Text>
+      <Text style={styles.heading}>{language === 'vi' ? 'KHÁC' : 'MORE'}</Text>
 
       <View style={styles.grid}>
         {menuItems.map(item => (
           <TouchableOpacity
-            key={item.title}
+            key={item.screen}
             activeOpacity={0.8}
             style={styles.card}
             onPress={() => handlePress(item.screen)}
@@ -109,7 +111,7 @@ function DifferentMenuScreen({ onOpenScreen }: DifferentMenuScreenProps) {
             >
               <MenuIcon name={item.icon} color={item.color} />
             </View>
-            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardTitle}>{item.title[language]}</Text>
           </TouchableOpacity>
         ))}
       </View>

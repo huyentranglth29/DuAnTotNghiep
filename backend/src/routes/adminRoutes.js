@@ -548,6 +548,7 @@ const resources = {
 
 // Vé trên ứng dụng khách được lưu trong QuickBooking; gộp chúng với vé legacy.
 resources.tickets.getAll = adminTicket.getAll;
+resources.tickets.update = adminTicket.update;
 
 const showtimeCrud = createAdminCrudController(Showtime, {
   populate: [

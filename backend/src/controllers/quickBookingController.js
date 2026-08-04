@@ -9,6 +9,16 @@ const normalizeSeats = (seats) =>
     String(seat).trim().toUpperCase()
   ).filter(Boolean))];
 
+const enrichBookingRooms = async (bookings) => {
+  const ids = [...new Set(bookings.map(item => String(item.showtimeId || "")).filter(Boolean))];
+  const showtimes = await Showtime.find({_id: {$in: ids}}).populate("room", "name type").lean();
+  const map = new Map(showtimes.map(item => [String(item._id), item]));
+  return bookings.map(item => {
+    const showtime = map.get(String(item.showtimeId || ""));
+    return {...item, roomName: showtime?.room?.name || "", roomType: showtime?.room?.type || ""};
+  });
+};
+
 // GET /api/quick-bookings/sold-seats?showtimeId=...
 const getSoldSeats = async (req, res, next) => {
   try {
@@ -130,7 +140,8 @@ const create = async (req, res, next) => {
 // GET /api/quick-bookings — Lấy tất cả đặt vé (mới nhất trước)
 const getAll = async (req, res, next) => {
   try {
-    const bookings = await QuickBooking.find().sort({ createdAt: -1 });
+    const rows = await QuickBooking.find().sort({ createdAt: -1 }).lean();
+    const bookings = await enrichBookingRooms(rows);
     res.json({
       success: true,
       data: bookings,
@@ -143,7 +154,11 @@ const getAll = async (req, res, next) => {
 // GET /api/quick-bookings/mine — chỉ vé của tài khoản đang đăng nhập
 const getMine = async (req, res, next) => {
   try {
-    const bookings = await QuickBooking.find({user: req.user._id}).sort({createdAt: -1});
+    const rows = await QuickBooking.find({user: req.user._id})
+      .populate("user", "fullName")
+      .sort({createdAt: -1})
+      .lean();
+    const bookings = await enrichBookingRooms(rows);
     res.json({success: true, data: bookings});
   } catch (error) {
     next(error);

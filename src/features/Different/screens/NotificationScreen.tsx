@@ -16,6 +16,8 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../../../services/apiService';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 type NotificationScreenProps = {
   onBack: () => void;
@@ -30,6 +32,7 @@ const typeIcon = (type?: string) => {
 };
 
 function NotificationScreen({onBack}: NotificationScreenProps) {
+  const {language} = useLanguage();
   const [selected, setSelected] = useState<any | null>(null);
 
   const notificationsQuery = useQuery({
@@ -53,7 +56,7 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
       await markAllNotificationsRead();
       await notificationsQuery.refetch();
     } catch (error) {
-      Alert.alert('Thông báo', (error as Error).message);
+      Alert.alert(t(language, 'Thông báo', 'Notice'), (error as Error).message);
     }
   };
 
@@ -64,12 +67,12 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
         await notificationsQuery.refetch();
       }
     } catch (error) {
-      Alert.alert('Không thể đánh dấu đã đọc', (error as Error).message);
+      Alert.alert(t(language, 'Không thể đánh dấu đã đọc', 'Unable to mark as read'), (error as Error).message);
       return;
     }
 
     if (item.type === 'voucher') {
-      Alert.alert(item.title, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`);
+      Alert.alert(item.title, t(language, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`, `${item.content}\n\nGo to the Voucher tab and tap Claim now.`));
       return;
     }
     setSelected(item);
@@ -90,7 +93,7 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
               />
             </Svg>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>CHI TIẾT</Text>
+          <Text style={styles.headerTitle}>{t(language, 'CHI TIẾT', 'DETAIL')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.detailCard}>
@@ -121,9 +124,9 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
             />
           </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>THÔNG BÁO</Text>
+        <Text style={styles.headerTitle}>{t(language, 'THÔNG BÁO', 'NOTIFICATIONS')}</Text>
         <TouchableOpacity onPress={onReadAll}>
-          <Text style={styles.readAll}>Đọc tất cả</Text>
+          <Text style={styles.readAll}>{t(language, 'Đọc tất cả', 'Read all')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -144,7 +147,7 @@ function NotificationScreen({onBack}: NotificationScreenProps) {
             />
           }
           ListEmptyComponent={
-            <Text style={styles.empty}>Chưa có thông báo nào</Text>
+            <Text style={styles.empty}>{t(language, 'Chưa có thông báo nào', 'No notifications yet')}</Text>
           }
           renderItem={({item}: any) => (
             <TouchableOpacity

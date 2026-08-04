@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { getMyReview, postReview } from '../../../services/apiService';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 type WriteReviewProps = {
     movieId: string | number;
@@ -10,6 +12,7 @@ type WriteReviewProps = {
 };
 
 export default function WriteReview({ movieId, title, onBack }: WriteReviewProps) {
+    const {language} = useLanguage();
     const [rating, setRating] = useState<number>(5);
     const [text, setText] = useState('');
     const [saving, setSaving] = useState(false);
@@ -30,12 +33,12 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
 
     const submit = async () => {
         if (!movieId) {
-            Alert.alert('Lỗi', 'Không xác định phim để đánh giá');
+            Alert.alert(t(language, 'Lỗi', 'Error'), t(language, 'Không xác định phim để đánh giá', 'The movie to review could not be identified.'));
             return;
         }
 
         if (!text.trim()) {
-            Alert.alert('Lưu ý', 'Vui lòng nhập cảm nhận của bạn');
+            Alert.alert(t(language, 'Lưu ý', 'Note'), t(language, 'Vui lòng nhập cảm nhận của bạn', 'Please enter your feedback.'));
             return;
         }
 
@@ -47,11 +50,11 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
                 text: text.trim(),
             });
 
-            Alert.alert('Đã gửi đánh giá', 'Đánh giá của bạn đang chờ quản trị viên duyệt.', [
+            Alert.alert(t(language, 'Đã gửi đánh giá', 'Review submitted'), t(language, 'Đánh giá của bạn đang chờ quản trị viên duyệt.', 'Your review is pending approval by the administrator.'), [
                 { text: 'OK', onPress: () => onBack() },
             ]);
         } catch (err: any) {
-            Alert.alert('Lỗi', err?.message ?? 'Không gửi được đánh giá');
+            Alert.alert(t(language, 'Lỗi', 'Error'), err?.message ?? t(language, 'Không gửi được đánh giá', 'Unable to submit the review.'));
         } finally {
             setSaving(false);
         }
@@ -65,13 +68,13 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
                         <Path d="M15 5L8 12l7 7" stroke="#005f98" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Viết đánh giá</Text>
+                <Text style={styles.headerTitle}>{t(language, 'Viết đánh giá', 'Write a review')}</Text>
                 <View style={styles.headerSpacer} />
             </View>
             <ScrollView contentContainerStyle={styles.body}>
-                <Text style={styles.title}>Viết đánh giá — {title}</Text>
+                <Text style={styles.title}>{t(language, 'Viết đánh giá —', 'Write a review —')} {title}</Text>
 
-                <Text style={styles.label}>Đánh giá của bạn</Text>
+                <Text style={styles.label}>{t(language, 'Đánh giá của bạn', 'Your rating')}</Text>
                 <View style={styles.ratingRow}>
                     {Array.from({ length: 5 }).map((_, i) => {
                         const val = i + 1;
@@ -87,18 +90,18 @@ export default function WriteReview({ movieId, title, onBack }: WriteReviewProps
                     </View>
                 </View>
 
-                <Text style={styles.label}>Cảm nhận thêm về bộ phim</Text>
+                <Text style={styles.label}>{t(language, 'Cảm nhận thêm về bộ phim', 'Share more about the movie')}</Text>
                 <TextInput
                     value={text}
                     onChangeText={setText}
-                    placeholder="Viết cảm nhận của bạn..."
+                    placeholder={t(language, 'Viết cảm nhận của bạn...', 'Write your thoughts...')}
                     style={styles.textarea}
                     multiline
                     numberOfLines={6}
                 />
 
                 <TouchableOpacity style={[styles.submitBtn, saving && styles.submitBtnDisabled]} onPress={submit} activeOpacity={0.8} disabled={saving}>
-                    <Text style={styles.submitText}>{saving ? 'Đang gửi...' : 'Gửi đánh giá'}</Text>
+                    <Text style={styles.submitText}>{saving ? t(language, 'Đang gửi...', 'Submitting...') : t(language, 'Gửi đánh giá', 'Submit review')}</Text>
                 </TouchableOpacity>
             </ScrollView>
         </View>

@@ -37,11 +37,15 @@ import DatVeDetail from '../Showtime/screen/DatVeDetail';
 import MyTicketsScreen from '../Different/screens/MyTicketsScreen';
 import {claimVoucher} from '../../services/voucherService';
 import {useAuth} from '../../contexts/AuthContext';
+import {useLanguage} from '../../contexts/LanguageContext';
+import {t} from '../../utils/i18n';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 function TrangChu() {
   const {requestAuth} = useAuth();
+  const {language} = useLanguage();
+  const isEnglish = language === 'en';
   const phimNoiBat = usePhimNoiBat();
   const phimDangChieu = useMoviesDangChieu();
   const phimSapChieu = useMoviesSapChieu();
@@ -206,7 +210,7 @@ function TrangChu() {
 
   const handleQuickBook = () => {
     if (!selectedMovie) {
-      Alert.alert('Thông báo', 'Vui lòng chọn phim muốn xem!');
+      Alert.alert(t(language, 'Thông báo', 'Notice'), t(language, 'Vui lòng chọn phim muốn xem!', 'Please select a movie!'));
       return;
     }
 
@@ -256,7 +260,7 @@ function TrangChu() {
           onPress={() => {
             setSelectedDetailMovie(item);
           }}>
-          <Text style={styles.bookBtnText}>Mua vé</Text>
+          <Text style={styles.bookBtnText}>{t(language, 'Mua vé', 'Buy tickets')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -280,9 +284,9 @@ function TrangChu() {
             <TouchableOpacity
               style={styles.addBtn}
               onPress={() =>
-                Alert.alert('Đã thêm', `Đã thêm ${item.name} vào giỏ hàng bắp nước!`)
+                Alert.alert(t(language, 'Đã thêm', 'Added'), t(language, `Đã thêm ${item.name} vào giỏ hàng bắp nước!`, `Added ${item.name} to the snack cart!`))
               }>
-              <Text style={styles.addBtnText}>Thêm</Text>
+              <Text style={styles.addBtnText}>{t(language, 'Thêm', 'Add')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -298,10 +302,10 @@ function TrangChu() {
         try {
           const result = await claimVoucher(item.code);
           setClaimedVouchers(current => new Set(current).add(item.code));
-          Alert.alert('Nhận voucher thành công', result?.message || `Mã ${item.code} đã được thêm vào Voucher của tôi.`);
+          Alert.alert(t(language, 'Nhận voucher thành công', 'Voucher received successfully'), result?.message || t(language, `Mã ${item.code} đã được thêm vào Voucher của tôi.`, `Code ${item.code} has been added to My Vouchers.`));
         } catch (error) {
           const message = (error as Error)?.message || 'Không thể nhận voucher';
-          Alert.alert('Không thể nhận voucher', message);
+          Alert.alert(t(language, 'Không thể nhận voucher', 'Unable to receive voucher'), message);
         } finally {
           setClaimingVoucher('');
         }
@@ -309,8 +313,8 @@ function TrangChu() {
 
       if (!requestAuth(
         {
-          title: 'Đăng nhập để tiếp tục',
-          message: 'Đăng nhập để lưu voucher vào kho của bạn.',
+          title: t(language, 'Đăng nhập để tiếp tục', 'Log in to continue'),
+          message: t(language, 'Đăng nhập để lưu voucher vào kho của bạn.', 'Log in to save vouchers to your wallet.'),
         },
         runClaim,
       )) {
@@ -342,7 +346,7 @@ function TrangChu() {
             disabled={Boolean(claimingVoucher) || claimedVouchers.has(item.code)}
             onPress={handleClaim}>
             <Text style={styles.voucherClaimText}>
-              {claimedVouchers.has(item.code) ? 'Đã nhận' : claimingVoucher === item.code ? 'Đang nhận...' : 'Nhận ngay'}
+              {claimedVouchers.has(item.code) ? t(language, 'Đã nhận', 'Claimed') : claimingVoucher === item.code ? t(language, 'Đang nhận...', 'Receiving...') : t(language, 'Nhận ngay', 'Claim now')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -412,12 +416,12 @@ function TrangChu() {
             setIsSearching(false);
             setSelectedMovie(item);
             Alert.alert(
-              'Thông báo',
-              `Đã chọn phim "${item.tieuDe}" cho bảng Đặt vé nhanh!`,
+              t(language, 'Thông báo', 'Notice'),
+              t(language, `Đã chọn phim "${item.tieuDe}" cho bảng Đặt vé nhanh!`, `Selected "${item.tieuDe}" for Quick Booking!`),
             );
           }}
         >
-          <Text style={styles.searchResultBtnText}>Chọn</Text>
+          <Text style={styles.searchResultBtnText}>{t(language, 'Chọn', 'Select')}</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -509,8 +513,8 @@ function TrangChu() {
 
           if (!requestAuth(
             {
-              title: 'Đăng nhập để tiếp tục',
-              message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+              title: t(language, 'Đăng nhập để tiếp tục', 'Log in to continue'),
+              message: t(language, 'Đăng nhập để đăng ký và quản lý vé xem phim.', 'Log in to book and manage movie tickets.'),
             },
             startBooking,
           )) {
@@ -542,7 +546,7 @@ function TrangChu() {
               autoFocus
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Tìm tên phim đang chiếu, sắp chiếu..."
+              placeholder={isEnglish ? 'Search now showing and upcoming movies...' : 'Tìm tên phim đang chiếu, sắp chiếu...'}
               placeholderTextColor="#888888"
               style={styles.searchInput}
             />
@@ -588,26 +592,26 @@ function TrangChu() {
         <View style={styles.notificationScreen}>
           <View style={styles.notificationHeader}>
             <TouchableOpacity onPress={() => setShowNotifications(false)}><Text style={styles.notificationBack}>‹</Text></TouchableOpacity>
-            <Text style={styles.notificationTitle}>THÔNG BÁO</Text>
+            <Text style={styles.notificationTitle}>{t(language, 'THÔNG BÁO', 'NOTIFICATIONS')}</Text>
             <TouchableOpacity onPress={async () => { try { await markAllNotificationsRead(); await notificationsQuery.refetch(); } catch (e) { Alert.alert('Thông báo', (e as Error).message); } }}>
-              <Text style={styles.notificationReadAll}>Đọc tất cả</Text>
+              <Text style={styles.notificationReadAll}>{t(language, 'Đọc tất cả', 'Read all')}</Text>
             </TouchableOpacity>
           </View>
           <FlatList
             data={Array.isArray(listNotifications) ? listNotifications : []}
             keyExtractor={(item: any) => String(item._id)}
             contentContainerStyle={styles.notificationList}
-            ListEmptyComponent={<Text style={styles.notificationEmpty}>Chưa có thông báo nào</Text>}
+            ListEmptyComponent={<Text style={styles.notificationEmpty}>{t(language, 'Chưa có thông báo nào', 'No notifications yet')}</Text>}
             renderItem={({item}: any) => (
               <TouchableOpacity style={[styles.notificationItem, item.isRead ? styles.notificationRead : styles.notificationUnread]} onPress={async () => {
                 try {
                   if (!item.isRead) await markNotificationRead(item._id);
                   await notificationsQuery.refetch();
                 } catch (error) {
-                  Alert.alert('Không thể đánh dấu đã đọc', (error as Error).message);
+                  Alert.alert(t(language, 'Không thể đánh dấu đã đọc', 'Unable to mark as read'), (error as Error).message);
                   return;
                 }
-                if (item.type === 'voucher') Alert.alert(item.title, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`);
+                if (item.type === 'voucher') Alert.alert(item.title, t(language, `${item.content}\n\nVào tab Voucher để bấm Nhận ngay.`, `${item.content}\n\nGo to the Voucher tab and tap Claim now.`));
                 else setSelectedNews(item);
               }}>
                 <Text style={styles.notificationType}>{item.type === 'voucher' ? '🎟️' : item.type === 'phim' ? '🎬' : item.type === 'dat_ve' ? '🎫' : item.type === 'thanh_toan' ? '💳' : '🔔'}</Text>
@@ -630,8 +634,8 @@ function TrangChu() {
               <View style={styles.searchEmptyContainer}>
                 <Text style={styles.searchEmptyText}>
                   {searchQueryDebounced.trim().length < 2
-                    ? 'Nhập ít nhất 2 ký tự để tìm kiếm phim...'
-                    : 'Không tìm thấy bộ phim nào phù hợp.'}
+                    ? t(language, 'Nhập ít nhất 2 ký tự để tìm kiếm phim...', 'Enter at least 2 characters to search...')
+                    : t(language, 'Không tìm thấy bộ phim nào phù hợp.', 'No matching movies found.')}
                 </Text>
               </View>
             }
@@ -678,11 +682,11 @@ function TrangChu() {
 
           {/* Quick Booking */}
           <View style={styles.quickBookCard}>
-            <Text style={styles.quickBookHeader}>ĐẶT VÉ NHANH</Text>
+            <Text style={styles.quickBookHeader}>{t(language, 'ĐẶT VÉ NHANH', 'QUICK BOOKING')}</Text>
 
             {/* Dropdown Phim */}
             <View style={styles.dropdownContainer}>
-              <Text style={styles.dropdownLabel}>Chọn Phim</Text>
+              <Text style={styles.dropdownLabel}>{t(language, 'Chọn Phim', 'Select Movie')}</Text>
               <TouchableOpacity
                 style={styles.dropdownButton}
                 onPress={() => {
@@ -690,7 +694,7 @@ function TrangChu() {
                   setShowMovieDropdown(true);
                 }}>
                 <Text style={styles.dropdownValue}>
-                  {selectedMovie ? selectedMovie.tieuDe : '-- Chọn Phim --'}
+                  {selectedMovie ? selectedMovie.tieuDe : t(language, '-- Chọn Phim --', '-- Select Movie --')}
                 </Text>
                 <Text style={styles.dropdownArrow}>▼</Text>
               </TouchableOpacity>
@@ -698,19 +702,19 @@ function TrangChu() {
 
             {/* Nút đặt vé */}
             <TouchableOpacity style={styles.quickBookBtn} onPress={handleQuickBook}>
-              <Text style={styles.quickBookBtnText}>ĐẶT VÉ NGAY</Text>
+              <Text style={styles.quickBookBtnText}>{t(language, 'ĐẶT VÉ NGAY', 'BOOK NOW')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Đang chiếu (Now Showing) */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>PHIM ĐANG CHIẾU</Text>
+              <Text style={styles.sectionTitle}>{t(language, 'PHIM ĐANG CHIẾU', 'NOW SHOWING')}</Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Xem tất cả', 'Mở danh sách Phim đang chiếu')
                 }>
-                <Text style={styles.seeAllText}>Tất cả &gt;</Text>
+                <Text style={styles.seeAllText}>{isEnglish ? 'See all' : 'Tất cả'} &gt;</Text>
               </TouchableOpacity>
             </View>
             <FlatList
@@ -721,7 +725,7 @@ function TrangChu() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có phim đang chiếu</Text>
+                <Text style={styles.emptyText}>{t(language, 'Chưa có phim đang chiếu', 'No movies are showing')}</Text>
               }
             />
           </View>
@@ -730,9 +734,9 @@ function TrangChu() {
           <View style={[styles.section, styles.bestSellerSection]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, styles.sectionTitleHot]}>
-                TOP BÁN CHẠY
+                {t(language, 'TOP BÁN CHẠY', 'BEST SELLERS')}
               </Text>
-              <Text style={styles.badgeHot}>BÁN CHẠY</Text>
+              <Text style={styles.badgeHot}>{isEnglish ? 'BEST SELLER' : 'BÁN CHẠY'}</Text>
             </View>
             <FlatList
               data={listDangChieu.filter(
@@ -743,19 +747,19 @@ function TrangChu() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
-              ListEmptyComponent={<Text style={styles.emptyText}>Chưa có phim hot</Text>}
+              ListEmptyComponent={<Text style={styles.emptyText}>{isEnglish ? 'No popular movies yet' : 'Chưa có phim hot'}</Text>}
             />
           </View>
 
           {/* Sắp chiếu (Coming Soon) */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>PHIM SẮP CHIẾU</Text>
+              <Text style={styles.sectionTitle}>{t(language, 'PHIM SẮP CHIẾU', 'COMING SOON')}</Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Xem tất cả', 'Mở danh sách Phim sắp chiếu')
                 }>
-                <Text style={styles.seeAllText}>Tất cả &gt;</Text>
+                <Text style={styles.seeAllText}>{isEnglish ? 'See all' : 'Tất cả'} &gt;</Text>
               </TouchableOpacity>
             </View>
             <FlatList
@@ -766,7 +770,7 @@ function TrangChu() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có phim sắp chiếu</Text>
+                <Text style={styles.emptyText}>{t(language, 'Chưa có phim sắp chiếu', 'No upcoming movies')}</Text>
               }
             />
           </View>
@@ -774,7 +778,7 @@ function TrangChu() {
           {/* Ưu đãi / Voucher */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎁 ƯU ĐÃI NỔI BẬT</Text>
+              <Text style={styles.sectionTitle}>🎁 {t(language, 'ƯU ĐÃI NỔI BẬT', 'FEATURED OFFERS')}</Text>
             </View>
             <FlatList
               data={listVouchers}
@@ -786,8 +790,8 @@ function TrangChu() {
               ListEmptyComponent={
                 <View style={styles.voucherEmpty}>
                   <Text style={styles.voucherEmptyIcon}>🎁</Text>
-                  <Text style={styles.voucherEmptyTitle}>Chưa có ưu đãi mới</Text>
-                  <Text style={styles.voucherEmptyText}>Hãy quay lại thường xuyên để nhận voucher từ FilmGo.</Text>
+                  <Text style={styles.voucherEmptyTitle}>{t(language, 'Chưa có ưu đãi mới', 'No new offers')}</Text>
+                  <Text style={styles.voucherEmptyText}>{t(language, 'Hãy quay lại thường xuyên để nhận voucher từ FilmGo.', 'Check back regularly for new FilmGo vouchers.')}</Text>
                 </View>
               }
             />
@@ -796,7 +800,7 @@ function TrangChu() {
           {/* Combo bắp nước */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>COMBO BẮP NƯỚC</Text>
+              <Text style={styles.sectionTitle}>{t(language, 'COMBO BẮP NƯỚC', 'FOOD & DRINK COMBOS')}</Text>
             </View>
             <FlatList
               data={listProducts}
@@ -806,7 +810,7 @@ function TrangChu() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có combo bắp nước</Text>
+                <Text style={styles.emptyText}>{t(language, 'Chưa có combo bắp nước', 'No food and drink combos')}</Text>
               }
             />
           </View>
@@ -814,7 +818,7 @@ function TrangChu() {
           {/* Tin tức / Sự kiện */}
           <View style={[styles.section, styles.newsSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>TIN TỨC & SỰ KIỆN</Text>
+              <Text style={styles.sectionTitle}>{t(language, 'TIN TỨC & SỰ KIỆN', 'NEWS & EVENTS')}</Text>
             </View>
             <FlatList
               data={listNews}
@@ -824,7 +828,7 @@ function TrangChu() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>Chưa có tin tức</Text>
+                <Text style={styles.emptyText}>{t(language, 'Chưa có tin tức', 'No news yet')}</Text>
               }
             />
           </View>
@@ -843,9 +847,9 @@ function TrangChu() {
             <View style={styles.moviePickerHandle} />
             <View style={styles.moviePickerHeader}>
               <View>
-                <Text style={styles.moviePickerTitle}>Chọn phim đặt vé nhanh</Text>
+                <Text style={styles.moviePickerTitle}>{t(language, 'Chọn phim đặt vé nhanh', 'Choose a movie for quick booking')}</Text>
                 <Text style={styles.moviePickerSubtitle}>
-                  {listQuickMovies.length} phim đang có suất chiếu khả dụng
+                  {t(language, `${listQuickMovies.length} phim đang có suất chiếu khả dụng`, `${listQuickMovies.length} movies currently have available showtimes`)}
                 </Text>
               </View>
               <TouchableOpacity
@@ -860,7 +864,7 @@ function TrangChu() {
               <TextInput
                 value={quickMovieSearch}
                 onChangeText={setQuickMovieSearch}
-                placeholder="Tìm tên phim..."
+                placeholder={t(language, 'Tìm tên phim...', 'Search for a movie...')}
                 placeholderTextColor="#999999"
                 style={styles.moviePickerSearchInput}
               />
@@ -891,9 +895,9 @@ function TrangChu() {
                     <View style={styles.moviePickerInfo}>
                       <Text style={styles.moviePickerName} numberOfLines={2}>{movie.tieuDe}</Text>
                       <Text style={styles.moviePickerMeta} numberOfLines={1}>
-                        {movie.theLoai || 'Đang có suất chiếu'}
+                        {movie.theLoai || t(language, 'Đang có suất chiếu', 'Currently available for booking')}
                       </Text>
-                      <Text style={styles.moviePickerAvailable}>● Có thể đặt vé</Text>
+                      <Text style={styles.moviePickerAvailable}>{t(language, '● Có thể đặt vé', '● Bookable')}</Text>
                     </View>
                     <View style={[styles.moviePickerRadio, selected && styles.moviePickerRadioSelected]}>
                       {selected && <View style={styles.moviePickerRadioDot} />}
@@ -905,7 +909,7 @@ function TrangChu() {
                 <View style={styles.moviePickerEmpty}>
                   <Text style={styles.moviePickerEmptyIcon}>🎬</Text>
                   <Text style={styles.moviePickerEmptyText}>
-                    {quickMovieSearch ? 'Không tìm thấy phim phù hợp' : 'Chưa có phim nào có suất đặt được'}
+                    {quickMovieSearch ? t(language, 'Không tìm thấy phim phù hợp', 'No matching movies found') : t(language, 'Chưa có phim nào có suất đặt được', 'No movies currently available for booking')}
                   </Text>
                 </View>
               }
@@ -927,7 +931,7 @@ function TrangChu() {
                 style={styles.newsModalImage}
               />
               <View style={styles.newsModalTopRow}>
-                <Text style={styles.newsModalBadge}>TIN TỨC & SỰ KIỆN</Text>
+                <Text style={styles.newsModalBadge}>{t(language, 'TIN TỨC & SỰ KIỆN', 'NEWS & EVENTS')}</Text>
                 <TouchableOpacity
                   style={styles.newsModalClose}
                   onPress={() => setSelectedNews(null)}>
@@ -951,7 +955,7 @@ function TrangChu() {
               <View style={styles.newsModalNote}>
                 <Text style={styles.newsModalNoteIcon}>🎬</Text>
                 <Text style={styles.newsModalNoteText}>
-                  Theo dõi FilmGo thường xuyên để không bỏ lỡ những chương trình mới nhất.
+                  {t(language, 'Theo dõi FilmGo thường xuyên để không bỏ lỡ những chương trình mới nhất.', 'Follow FilmGo regularly so you do not miss the latest programs.')}
                 </Text>
               </View>
             </ScrollView>
@@ -960,7 +964,7 @@ function TrangChu() {
               activeOpacity={0.85}
               style={styles.newsModalButton}
               onPress={() => setSelectedNews(null)}>
-              <Text style={styles.newsModalButtonText}>Đã hiểu</Text>
+              <Text style={styles.newsModalButtonText}>{t(language, 'Đã hiểu', 'Got it')}</Text>
             </TouchableOpacity>
           </View>
         </View>

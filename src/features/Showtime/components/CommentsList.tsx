@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import CommentItem from './CommentItem';
+import {useLanguage} from '../../../contexts/LanguageContext';
+import {t} from '../../../utils/i18n';
 
 type Comment = {
     id: string;
@@ -16,17 +18,18 @@ type Comment = {
 };
 
 export default function CommentsList({ comments }: { comments?: Comment[] }) {
+    const {language} = useLanguage();
     const data: Comment[] = comments ?? [];
 
     return (
         <View style={styles.wrapper}>
-            <Text style={styles.header}>Đánh giá ({data.length})</Text>
+            <Text style={styles.header}>{t(language, `Đánh giá (${data.length})`, `Reviews (${data.length})`)}</Text>
             {data.length > 0 ? (
                 data.map(c => (
                     <CommentItem key={c.id} comment={c} />
                 ))
             ) : (
-                <Text style={styles.emptyText}>Chưa có đánh giá về phim này.</Text>
+                <Text style={styles.emptyText}>{t(language, 'Chưa có đánh giá về phim này.', 'No reviews for this movie yet.')}</Text>
             )}
         </View>
     );
