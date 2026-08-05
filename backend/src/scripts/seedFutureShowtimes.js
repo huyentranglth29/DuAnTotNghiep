@@ -14,27 +14,38 @@ const BOOKABLE_MOVIE_STATUSES = [
   "coming_soon",
   "featured",
 ];
-const HOURS = [9, 12, 15, 18, 21];
+const CLEANUP_MINUTES = 15;
+const TIME_SLOTS = [
+  [9, 0],
+  [10, 30],
+  [12, 30],
+  [14, 30],
+  [16, 30],
+  [18, 30],
+  [20, 30],
+  [22, 30],
+];
 const DAYS = 7;
-const TARGET_PER_MOVIE = 3;
+const TARGET_PER_MOVIE = 8;
 
 function durationMinutes(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const text = String(value || "");
   const hours = Number(text.match(/(\d+)\s*h/i)?.[1] || 0);
-  const minutes = Number(text.match(/(\d+)\s*m/i)?.[1] || 0);
+  const minutes = Number(text.match(/(\d+)\s*(?:m|phút|phut)/i)?.[1] || 0);
   const numeric = Number(text);
   if (hours || minutes) return hours * 60 + minutes;
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 120;
 }
 
 async function availableRoom(rooms, startTime, endTime, offset) {
+  const busyEndTime = new Date(endTime.getTime() + CLEANUP_MINUTES * 60 * 1000);
   for (let index = 0; index < rooms.length; index += 1) {
     const room = rooms[(index + offset) % rooms.length];
     const overlap = await Showtime.exists({
       room: room._id,
-      status: "scheduled",
-      startTime: { $lt: endTime },
+      status: { $ne: "cancelled" },
+      startTime: { $lt: busyEndTime },
       endTime: { $gt: startTime },
     });
     if (!overlap) return room;
@@ -74,10 +85,11 @@ async function seedFutureShowtimes() {
     let needed = Math.max(0, TARGET_PER_MOVIE - existing);
 
     for (let day = 0; day < DAYS && needed > 0; day += 1) {
-      for (let hourIndex = 0; hourIndex < HOURS.length && needed > 0; hourIndex += 1) {
+      for (let slotIndex = 0; slotIndex < TIME_SLOTS.length && needed > 0; slotIndex += 1) {
+        const [hour, minute] = TIME_SLOTS[(slotIndex + index) % TIME_SLOTS.length];
         const startTime = new Date(now);
         startTime.setDate(startTime.getDate() + day);
-        startTime.setHours(HOURS[(hourIndex + index) % HOURS.length], 0, 0, 0);
+        startTime.setHours(hour, minute, 0, 0);
         if (startTime <= new Date(now.getTime() + 20 * 60 * 1000)) {
           skipped += 1;
           continue;
@@ -99,7 +111,7 @@ async function seedFutureShowtimes() {
           rooms,
           startTime,
           endTime,
-          index + day + hourIndex,
+          index + day + slotIndex,
         );
         if (!room) {
           skipped += 1;
@@ -113,6 +125,7 @@ async function seedFutureShowtimes() {
           endTime,
           price: Number(movie.price || 100000),
           status: "scheduled",
+          screeningType: "regular",
         });
         created += 1;
         needed -= 1;
