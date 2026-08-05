@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -21,10 +21,13 @@ import {SelectedShowtimeInfo} from './ChonGio';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
 import {useLanguage} from '../../../contexts/LanguageContext';
 import {t} from '../../../utils/i18n';
+import {Phim} from '../../../types/phim';
 
 const BLUE = '#00689d';
 const PINK = '#ec197e';
 const WEEKDAY = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const DEFAULT_POSTER =
+  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=500';
 
 type DangChieuProps = {
   onMoviePress: (movie: MovieBookingInfo) => void;
@@ -48,6 +51,28 @@ function toSelectedShowtime(item: SuatChieuApi): SelectedShowtimeInfo {
 
 function movieIdOf(item: SuatChieuApi) {
   return String(item.movie?._id || '');
+}
+
+function movieFromShowtime(item?: SuatChieuApi): Phim | null {
+  const movie = item?.movie;
+  const id = String(movie?._id || '');
+  if (!movie || !id) return null;
+
+  const genre = Array.isArray(movie.genre)
+    ? movie.genre.map(value => String(value || '').trim()).filter(Boolean).join(', ')
+    : String(movie.genre || '').trim();
+
+  return {
+    id,
+    tieuDe: movie.title || 'Phim đang chiếu',
+    posterUrl: movie.posterUrl || DEFAULT_POSTER,
+    diemDanhGia: 0,
+    theLoai: genre || 'Đang cập nhật',
+    thoiLuong: String(movie.duration || 'Đang cập nhật'),
+    trangThai: 'dang-chieu',
+    nhanTuoi: movie.ageRating || 'T13',
+    laPhimHot: false,
+  };
 }
 
 function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
@@ -75,6 +100,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
   }, [showtimes]);
   const [chosenDate, setChosenDate] = useState('');
   const [formatFilter, setFormatFilter] = useState(isEnglish ? 'All formats' : 'Tất cả');
+  const allFormatsLabel = isEnglish ? 'All formats' : 'Tất cả';
   const selectedDate = chosenDate || dates[0] || '';
 
   const availableFormats = useMemo(() => {
@@ -89,8 +115,28 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
           .filter((item): item is string => Boolean(item)),
       ),
     );
-    return [isEnglish ? 'All formats' : 'Tất cả', ...formats];
-  }, [isEnglish, selectedDate, showtimes]);
+    return [allFormatsLabel, ...formats];
+  }, [allFormatsLabel, selectedDate, showtimes]);
+
+  useEffect(() => {
+    if (!availableFormats.includes(formatFilter)) {
+      setFormatFilter(availableFormats[0] || allFormatsLabel);
+    }
+  }, [allFormatsLabel, availableFormats, formatFilter]);
+
+  const moviesById = useMemo(() => {
+    const map = new Map<string, Phim>();
+    movies.forEach(movie => map.set(String(movie.id), movie));
+    return map;
+  }, [movies]);
+
+  const showtimeMatchesFormat = (item: SuatChieuApi) =>
+    formatFilter === allFormatsLabel || item.room?.type === formatFilter;
+
+  const countShowtimesByDate = (key: string) =>
+    showtimes.filter(
+      item => toDateKey(item.startTime) === key && showtimeMatchesFormat(item),
+    ).length;
 
   const showtimesByMovie = useMemo(() => {
     const map = new Map<string, SuatChieuApi[]>();
@@ -98,7 +144,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
       .filter(
         item =>
           (!selectedDate || toDateKey(item.startTime) === selectedDate) &&
-          (formatFilter === (isEnglish ? 'All formats' : 'Tất cả') || item.room?.type === formatFilter),
+          showtimeMatchesFormat(item),
       )
       .forEach(item => {
         const id = movieIdOf(item);
@@ -114,12 +160,14 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
       ),
     );
     return map;
-  }, [formatFilter, isEnglish, selectedDate, showtimes]);
+  }, [formatFilter, selectedDate, showtimes]);
 
   const visibleMovies = useMemo(() => {
     if (!selectedDate || showtimesQuery.isLoading) return movies;
-    return movies.filter(movie => showtimesByMovie.has(String(movie.id)));
-  }, [movies, selectedDate, showtimesByMovie, showtimesQuery.isLoading]);
+    return Array.from(showtimesByMovie.entries())
+      .map(([id, movieShowtimes]) => moviesById.get(id) ?? movieFromShowtime(movieShowtimes[0]))
+      .filter((movie): movie is Phim => Boolean(movie));
+  }, [movies, moviesById, selectedDate, showtimesByMovie, showtimesQuery.isLoading]);
 
   const nearestShowtime = useMemo(() => {
     const items = Array.from(showtimesByMovie.values()).flat();
@@ -165,9 +213,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
             const date = new Date(`${key}T12:00:00`);
             const active = selectedDate === key;
             const today = key === toDateKey(new Date());
-            const count = showtimes.filter(
-              item => toDateKey(item.startTime) === key,
-            ).length;
+            const count = countShowtimesByDate(key);
             return (
               <TouchableOpacity
                 key={key}
@@ -211,7 +257,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                     styles.filterChipText,
                     active && styles.filterChipTextActive,
                   ]}>
-                  {format === (isEnglish ? 'All formats' : 'Tất cả') ? (isEnglish ? 'All formats' : 'Tất cả định dạng') : format}
+                  {format === allFormatsLabel ? (isEnglish ? 'All formats' : 'Tất cả định dạng') : format}
                 </Text>
               </TouchableOpacity>
             );
