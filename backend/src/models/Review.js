@@ -13,6 +13,21 @@ const reviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    movieTitle: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    userName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    userEmail: {
+      type: String,
+      trim: true,
+      default: "",
+    },
 
     rating: {
       type: Number,
