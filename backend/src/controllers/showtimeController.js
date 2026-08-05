@@ -42,6 +42,12 @@ const validateEarlyScreening = ({ movie, startTime }) => {
   if (screeningDay >= releaseDay) {
     return `Suất chiếu sớm phải diễn ra trước ngày khởi chiếu ${releaseDay.toLocaleDateString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"})}`;
   }
+  if (
+    movie.ticketSaleStartAt &&
+    new Date(movie.ticketSaleStartAt) > new Date(startTime)
+  ) {
+    return `Thời điểm mở bán vé (${new Date(movie.ticketSaleStartAt).toLocaleString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"})}) phải trước thời gian bắt đầu suất chiếu sớm`;
+  }
   return "";
 };
 

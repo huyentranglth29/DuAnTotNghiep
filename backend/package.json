@@ -7,6 +7,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "seed:movies": "node src/scripts/seedMovies.js",
+    "seed:demo-films": "node src/scripts/seedDemoFilmSets.js",
     "seed:showtimes": "node src/scripts/seedShowtimes.js",
     "seed:showtimes:force": "node src/scripts/seedShowtimes.js --force",
     "seed:future-showtimes": "node src/scripts/seedFutureShowtimes.js",

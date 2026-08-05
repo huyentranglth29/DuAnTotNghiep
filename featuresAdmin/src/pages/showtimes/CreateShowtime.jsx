@@ -127,8 +127,15 @@ function CreateShowtime() {
     if (form.date >= releaseDate) {
       return `Suất chiếu sớm phải nằm trước ngày khởi chiếu ${formatDate(releaseValue)}.`;
     }
+    if (selectedMovie?.ticketSaleStartAt && form.time) {
+      const showtimeStart = new Date(buildStartTimeIso(form.date, form.time));
+      const ticketSaleStart = new Date(selectedMovie.ticketSaleStartAt);
+      if (ticketSaleStart > showtimeStart) {
+        return `Phim mở bán vé từ ${ticketSaleStart.toLocaleString('vi-VN')}, muộn hơn thời gian bắt đầu suất chiếu sớm. Hãy sửa thời điểm mở bán trong Quản lý phim.`;
+      }
+    }
     return '';
-  }, [form.date, form.screeningType, selectedMovie]);
+  }, [form.date, form.screeningType, form.time, selectedMovie]);
 
   useEffect(() => {
     if (!form.room || !form.date) {
@@ -444,6 +451,14 @@ function CreateShowtime() {
                       selectedMovie?.expectedReleaseDate,
                     )}. Phim vẫn nằm ở Sắp chiếu và đồng thời xuất hiện trong tab Suất chiếu sớm.`}
                 </span>
+                {earlyScreeningError ? (
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => updateField('screeningType', 'regular')}>
+                    Chuyển sang suất thông thường
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <SelectDropdown

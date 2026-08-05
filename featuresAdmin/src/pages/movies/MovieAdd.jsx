@@ -8,6 +8,7 @@ const initialForm = {
   title: '',
   genre: [],
   duration: '',
+  expectedReleaseDate: '',
   publishedAt: '',
   ticketSaleStartAt: '',
   announceUpcoming: false,
@@ -27,6 +28,14 @@ function toDateTimeInput(value) {
   if (Number.isNaN(date.getTime())) return '';
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
+}
+
+function toDateInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
 }
 
 function MovieAdd() {
@@ -103,6 +112,7 @@ function MovieAdd() {
             typeof movie.duration === 'number'
               ? String(movie.duration)
               : String(movie.duration || '').replace(/[^\d]/g, '') || '',
+          expectedReleaseDate: toDateInput(movie.expectedReleaseDate),
           publishedAt: toDateTimeInput(movie.publishedAt),
           ticketSaleStartAt: toDateTimeInput(movie.ticketSaleStartAt),
           announceUpcoming: ['coming-soon', 'coming_soon'].includes(movie.status),
@@ -192,6 +202,9 @@ function MovieAdd() {
         if (!form.publishedAt || !form.ticketSaleStartAt) {
           throw new Error('Vui lòng nhập đủ thời điểm công bố và mở bán.');
         }
+        if (!form.expectedReleaseDate) {
+          throw new Error('Vui lòng nhập ngày dự kiến khởi chiếu.');
+        }
         if (publishAt > saleAt) {
           throw new Error('Thời gian phải theo thứ tự: Công bố ≤ Mở bán.');
         }
@@ -203,6 +216,9 @@ function MovieAdd() {
         cast: form.cast.split(',').map(item => item.trim()).filter(Boolean),
         duration: Number(form.duration),
         price: Number(form.price || 0),
+        expectedReleaseDate: form.expectedReleaseDate
+          ? new Date(`${form.expectedReleaseDate}T00:00:00`)
+          : null,
         publishedAt: form.publishedAt ? new Date(form.publishedAt) : undefined,
         ticketSaleStartAt: form.ticketSaleStartAt
           ? new Date(form.ticketSaleStartAt)
@@ -344,6 +360,18 @@ function MovieAdd() {
                 Trạng thái và ngày khởi chiếu đang được hệ thống quản lý theo lịch suất chiếu.
               </div>
             )}
+            <label>
+              Ngày dự kiến khởi chiếu
+              <input
+                required={form.announceUpcoming}
+                type="date"
+                value={form.expectedReleaseDate}
+                onChange={event => updateForm('expectedReleaseDate', event.target.value)}
+              />
+              <small>
+                Dùng để xếp phim vào mục Sắp chiếu và kiểm tra các suất chiếu sớm.
+              </small>
+            </label>
             <label>
               Đạo diễn
               <input
