@@ -61,6 +61,9 @@ const normalizeLegacyTicket = (ticket) => {
   return {
     ...ticket,
     paymentStatus: booking.paymentStatus || "unpaid",
+    isPrinted: Boolean(ticket.isPrinted),
+    printedAt: ticket.printedAt || null,
+    printedCount: Number(ticket.printedCount || 0),
     cinemaName: booking.cinemaName || "FilmGo Hà Trung (Thanh Hóa)",
     roomName: ticket.showtime?.room?.name || booking.roomName || "",
     orderCode: booking.ticketCode || String(booking._id || ""),
@@ -102,6 +105,9 @@ const expandQuickBooking = (booking, showtime) => {
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
     paymentStatus: quickPaymentStatus(booking.status),
+    isPrinted: Boolean(booking.isPrinted),
+    printedAt: booking.printedAt || null,
+    printedCount: Number(booking.printedCount || 0),
     cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
     roomName: showtime?.room?.name || "",
     orderCode: bookingCode,
@@ -121,6 +127,9 @@ const expandQuickBooking = (booking, showtime) => {
       totalPrice: booking.totalPrice,
       status: booking.status,
       paymentStatus: quickPaymentStatus(booking.status),
+      isPrinted: Boolean(booking.isPrinted),
+      printedAt: booking.printedAt || null,
+      printedCount: Number(booking.printedCount || 0),
       paymentMethod: booking.paymentMethod,
       cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
       bookingDate: booking.bookingDate || "",
@@ -150,8 +159,17 @@ const getAll = async (req, res) => {
     );
 
     const keyword = String(req.query.keyword || "").trim().toLocaleLowerCase("vi");
-    const allTickets = [...legacyTickets.map(normalizeLegacyTicket), ...quickTickets]
+    const printFilter = String(req.query.print || req.query.printStatus || "").trim();
+
+    let allTickets = [...legacyTickets.map(normalizeLegacyTicket), ...quickTickets]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    if (printFilter === "da_in") {
+      allTickets = allTickets.filter((t) => t.isPrinted);
+    } else if (printFilter === "chua_in") {
+      allTickets = allTickets.filter((t) => !t.isPrinted);
+    }
+
     const filteredTickets = keyword
       ? allTickets.filter((ticket) => [
         ticket.code,
@@ -186,7 +204,38 @@ const getAll = async (req, res) => {
 const update = async (req, res) => {
   try {
     const id = String(req.params.id || "");
+    const action = String(req.body.action || "").trim();
     const quickMatch = id.match(/^quick-([a-f\d]{24})-\d+$/i);
+
+    if (action === "print") {
+      if (quickMatch) {
+        const booking = await QuickBooking.findById(quickMatch[1]);
+        if (!booking) return res.status(404).json({ success: false, message: "Không tìm thấy đơn vé" });
+        booking.isPrinted = true;
+        booking.printedAt = new Date();
+        booking.printedCount = (booking.printedCount || 0) + 1;
+        await booking.save();
+        return res.json({
+          success: true,
+          message: "Đã in vé thành công",
+          data: { isPrinted: true, printedAt: booking.printedAt, printedCount: booking.printedCount },
+        });
+      }
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ success: false, message: "ID vé không hợp lệ" });
+      }
+      const ticket = await Ticket.findById(id);
+      if (!ticket) return res.status(404).json({ success: false, message: "Không tìm thấy vé" });
+      ticket.isPrinted = true;
+      ticket.printedAt = new Date();
+      ticket.printedCount = (ticket.printedCount || 0) + 1;
+      await ticket.save();
+      return res.json({
+        success: true,
+        message: "Đã in vé thành công",
+        data: { isPrinted: true, printedAt: ticket.printedAt, printedCount: ticket.printedCount },
+      });
+    }
 
     if (quickMatch) {
       const booking = await QuickBooking.findById(quickMatch[1]);

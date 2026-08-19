@@ -50,6 +50,16 @@ function CheckInBadge({checkedIn, cancelled}) {
   return <span className="orderBadge orderBadge--muted">Chưa check-in</span>;
 }
 
+function PrintBadge({isPrinted, cancelled}) {
+  if (cancelled) {
+    return <span className="orderBadge orderBadge--muted">—</span>;
+  }
+  if (isPrinted) {
+    return <span className="orderBadge orderBadge--success">Đã in</span>;
+  }
+  return <span className="orderBadge orderBadge--warning">Chưa in</span>;
+}
+
 function Timeline({order}) {
   const steps = [
     {key: 'booked', label: 'Đặt vé', at: order.timeline?.bookedAt},
@@ -104,6 +114,7 @@ function BookingList() {
     movie: '',
     date: '',
     payment: '',
+    print: '',
     checkIn: '',
   });
   const [filters, setFilters] = useState(draft);
@@ -129,6 +140,7 @@ function BookingList() {
         movie: nextFilters.movie || undefined,
         date: nextFilters.date || undefined,
         payment: nextFilters.payment || undefined,
+        print: nextFilters.print || undefined,
         checkIn: nextFilters.checkIn || undefined,
       });
       const rows = Array.isArray(response?.data) ? response.data : [];
@@ -162,7 +174,7 @@ function BookingList() {
     }
     setFilters(draft);
     loadOrders(1, draft);
-  }, [draft.movie, draft.date, draft.payment, draft.checkIn]);
+  }, [draft.movie, draft.date, draft.payment, draft.print, draft.checkIn]);
 
   // Ô tìm kiếm: debounce 350ms rồi lọc
   useEffect(() => {
@@ -304,8 +316,36 @@ function BookingList() {
     URL.revokeObjectURL(url);
   };
 
-  const printTicket = () => {
+  const printTicket = async () => {
     if (!selected) return;
+    try {
+      await bookingApi.update(selected._id, {action: 'print'});
+      const now = new Date();
+      setSelected(curr =>
+        curr
+          ? {
+              ...curr,
+              isPrinted: true,
+              printedAt: now,
+              printedCount: (curr.printedCount || 0) + 1,
+            }
+          : null,
+      );
+      setOrders(curr =>
+        curr.map(o =>
+          o._id === selected._id
+            ? {
+                ...o,
+                isPrinted: true,
+                printedAt: now,
+                printedCount: (o.printedCount || 0) + 1,
+              }
+            : o,
+        ),
+      );
+    } catch (err) {
+      console.error('Lỗi khi ghi nhận in vé:', err);
+    }
     window.print();
   };
 
@@ -370,6 +410,14 @@ function BookingList() {
             <option value="da_huy">Đã hủy</option>
           </select>
           <select
+            value={draft.print}
+            onChange={event => updateDraft('print', event.target.value)}
+            aria-label="Lọc trạng thái in">
+            <option value="">In vé (Tất cả)</option>
+            <option value="chua_in">Chưa in</option>
+            <option value="da_in">Đã in</option>
+          </select>
+          <select
             value={draft.checkIn}
             onChange={event => updateDraft('checkIn', event.target.value)}
             aria-label="Lọc check-in">
@@ -393,6 +441,7 @@ function BookingList() {
                   <th>Ghế</th>
                   <th>Tổng tiền</th>
                   <th>Thanh toán</th>
+                  <th>In vé</th>
                   <th>Check-in</th>
                   <th>Thời gian đặt</th>
                   <th>Hành động</th>
@@ -401,13 +450,13 @@ function BookingList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="orderEmpty">
+                    <td colSpan={11} className="orderEmpty">
                       Đang tải đơn đặt vé...
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="orderEmpty">
+                    <td colSpan={11} className="orderEmpty">
                       Không có đơn đặt vé phù hợp.
                     </td>
                   </tr>
@@ -452,6 +501,9 @@ function BookingList() {
                         <td>{formatVnd(order.totalPrice)}</td>
                         <td>
                           <Badge map={PAYMENT_BADGE} value={order.paymentStatus} />
+                        </td>
+                        <td>
+                          <PrintBadge isPrinted={order.isPrinted} cancelled={cancelled} />
                         </td>
                         <td>
                           <CheckInBadge checkedIn={order.checkedIn} cancelled={cancelled} />
@@ -565,6 +617,7 @@ function BookingList() {
 
           <div className="orderDetailBadges">
             <Badge map={PAYMENT_BADGE} value={selected.paymentStatus} />
+            <PrintBadge isPrinted={selected.isPrinted} cancelled={isCancelled} />
             <CheckInBadge checkedIn={selected.checkedIn} cancelled={isCancelled} />
           </div>
 
@@ -595,6 +648,17 @@ function BookingList() {
               <span>Thanh toán</span>
               <strong>{METHOD_LABEL[selected.paymentMethod] || selected.paymentMethod || '—'}</strong>
               <small>{formatVnd(selected.totalPrice)}</small>
+            </div>
+            <div>
+              <span>Trạng thái in</span>
+              <strong>
+                {selected.isPrinted
+                  ? `Đã in (${selected.printedCount || 1} lần)`
+                  : 'Chưa in'}
+              </strong>
+              {selected.printedAt ? (
+                <small>Lúc: {formatDateTime(selected.printedAt)}</small>
+              ) : null}
             </div>
             <div>
               <span>Combo</span>

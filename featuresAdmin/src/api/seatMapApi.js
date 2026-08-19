@@ -1,6 +1,11 @@
 import axiosClient from './axiosClient';
 
 const seatMapApi = {
+  /** Sơ đồ ghế theo phòng chiếu (chế độ chuẩn theo phòng) */
+  getRoomMap: roomId => axiosClient.get(`/admin/seat-map/room/${roomId}`),
+  /** Khởi tạo sơ đồ ghế chuẩn cho phòng */
+  generateRoomSeats: (roomId, force = false) =>
+    axiosClient.post(`/admin/seat-map/room/${roomId}/generate-default`, {force}),
   /** Sơ đồ ghế realtime của một suất chiếu */
   getMap: showtimeId => axiosClient.get(`/admin/seat-map/${showtimeId}`),
   /** Thu hồi ghế đang giữ (bị chặn nếu khách đang thanh toán) */

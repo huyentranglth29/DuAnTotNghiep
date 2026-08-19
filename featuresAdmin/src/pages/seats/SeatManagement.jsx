@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {Lock, RefreshCw, Unlock, X} from 'lucide-react';
+import {useNavigate, useSearchParams} from 'react-router-dom';
+import {Layers, Lock, PlusCircle, RefreshCw, Unlock, X} from 'lucide-react';
 import seatMapApi from '../../api/seatMapApi';
+import roomApi from '../../api/roomApi';
 import showtimeApi from '../../api/showtimeApi';
 import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 
@@ -14,14 +15,22 @@ const SEAT_TYPE_LABEL = {
 };
 
 const SEAT_STATUS_LABEL = {
-  available: 'Trống',
+  available: 'Hoạt động / Trống',
   held: 'Đang giữ',
   sold: 'Đã bán',
   checked_in: 'Đã check-in',
-  maintenance: 'Bảo trì',
+  maintenance: 'Bảo trì (Đã khóa)',
 };
 
-const LEGEND = [
+const LEGEND_ROOM_MODE = [
+  {key: 'available', label: 'Hoạt động', className: 'seatDot--available'},
+  {key: 'maintenance', label: 'Bảo trì (Khóa)', className: 'seatDot--maintenance'},
+  {key: 'vip', label: 'VIP', className: 'seatDot--vip'},
+  {key: 'couple', label: 'Couple', className: 'seatDot--couple'},
+  {key: 'normal', label: 'Thường', className: 'seatDot--available'},
+];
+
+const LEGEND_SHOWTIME_MODE = [
   {key: 'available', label: 'Trống', className: 'seatDot--available'},
   {key: 'held', label: 'Đang giữ', className: 'seatDot--held'},
   {key: 'sold', label: 'Đã bán', className: 'seatDot--sold'},
@@ -71,38 +80,6 @@ function formatShowtimeLabel(showtime) {
   return `${time} - ${date}`;
 }
 
-/** Suất gần hiện tại nhất: ưu tiên suất sắp/đang chiếu, không có thì lấy suất vừa qua */
-function pickNearestShowtime(options = []) {
-  if (!options.length) return null;
-  const now = Date.now();
-  const withTime = options
-    .map(item => ({item, at: new Date(item.startTime || 0).getTime()}))
-    .filter(row => Number.isFinite(row.at));
-
-  if (!withTime.length) return options[0];
-
-  const upcoming = withTime
-    .filter(row => row.at >= now)
-    .sort((a, b) => a.at - b.at);
-  if (upcoming.length) return upcoming[0].item;
-
-  return withTime.sort((a, b) => b.at - a.at)[0].item;
-}
-
-/** Sắp xếp: suất sắp tới trước (gần nhất → xa), rồi suất đã qua (mới → cũ) */
-function sortShowtimesByNearest(options = []) {
-  const now = Date.now();
-  return [...options].sort((a, b) => {
-    const aAt = new Date(a.startTime || 0).getTime();
-    const bAt = new Date(b.startTime || 0).getTime();
-    const aUpcoming = aAt >= now;
-    const bUpcoming = bAt >= now;
-    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
-    if (aUpcoming) return aAt - bAt;
-    return bAt - aAt;
-  });
-}
-
 function formatCountdown(expiresAt) {
   if (!expiresAt) return '';
   const remain = new Date(expiresAt).getTime() - Date.now();
@@ -125,10 +102,12 @@ function seatClassName(seat, typeFilter, isSelected) {
 
 function SeatManagement() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialRoomId = searchParams.get('roomId') || '';
 
+  const [rooms, setRooms] = useState([]);
+  const [roomId, setRoomId] = useState(initialRoomId);
   const [showtimes, setShowtimes] = useState([]);
-  const [movieId, setMovieId] = useState('');
-  const [roomId, setRoomId] = useState('');
   const [showtimeId, setShowtimeId] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -139,12 +118,13 @@ function SeatManagement() {
   const [acting, setActing] = useState(false);
   const [typeEditing, setTypeEditing] = useState(false);
   const [nextType, setNextType] = useState('normal');
-  const [confirmModal, setConfirmModal] = useState(null); // {action: 'release'|'lock', seat}
+  const [confirmModal, setConfirmModal] = useState(null);
   const [, setClockTick] = useState(0);
 
-  const showtimeIdRef = useRef('');
+  const roomIdRef = useRef(roomId);
+  roomIdRef.current = roomId;
+  const showtimeIdRef = useRef(showtimeId);
   showtimeIdRef.current = showtimeId;
-  const prevMovieIdRef = useRef(movieId);
 
   /** Đồng hồ 1s cho countdown ghế đang giữ */
   useEffect(() => {
@@ -152,127 +132,86 @@ function SeatManagement() {
     return () => clearInterval(timer);
   }, []);
 
-  const loadShowtimes = useCallback(async () => {
-    try {
-      const response = await showtimeApi.getAll({limit: 500, sort: '-startTime'});
-      const rows = Array.isArray(response?.data) ? response.data : [];
-      const valid = rows.filter(item => item.movie && item.room);
-      setShowtimes(valid);
-    } catch (err) {
-      setError(err.message || 'Không tải được danh sách suất chiếu');
-    }
+  /** Tải danh sách phòng */
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRooms = async () => {
+      try {
+        const res = await roomApi.getAll({limit: 100});
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        if (isMounted) {
+          setRooms(rows);
+          if (rows.length > 0) {
+            setRoomId(curr => {
+              if (curr && rows.some(r => (r._id || r.id) === curr)) return curr;
+              return rows[0]._id || rows[0].id;
+            });
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || 'Không tải được danh sách phòng chiếu');
+        }
+      }
+    };
+    fetchRooms();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  /** Khi đổi phòng, tải danh sách suất chiếu của phòng đó */
   useEffect(() => {
-    loadShowtimes();
-  }, [loadShowtimes]);
-
-  const movies = useMemo(() => {
-    const map = new Map();
-    showtimes.forEach(item => {
-      const id = item.movie?._id;
-      if (id && !map.has(id)) {
-        map.set(id, item.movie.title || 'Không rõ tên phim');
-      }
-    });
-    return [...map.entries()].map(([id, title]) => ({id, title}));
-  }, [showtimes]);
-
-  const rooms = useMemo(() => {
-    const map = new Map();
-    showtimes
-      .filter(item => !movieId || item.movie?._id === movieId)
-      .forEach(item => {
-        const id = item.room?._id;
-        if (id && !map.has(id)) {
-          map.set(id, item.room.name || 'Phòng chưa đặt tên');
+    if (!roomId) {
+      setShowtimes([]);
+      setShowtimeId('');
+      return;
+    }
+    let isMounted = true;
+    const fetchShowtimes = async () => {
+      try {
+        const res = await showtimeApi.getAll({room: roomId, limit: 100, sort: '-startTime'});
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        if (isMounted) {
+          setShowtimes(rows);
+          setShowtimeId('');
         }
-      });
-    return [...map.entries()].map(([id, name]) => ({id, name}));
-  }, [showtimes, movieId]);
-
-  /** Suất theo phim (mọi phòng) — dùng để auto set phòng + suất gần nhất */
-  const showtimesForMovie = useMemo(
-    () =>
-      sortShowtimesByNearest(
-        showtimes.filter(item => !movieId || item.movie?._id === movieId),
-      ),
-    [showtimes, movieId],
-  );
-
-  const showtimeOptions = useMemo(
-    () =>
-      sortShowtimesByNearest(
-        showtimesForMovie.filter(item => !roomId || item.room?._id === roomId),
-      ),
-    [showtimesForMovie, roomId],
-  );
-
-  /** Nhóm suất chiếu theo phim để dropdown hiện rõ từng phim */
-  const showtimeGroups = useMemo(() => {
-    const map = new Map();
-    showtimeOptions.forEach(item => {
-      const title = item.movie?.title || 'Không rõ tên phim';
-      if (!map.has(title)) {
-        map.set(title, []);
+      } catch (err) {
+        if (isMounted) {
+          setShowtimes([]);
+        }
       }
-      map.get(title).push(item);
-    });
-    return [...map.entries()].map(([title, items]) => ({title, items}));
-  }, [showtimeOptions]);
+    };
+    fetchShowtimes();
+    return () => {
+      isMounted = false;
+    };
+  }, [roomId]);
 
-  /** Chọn phim → tự chọn phòng + suất gần hiện tại nhất */
-  useEffect(() => {
-    if (!movieId) {
-      prevMovieIdRef.current = '';
-      setShowtimeId('');
-      setSeatMap(null);
-      return;
-    }
-
-    if (!showtimesForMovie.length) {
-      setRoomId('');
-      setShowtimeId('');
-      setSeatMap(null);
-      prevMovieIdRef.current = movieId;
-      return;
-    }
-
-    const movieChanged = prevMovieIdRef.current !== movieId;
-    prevMovieIdRef.current = movieId;
-
-    if (movieChanged) {
-      const nearest = pickNearestShowtime(showtimesForMovie);
-      setRoomId(nearest?.room?._id || '');
-      setShowtimeId(nearest?._id || '');
-      return;
-    }
-
-    const roomValid = roomId && showtimesForMovie.some(item => item.room?._id === roomId);
-    if (!roomValid) {
-      const nearest = pickNearestShowtime(showtimesForMovie);
-      setRoomId(nearest?.room?._id || '');
-      setShowtimeId(nearest?._id || '');
-      return;
-    }
-
-    if (!showtimeOptions.some(item => item._id === showtimeId)) {
-      const nearest = pickNearestShowtime(showtimeOptions);
-      setShowtimeId(nearest?._id || '');
-    }
-  }, [movieId, roomId, showtimesForMovie, showtimeOptions, showtimeId]);
-
+  /** Tải sơ đồ ghế (theo Suất chiếu nếu có chọn, hoặc theo Phòng chiếu) */
   const loadSeatMap = useCallback(
-    async (id, {silent = false} = {}) => {
-      if (!id) return;
+    async ({silent = false} = {}) => {
+      const currentRoom = roomIdRef.current;
+      const currentShowtime = showtimeIdRef.current;
+
+      if (!currentRoom && !currentShowtime) return;
+
       if (!silent) {
         setLoading(true);
       }
       setError('');
+
       try {
-        const response = await seatMapApi.getMap(id);
-        if (showtimeIdRef.current !== id) return;
-        setSeatMap(response?.data || null);
+        let response;
+        if (currentShowtime) {
+          response = await seatMapApi.getMap(currentShowtime);
+        } else if (currentRoom) {
+          response = await seatMapApi.getRoomMap(currentRoom);
+        }
+
+        if (roomIdRef.current === currentRoom && showtimeIdRef.current === currentShowtime) {
+          setSeatMap(response?.data || null);
+        }
       } catch (err) {
         if (!silent) {
           setError(err.message || 'Không tải được sơ đồ ghế');
@@ -290,14 +229,16 @@ function SeatManagement() {
   useEffect(() => {
     setSelectedLabel('');
     setTypeEditing(false);
-    if (!showtimeId) return;
-    loadSeatMap(showtimeId);
-    const timer = setInterval(() => loadSeatMap(showtimeId, {silent: true}), REFRESH_MS);
+    if (!roomId && !showtimeId) return;
+
+    loadSeatMap();
+    const timer = setInterval(() => loadSeatMap({silent: true}), REFRESH_MS);
     return () => clearInterval(timer);
-  }, [showtimeId, loadSeatMap]);
+  }, [roomId, showtimeId, loadSeatMap]);
 
   const seats = seatMap?.seats || [];
   const stats = seatMap?.stats || null;
+  const currentRoomInfo = seatMap?.room || rooms.find(r => (r._id || r.id) === roomId) || null;
 
   const seatRows = useMemo(() => {
     const map = new Map();
@@ -331,7 +272,7 @@ function SeatManagement() {
     setError('');
     try {
       await action();
-      await loadSeatMap(showtimeId, {silent: true});
+      await loadSeatMap({silent: true});
     } catch (err) {
       setError(err.message || 'Thao tác thất bại');
     } finally {
@@ -353,6 +294,11 @@ function SeatManagement() {
       setTypeEditing(false);
     });
 
+  const handleGenerateSeats = () => {
+    if (!roomId) return;
+    runAction(() => seatMapApi.generateRoomSeats(roomId, true));
+  };
+
   const confirmAndRun = () => {
     if (!confirmModal) return;
     if (confirmModal.action === 'release') {
@@ -362,96 +308,74 @@ function SeatManagement() {
     }
   };
 
-  const currentShowtime = showtimeOptions.find(item => item._id === showtimeId);
+  const currentShowtime = showtimes.find(item => item._id === showtimeId);
 
   return (
     <section className="seatMapPage">
       <header className="seatMapHeader">
         <div>
-          <h2>Quản lý ghế</h2>
-          <p>Quản lý sơ đồ ghế và tình trạng đặt ghế theo suất chiếu</p>
+          <h2>Quản lý ghế theo phòng chiếu</h2>
+          <p>
+            {showtimeId
+              ? `Đang xem tình trạng đặt vé theo suất chiếu của ${currentRoomInfo?.name || 'Phòng'}`
+              : `Quản lý sơ đồ ghế, trạng thái bảo trì và loại ghế của ${currentRoomInfo?.name || 'Phòng chiếu'}`}
+          </p>
         </div>
         <button
           type="button"
           className="userBtnGhost"
-          onClick={() => loadSeatMap(showtimeId)}
-          disabled={!showtimeId || loading}
+          onClick={() => loadSeatMap()}
+          disabled={!roomId || loading}
         >
           <RefreshCw size={15} /> Làm mới
         </button>
       </header>
 
       <div className="seatMapFilters">
-        <SeatMapFilter label="Chọn phim">
+        <SeatMapFilter label="1. Chọn phòng chiếu (Chính)">
           <select
-            value={movieId}
+            value={roomId}
             onChange={event => {
-              const nextMovieId = event.target.value;
-              setMovieId(nextMovieId);
-              if (!nextMovieId) {
-                setRoomId('');
-                setShowtimeId('');
-                setSeatMap(null);
-              }
+              const nextRoomId = event.target.value;
+              setRoomId(nextRoomId);
+              setSearchParams(nextRoomId ? {roomId: nextRoomId} : {});
             }}
           >
-            <option value="">Tất cả phim</option>
-            {movies.map(movie => (
-              <option key={movie.id} value={movie.id}>
-                {movie.title}
-              </option>
-            ))}
-          </select>
-        </SeatMapFilter>
-
-        <SeatMapFilter label="Chọn phòng">
-          <select value={roomId} onChange={event => setRoomId(event.target.value)}>
-            <option value="">Tất cả phòng</option>
             {rooms.map(room => (
-              <option key={room.id} value={room.id}>
-                {room.name}
+              <option key={room._id || room.id} value={room._id || room.id}>
+                {room.name} ({room.type || '2D'}) - {room.totalSeats || 0} ghế
               </option>
             ))}
           </select>
         </SeatMapFilter>
 
-        <SeatMapFilter label="Chọn suất chiếu">
+        <SeatMapFilter label="2. Suất chiếu (Tùy chọn xem realtime)">
           <select
             value={showtimeId}
-            disabled={!movieId}
+            disabled={!roomId}
             onChange={event => setShowtimeId(event.target.value)}
           >
-            {!movieId ? (
-              <option value="">Chọn phim trước</option>
-            ) : !showtimeOptions.length ? (
-              <option value="">Không có suất chiếu</option>
-            ) : null}
-            {movieId
-              ? showtimeGroups.map(group => (
-                  <optgroup key={group.title} label={group.title}>
-                    {group.items.map(item => (
-                      <option key={item._id} value={item._id}>
-                        {formatShowtimeLabel(item)} · {item.movie?.title} · {item.room?.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))
-              : null}
+            <option value="">⚙️ Cấu hình gốc của phòng (Khóa/Mở/Đổi loại ghế)</option>
+            {showtimes.map(item => (
+              <option key={item._id} value={item._id}>
+                🎬 {formatShowtimeLabel(item)} · {item.movie?.title || 'Phim'}
+              </option>
+            ))}
           </select>
         </SeatMapFilter>
 
-        <SeatMapFilter label="Loại ghế">
+        <SeatMapFilter label="3. Lọc loại ghế">
           <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)}>
-            <option value="all">Tất cả</option>
-            <option value="normal">Thường</option>
-            <option value="vip">VIP</option>
-            <option value="couple">Couple</option>
+            <option value="all">Tất cả loại ghế</option>
+            <option value="normal">Ghế Thường</option>
+            <option value="vip">Ghế VIP</option>
+            <option value="couple">Ghế Couple</option>
           </select>
         </SeatMapFilter>
       </div>
 
       <div className="seatMapLegend">
-        {LEGEND.map(item => (
+        {(showtimeId ? LEGEND_SHOWTIME_MODE : LEGEND_ROOM_MODE).map(item => (
           <span key={item.key} className="seatLegendItem">
             <i className={`seatDot ${item.className}`} />
             {item.label}
@@ -465,17 +389,28 @@ function SeatManagement() {
         <section className="seatMapBoard">
           {loading ? (
             <p className="seatMapEmpty">Đang tải sơ đồ ghế...</p>
-          ) : !showtimeId || !seatMap ? (
-            <p className="seatMapEmpty">
-              {!movieId
-                ? 'Chọn phim để xem suất chiếu và sơ đồ ghế'
-                : 'Chọn suất chiếu để xem sơ đồ ghế'}
-            </p>
+          ) : !roomId ? (
+            <p className="seatMapEmpty">Vui lòng chọn phòng chiếu để xem sơ đồ ghế</p>
+          ) : seats.length === 0 ? (
+            <div style={{textAlign: 'center', padding: '40px 20px'}}>
+              <p className="seatMapEmpty" style={{marginBottom: '16px'}}>
+                Phòng này chưa có dữ liệu sơ đồ ghế.
+              </p>
+              <button
+                type="button"
+                className="seatActionBtn seatActionBtn--primary"
+                disabled={acting}
+                onClick={handleGenerateSeats}
+                style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}
+              >
+                <PlusCircle size={16} /> Tạo sơ đồ ghế chuẩn cho phòng (115 ghế)
+              </button>
+            </div>
           ) : (
             <>
               <div className="seatMapScreen">
                 <div className="seatMapScreenArc" />
-                <span>MÀN HÌNH</span>
+                <span>MÀN HÌNH ({currentRoomInfo?.name || 'PHÒNG CHIẾU'})</span>
               </div>
 
               <div className="seatMapGrid">
@@ -488,7 +423,7 @@ function SeatManagement() {
                           type="button"
                           key={seat.id}
                           className={seatClassName(seat, typeFilter, selectedLabel === seat.label)}
-                          title={`${seat.label} · ${SEAT_TYPE_LABEL[seat.type]} · ${SEAT_STATUS_LABEL[seat.status]}`}
+                          title={`${seat.label} · ${SEAT_TYPE_LABEL[seat.type]} · ${SEAT_STATUS_LABEL[seat.status] || seat.status}`}
                           onClick={() => handleSeatClick(seat)}
                         >
                           {seat.label}
@@ -503,11 +438,23 @@ function SeatManagement() {
               {stats ? (
                 <footer className="seatMapStats">
                   <span>Tổng số ghế: <strong>{stats.total}</strong></span>
-                  <span>Trống: <strong>{stats.available}</strong></span>
-                  <span>Đang giữ: <strong>{stats.held}</strong></span>
-                  <span>Đã bán: <strong>{stats.sold}</strong></span>
-                  <span>Check-in: <strong>{stats.checkedIn}</strong></span>
-                  <span>Bảo trì: <strong>{stats.maintenance}</strong></span>
+                  {showtimeId ? (
+                    <>
+                      <span>Trống: <strong>{stats.available}</strong></span>
+                      <span>Đang giữ: <strong>{stats.held}</strong></span>
+                      <span>Đã bán: <strong>{stats.sold}</strong></span>
+                      <span>Check-in: <strong>{stats.checkedIn}</strong></span>
+                      <span>Bảo trì: <strong>{stats.maintenance}</strong></span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Hoạt động: <strong>{stats.available}</strong></span>
+                      <span>Bảo trì (Khóa): <strong>{stats.maintenance}</strong></span>
+                      <span>Thường: <strong>{stats.normal || 0}</strong></span>
+                      <span>VIP: <strong>{stats.vip || 0}</strong></span>
+                      <span>Couple: <strong>{stats.couple || 0}</strong></span>
+                    </>
+                  )}
                 </footer>
               ) : null}
             </>
@@ -530,21 +477,27 @@ function SeatManagement() {
             <div className="seatDetailTitle">
               <strong>{selectedSeat.label}</strong>
               <span className={`seatStatusBadge seatStatusBadge--${selectedSeat.status}`}>
-                {SEAT_STATUS_LABEL[selectedSeat.status]}
+                {SEAT_STATUS_LABEL[selectedSeat.status] || selectedSeat.status}
               </span>
             </div>
 
             <dl className="seatDetailGrid">
+              <div>
+                <dt>Phòng</dt>
+                <dd>{currentRoomInfo?.name || 'Phòng'}</dd>
+              </div>
               <div>
                 <dt>Loại ghế</dt>
                 <dd className={`seatTypeText seatTypeText--${selectedSeat.type}`}>
                   {SEAT_TYPE_LABEL[selectedSeat.type] || selectedSeat.type}
                 </dd>
               </div>
-              <div>
-                <dt>Giá ghế</dt>
-                <dd>{formatVnd(selectedSeat.price)}</dd>
-              </div>
+              {selectedSeat.price ? (
+                <div>
+                  <dt>Giá vé</dt>
+                  <dd>{formatVnd(selectedSeat.price)}</dd>
+                </div>
+              ) : null}
               {currentShowtime ? (
                 <div>
                   <dt>Suất chiếu</dt>
@@ -626,11 +579,11 @@ function SeatManagement() {
                 <>
                   <button
                     type="button"
-                    className="seatActionBtn"
+                    className="seatActionBtn seatActionBtn--danger"
                     disabled={acting}
                     onClick={() => setConfirmModal({action: 'lock', seat: selectedSeat})}
                   >
-                    <Lock size={14} /> Khóa ghế
+                    <Lock size={14} /> Khóa ghế (Bảo trì)
                   </button>
                   {typeEditing ? (
                     <div className="seatTypeEditor">
@@ -671,7 +624,7 @@ function SeatManagement() {
                   disabled={acting}
                   onClick={() => unlockSeat(selectedSeat)}
                 >
-                  <Unlock size={14} /> Mở ghế
+                  <Unlock size={14} /> Mở ghế (Hết bảo trì)
                 </button>
               ) : null}
 
@@ -709,12 +662,12 @@ function SeatManagement() {
             <h3>
               {confirmModal.action === 'release'
                 ? `Thu hồi ghế ${confirmModal.seat.label}?`
-                : `Khóa ghế ${confirmModal.seat.label}?`}
+                : `Khóa ghế ${confirmModal.seat.label} (${currentRoomInfo?.name || 'Phòng'})?`}
             </h3>
             <p>
               {confirmModal.action === 'release'
                 ? 'Ghế sẽ trống lại ngay và khách đang chọn sẽ mất ghế này. Hệ thống sẽ từ chối nếu khách đang ở bước thanh toán.'
-                : 'Ghế chuyển sang bảo trì ở TẤT CẢ suất chiếu của phòng này và khách sẽ không đặt được. Hệ thống sẽ từ chối nếu ghế còn vé ở suất chưa diễn ra.'}
+                : `Ghế sẽ chuyển sang trạng thái bảo trì trong ${currentRoomInfo?.name || 'phòng này'} và khách hàng sẽ không thể đặt ở mọi suất chiếu. Hệ thống sẽ từ chối nếu ghế đang có vé đã thanh toán ở suất chưa diễn ra.`}
             </p>
             <div className="userModalActions">
               <button

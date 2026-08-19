@@ -16,6 +16,11 @@ const paymentStatusMap = {
   refunded: {label: 'Hoàn tiền', tone: 'info'},
 };
 
+const printStatusMap = {
+  true: {label: 'Đã in vé', tone: 'success'},
+  false: {label: 'Chưa in vé', tone: 'warning'},
+};
+
 function StatusBadge({map, value}) {
   const status = map[value] || {label: value || 'Chưa có', tone: 'info'};
   return <span className={`badge ${status.tone}`}>{status.label}</span>;
@@ -194,6 +199,7 @@ function ElectronicTicket() {
             <div className="electronicTicketStatus">
               <StatusBadge map={ticketStatusMap} value={selectedTicket.status} />
               <StatusBadge map={paymentStatusMap} value={paymentStatus} />
+              <StatusBadge map={printStatusMap} value={String(Boolean(selectedTicket.isPrinted))} />
             </div>
 
             <div className="electronicTicketTop">
@@ -232,6 +238,19 @@ function ElectronicTicket() {
               <div>
                 <small>Giá vé</small>
                 <strong>{formatVnd(selectedTicket.price || booking.totalPrice)}</strong>
+              </div>
+              <div>
+                <small>Trạng thái in</small>
+                <strong>
+                  {selectedTicket.isPrinted
+                    ? `Đã in (${selectedTicket.printedCount || 1} lần)`
+                    : 'Chưa in'}
+                </strong>
+                {selectedTicket.printedAt ? (
+                  <small style={{display: 'block', fontSize: '0.75rem', color: '#64748b'}}>
+                    {formatDateTime(selectedTicket.printedAt)}
+                  </small>
+                ) : null}
               </div>
               <div>
                 <small>Mã đơn</small>
