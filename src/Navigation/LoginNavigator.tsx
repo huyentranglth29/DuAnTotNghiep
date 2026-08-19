@@ -125,7 +125,7 @@ function LoginNavigator({
             phone: user.phone || '',
           });
           await saveRegisteredUser(user);
-          setActiveScreen('login');
+          onAuthenticated?.();
         }}
       />
     ) : (
@@ -159,6 +159,10 @@ function LoginNavigator({
             onAuthenticated?.();
             return true;
           } catch (loginError) {
+            if (![401, 404].includes((loginError as {status?: number})?.status || 0)) {
+              throw loginError;
+            }
+
             const localUser = await findRegisteredUser();
             if (localUser && isSameCredentials(localUser, email, password)) {
               try {

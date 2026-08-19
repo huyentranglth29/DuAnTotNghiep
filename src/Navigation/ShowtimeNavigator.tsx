@@ -264,11 +264,11 @@ function ShowtimeNavigator({
 
 const styles = StyleSheet.create({
   scheduleTabBar: {
-    height: 58,
+    height: 48,
     flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d7d7d7',
-    backgroundColor: '#f6f6f6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#edf2f7',
+    backgroundColor: '#ffffff',
   },
   scheduleTabItem: {
     flex: 1,
@@ -276,20 +276,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scheduleTabText: {
-    color: '#a5a5a5',
+    color: '#718096',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   scheduleTabTextActive: {
     color: BLUE,
-    fontSize: 15,
+    fontWeight: '800',
   },
   scheduleUnderline: {
     position: 'absolute',
     bottom: 0,
-    width: '78%',
-    height: 3,
+    width: '50%',
+    height: 2,
     backgroundColor: BLUE,
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
   },
 });
 

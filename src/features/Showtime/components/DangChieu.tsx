@@ -176,29 +176,9 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.intro}>
-        <View>
-          <Text style={styles.eyebrow}>FILMGO HÀ TRUNG</Text>
-          <Text style={styles.heading}>{t(language, 'Lịch chiếu phim', 'Movie showtimes')}</Text>
-          <Text style={styles.subheading}>
-            {t(language, 'Chọn ngày và suất chiếu phù hợp với bạn', 'Choose a suitable date and showtime')}
-          </Text>
-        </View>
-        <View style={styles.movieCount}>
-          <Text style={styles.movieCountNumber}>{visibleMovies.length}</Text>
-          <Text style={styles.movieCountLabel}>{t(language, 'phim', 'movies')}</Text>
-        </View>
-      </View>
-
-      <View style={styles.cinemaCard}>
+      <View style={styles.cinemaHeader}>
         <Text style={styles.cinemaPin}>📍</Text>
-        <View style={styles.cinemaInfo}>
-          <Text style={styles.cinemaTitle}>FilmGo Hà Trung (Thanh Hóa)</Text>
-          <Text style={styles.cinemaAddress}>
-            {t(language, 'Hà Trung, Thanh Hóa · Rạp đang chọn', 'Hà Trung, Thanh Hóa · Selected cinema')}
-          </Text>
-        </View>
-        <View style={styles.activeDot} />
+        <Text style={styles.cinemaTitle}>FilmGo Hà Trung (Thanh Hóa) ▾</Text>
       </View>
 
       {showtimesQuery.isLoading ? (
@@ -265,22 +245,6 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         </ScrollView>
       )}
 
-      {nearestShowtime && (
-        <View style={styles.nearestBanner}>
-          <Text style={styles.nearestIcon}>⚡</Text>
-          <View style={styles.nearestContent}>
-            <Text style={styles.nearestLabel}>{t(language, 'SUẤT GẦN NHẤT', 'NEXT SHOWTIME')}</Text>
-            <Text style={styles.nearestText}>
-              {formatGio(nearestShowtime.startTime)} ·{' '}
-              {nearestShowtime.movie?.title || 'Phim đang chiếu'}
-            </Text>
-          </View>
-          <Text style={styles.nearestRoom}>
-            {nearestShowtime.room?.type || '2D'}
-          </Text>
-        </View>
-      )}
-
       {isLoading ? (
         <ActivityIndicator style={styles.loader} color={BLUE} />
       ) : isError || showtimesQuery.isError ? (
@@ -308,10 +272,6 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
         </View>
       ) : (
         <View style={styles.scheduleList}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t(language, 'Phim & suất chiếu', 'Movies & showtimes')}</Text>
-            <Text style={styles.liveText}>● {t(language, 'Dữ liệu trực tiếp', 'Live data')}</Text>
-          </View>
           {visibleMovies.map(phim => {
             const movie = phimSangBooking(phim);
             const movieShowtimes = showtimesByMovie.get(String(phim.id)) ?? [];
@@ -375,8 +335,7 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                 ) : (
                   <>
                     <View style={styles.roomRow}>
-                      <Text style={styles.roomIcon}>▣</Text>
-                      <Text numberOfLines={1} style={styles.roomText}>
+                      <Text style={styles.roomText}>
                         {rooms.join('  •  ')}
                       </Text>
                     </View>
@@ -393,9 +352,6 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
                           }>
                           <Text style={styles.timeValue}>
                             {formatGio(item.startTime)}
-                          </Text>
-                          <Text style={styles.timeType}>
-                            {item.room?.type || '2D'}
                           </Text>
                         </TouchableOpacity>
                       ))}
@@ -415,111 +371,42 @@ function DangChieu({onMoviePress, onShowtimePress}: DangChieuProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {backgroundColor: '#f4f7fa', paddingBottom: 26},
-  intro: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  eyebrow: {fontSize: 11, color: PINK, fontWeight: '900', letterSpacing: 1.2},
-  heading: {fontSize: 26, color: '#102235', fontWeight: '900', marginTop: 2},
-  subheading: {fontSize: 13, color: '#718096', marginTop: 4},
-  movieCount: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: '#e2f4fc',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  movieCountNumber: {fontSize: 19, color: BLUE, fontWeight: '900'},
-  movieCountLabel: {fontSize: 10, color: '#617b8d', fontWeight: '700'},
-  cinemaCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+  container: {backgroundColor: '#ffffff', paddingBottom: 26},
+  cinemaHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  cinemaPin: {fontSize: 22, marginRight: 10},
-  cinemaInfo: {flex: 1},
-  cinemaTitle: {fontSize: 14, color: '#16283c', fontWeight: '900'},
-  cinemaAddress: {fontSize: 11, color: '#8291a3', marginTop: 3},
-  activeDot: {width: 9, height: 9, borderRadius: 5, backgroundColor: '#20bf6b'},
+  cinemaPin: {fontSize: 18, marginRight: 6},
+  cinemaTitle: {fontSize: 15, color: '#111', fontWeight: '800'},
   dateLoader: {marginVertical: 22},
-  dateScroll: {height: 130, flexGrow: 0},
-  dateList: {paddingHorizontal: 16, paddingVertical: 16, gap: 10},
+  dateScroll: {flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f0f0f0'},
+  dateList: {paddingHorizontal: 16, paddingBottom: 12, gap: 12},
   dateCard: {
-    width: 70,
-    borderRadius: 17,
-    paddingVertical: 10,
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#dce4eb',
-  },
-  dateCardActive: {backgroundColor: BLUE, borderColor: BLUE},
-  dateWeekday: {fontSize: 10, color: '#8492a3', fontWeight: '900'},
-  dateNumber: {fontSize: 22, color: '#1e293b', fontWeight: '900', marginTop: 2},
-  dateMonth: {fontSize: 10, color: '#8492a3'},
-  dateCount: {
-    fontSize: 9,
-    color: BLUE,
-    fontWeight: '800',
-    marginTop: 5,
-    backgroundColor: '#e8f5fb',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
   },
-  dateTextActive: {color: '#fff'},
-  dateCountActive: {color: '#fff', backgroundColor: 'rgba(255,255,255,0.18)'},
-  filterList: {paddingHorizontal: 16, paddingBottom: 14, gap: 8},
-  filterScroll: {height: 50, flexGrow: 0},
+  dateCardActive: {backgroundColor: '#f0f4f8'},
+  dateWeekday: {fontSize: 11, color: '#777', fontWeight: '600'},
+  dateNumber: {fontSize: 16, color: '#111', fontWeight: '800', marginTop: 2},
+  dateMonth: {display: 'none'},
+  dateCount: {display: 'none'},
+  dateTextActive: {color: BLUE},
+  dateCountActive: {},
+  filterList: {paddingHorizontal: 16, paddingVertical: 10, gap: 8},
+  filterScroll: {flexGrow: 0},
   filterChip: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#ced9e2',
-    backgroundColor: '#fff',
-    paddingHorizontal: 13,
-    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  filterChipActive: {borderColor: PINK, backgroundColor: '#fff0f7'},
-  filterChipText: {fontSize: 11, color: '#65778a', fontWeight: '800'},
-  filterChipTextActive: {color: PINK},
-  nearestBanner: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-    borderRadius: 14,
-    backgroundColor: '#fff3df',
-    borderWidth: 1,
-    borderColor: '#ffdba3',
-    paddingHorizontal: 13,
-    paddingVertical: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  nearestIcon: {fontSize: 19, marginRight: 9},
-  nearestContent: {flex: 1},
-  nearestLabel: {fontSize: 9, color: '#d97706', fontWeight: '900'},
-  nearestText: {fontSize: 12, color: '#593b18', fontWeight: '800', marginTop: 2},
-  nearestRoom: {
-    color: '#d97706',
-    fontSize: 10,
-    fontWeight: '900',
-    borderWidth: 1,
-    borderColor: '#f1b65e',
-    borderRadius: 7,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
+  filterChipActive: {backgroundColor: '#e6f0fa'},
+  filterChipText: {fontSize: 13, color: '#555', fontWeight: '600'},
+  filterChipTextActive: {color: BLUE, fontWeight: '800'},
   loader: {marginTop: 40},
   stateBox: {paddingHorizontal: 24, paddingVertical: 45, alignItems: 'center'},
   emptyIcon: {fontSize: 38, marginBottom: 12},
@@ -533,84 +420,69 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   retryText: {color: '#fff', fontWeight: '800'},
-  scheduleList: {paddingHorizontal: 14},
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  sectionTitle: {fontSize: 18, fontWeight: '900', color: '#172a3f'},
-  liveText: {fontSize: 10, color: '#20a464', fontWeight: '800'},
+  scheduleList: {paddingHorizontal: 16, paddingTop: 8},
   movieCard: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    marginBottom: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: {width: 0, height: 4},
-    elevation: 2,
+    marginBottom: 20,
   },
   movieTop: {flexDirection: 'row'},
   posterWrap: {
-    width: 92,
-    height: 132,
-    borderRadius: 12,
+    width: 80,
+    height: 116,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#e7edf2',
+    backgroundColor: '#f0f0f0',
   },
   moviePoster: {width: '100%', height: '100%', resizeMode: 'cover'},
   ageBadge: {
     position: 'absolute',
-    left: 6,
-    top: 6,
-    minWidth: 31,
-    borderRadius: 5,
-    paddingHorizontal: 5,
+    left: 4,
+    top: 4,
+    minWidth: 28,
+    borderRadius: 4,
+    paddingHorizontal: 4,
     paddingVertical: 2,
   },
-  ageText: {color: '#fff', fontSize: 10, fontWeight: '900', textAlign: 'center'},
-  movieInfo: {flex: 1, paddingLeft: 12, paddingTop: 2},
+  ageText: {color: '#fff', fontSize: 9, fontWeight: '900', textAlign: 'center'},
+  movieInfo: {flex: 1, paddingLeft: 14},
   titleRow: {flexDirection: 'row', alignItems: 'flex-start'},
-  movieTitle: {flex: 1, color: '#142437', fontSize: 17, lineHeight: 22, fontWeight: '900'},
-  hotBadge: {backgroundColor: '#ff5b31', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3},
-  hotText: {fontSize: 8, color: '#fff', fontWeight: '900'},
-  movieMeta: {color: '#718096', fontSize: 12, lineHeight: 17, marginTop: 6},
-  ratingRow: {flexDirection: 'row', gap: 7, alignItems: 'center', marginTop: 9},
-  rating: {fontSize: 11, color: '#e49a00', fontWeight: '900'},
+  movieTitle: {flex: 1, color: '#111', fontSize: 16, lineHeight: 22, fontWeight: '800'},
+  hotBadge: {backgroundColor: '#ff5b31', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, marginLeft: 6},
+  hotText: {fontSize: 9, color: '#fff', fontWeight: '900'},
+  movieMeta: {color: '#555', fontSize: 13, marginTop: 4},
+  ratingRow: {flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 6},
+  rating: {fontSize: 12, color: '#e49a00', fontWeight: '800'},
   subtitleBadge: {
-    color: BLUE,
-    fontSize: 9,
-    fontWeight: '900',
-    borderRadius: 5,
-    backgroundColor: '#e5f5fb',
+    color: '#333',
+    fontSize: 10,
+    fontWeight: '700',
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
     paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingVertical: 2,
   },
-  detailLink: {color: PINK, fontSize: 11, fontWeight: '900', marginTop: 11},
-  divider: {height: 1, backgroundColor: '#edf1f5', marginVertical: 12},
-  noShowtime: {fontSize: 12, color: '#94a3b8', paddingVertical: 8, textAlign: 'center'},
-  roomRow: {flexDirection: 'row', alignItems: 'center', marginBottom: 9},
-  roomIcon: {color: BLUE, fontWeight: '900', marginRight: 7},
-  roomText: {flex: 1, fontSize: 11, color: '#58697c', fontWeight: '700'},
-  timeGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  detailLink: {color: BLUE, fontSize: 13, fontWeight: '600', marginTop: 10},
+  divider: {display: 'none'},
+  noShowtime: {fontSize: 13, color: '#999', paddingTop: 12},
+  roomRow: {marginTop: 12, marginBottom: 8},
+  roomIcon: {display: 'none'},
+  roomText: {fontSize: 14, color: '#333', fontWeight: '700'},
+  timeGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
   timeButton: {
-    minWidth: 82,
-    borderRadius: 11,
-    borderWidth: 1.2,
-    borderColor: '#bcd9e7',
-    backgroundColor: '#f5fbfe',
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    minWidth: 72,
+    minHeight: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d9e2ec',
+    backgroundColor: '#f0f4f8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  timeValue: {fontSize: 15, color: BLUE, fontWeight: '900'},
-  timeType: {fontSize: 8, color: '#7990a0', fontWeight: '800', marginTop: 1},
-  refreshHint: {textAlign: 'center', color: '#94a3b8', fontSize: 11, marginTop: 2},
+  timeValue: {fontSize: 15, color: '#334155', fontWeight: '700'},
+  timeType: {display: 'none'},
+  refreshHint: {textAlign: 'center', color: '#999', fontSize: 12, marginTop: 8},
 });
 
 export default DangChieu;

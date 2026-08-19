@@ -116,22 +116,7 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.heroGlow} />
-        <View style={styles.premiereBadge}>
-          <Text style={styles.premiereBadgeText}>EARLY ACCESS</Text>
-        </View>
-        <Text style={styles.heading}>{t(language, 'Suất chiếu sớm', 'Early screenings')}</Text>
-        <Text style={styles.subheading}>
-          {t(language, 'Xem trước phim nổi bật tại FilmGo Hà Trung', 'Preview featured movies at FilmGo Hà Trung')}
-        </Text>
-        <View style={styles.heroNote}>
-          <Text style={styles.heroNoteIcon}>★</Text>
-          <Text style={styles.heroNoteText}>
-            Lịch chiếu được cập nhật trực tiếp từ Admin
-          </Text>
-        </View>
-      </View>
+
 
       {dates.length > 0 && (
         <ScrollView
@@ -196,10 +181,6 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
         </View>
       ) : (
         <View style={styles.list}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>{t(language, 'Đặc quyền xem trước', 'Preview privilege')}</Text>
-            <Text style={styles.liveLabel}>{t(language, '● Đang mở bán', '● On sale now')}</Text>
-          </View>
           {grouped.map(({movie: phim, showtimes: items}) => {
             const movie = phimSangBooking(phim);
             return (
@@ -274,40 +255,22 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {backgroundColor: '#f4f7fa', minHeight: 700, paddingBottom: 28},
-  hero: {
-    backgroundColor: '#151b34',
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 20,
-    overflow: 'hidden',
+  container: {backgroundColor: '#ffffff', minHeight: 700, paddingBottom: 28},
+  dateList: {paddingHorizontal: 16, paddingVertical: 12, gap: 12},
+  dateScroll: {flexGrow: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f0f0f0'},
+  dateCard: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
-  heroGlow: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    right: -45,
-    top: -60,
-    backgroundColor: 'rgba(255,120,23,0.22)',
-  },
-  premiereBadge: {alignSelf: 'flex-start', backgroundColor: ORANGE, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4},
-  premiereBadgeText: {fontSize: 9, color: '#fff', fontWeight: '900', letterSpacing: 1},
-  heading: {fontSize: 27, color: '#fff', fontWeight: '900', marginTop: 8},
-  subheading: {fontSize: 13, color: '#bbc4d7', marginTop: 5},
-  heroNote: {flexDirection: 'row', alignItems: 'center', marginTop: 16, backgroundColor: 'rgba(255,255,255,0.09)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, alignSelf: 'flex-start'},
-  heroNoteIcon: {color: '#ffc252', marginRight: 7},
-  heroNoteText: {color: '#d3d8e4', fontSize: 10, fontWeight: '700'},
-  dateList: {paddingHorizontal: 15, paddingVertical: 16, gap: 10},
-  dateScroll: {height: 132, flexGrow: 0},
-  dateCard: {width: 78, alignItems: 'center', borderRadius: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#dce4eb', paddingVertical: 9},
-  dateCardActive: {backgroundColor: '#17213d', borderColor: ORANGE},
-  weekday: {fontSize: 9, color: '#8290a0', fontWeight: '900'},
-  dateNumber: {fontSize: 22, color: '#1b2939', fontWeight: '900', marginTop: 2},
-  dateMonth: {fontSize: 9, color: '#8290a0'},
-  dateCount: {fontSize: 8, color: ORANGE, fontWeight: '900', marginTop: 5, backgroundColor: '#fff2e7', borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2},
-  activeText: {color: '#fff'},
-  dateCountActive: {backgroundColor: ORANGE, color: '#fff'},
+  dateCardActive: {backgroundColor: '#f0f4f8'},
+  weekday: {fontSize: 11, color: '#777', fontWeight: '600'},
+  dateNumber: {fontSize: 16, color: '#111', fontWeight: '800', marginTop: 2},
+  dateMonth: {display: 'none'},
+  dateCount: {display: 'none'},
+  activeText: {color: BLUE},
+  dateCountActive: {},
   loader: {marginTop: 45},
   stateBox: {paddingHorizontal: 24, paddingVertical: 55, alignItems: 'center'},
   emptyIcon: {fontSize: 38, marginBottom: 10},
@@ -315,33 +278,44 @@ const styles = StyleSheet.create({
   stateHint: {fontSize: 13, color: '#718096', textAlign: 'center', marginTop: 6},
   retryBtn: {marginTop: 14, backgroundColor: BLUE, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 10},
   retryText: {color: '#fff', fontWeight: '800'},
-  list: {paddingHorizontal: 14},
-  sectionRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10},
-  sectionTitle: {fontSize: 18, color: '#172a3f', fontWeight: '900'},
-  liveLabel: {fontSize: 10, color: '#20a464', fontWeight: '800'},
-  movieCard: {backgroundColor: '#fff', borderRadius: 18, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#0f172a', shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: {width: 0, height: 4}, elevation: 2},
+  list: {paddingHorizontal: 16, paddingTop: 10},
+  movieCard: {
+    backgroundColor: '#fff',
+    marginBottom: 20,
+  },
   movieHeader: {flexDirection: 'row'},
-  posterWrap: {width: 96, height: 137, borderRadius: 12, overflow: 'hidden', backgroundColor: '#e7edf2'},
+  posterWrap: {width: 80, height: 116, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f0f0f0'},
   poster: {width: '100%', height: '100%', resizeMode: 'cover'},
-  earlyRibbon: {position: 'absolute', right: -25, top: 11, width: 86, height: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: ORANGE, transform: [{rotate: '45deg'}]},
-  earlyRibbonText: {fontSize: 7, color: '#fff', fontWeight: '900'},
-  ageBadge: {position: 'absolute', top: 6, left: 6, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 2},
-  ageText: {fontSize: 9, color: '#fff', fontWeight: '900'},
-  movieInfo: {flex: 1, paddingLeft: 12, paddingTop: 2},
-  movieTitle: {fontSize: 18, lineHeight: 22, color: '#142437', fontWeight: '900'},
-  movieMeta: {fontSize: 11, lineHeight: 16, color: '#718096', marginTop: 6},
-  ratingRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 9},
-  rating: {fontSize: 11, color: '#d99800', fontWeight: '900'},
-  hotText: {fontSize: 8, color: '#fff', fontWeight: '900', backgroundColor: ORANGE, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 3},
-  detailLink: {fontSize: 10, color: BLUE, fontWeight: '900', marginTop: 12},
-  divider: {height: 1, backgroundColor: '#edf1f5', marginVertical: 12},
-  chooseLabel: {fontSize: 9, color: '#7b899a', fontWeight: '900', marginBottom: 8},
-  timeGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  timeButton: {minWidth: 105, backgroundColor: '#fff8f1', borderWidth: 1, borderColor: '#ffd3ad', borderRadius: 11, paddingHorizontal: 9, paddingVertical: 8},
-  timeTop: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  timeValue: {fontSize: 15, color: '#ce5600', fontWeight: '900'},
-  timeType: {fontSize: 8, color: '#fff', fontWeight: '900', backgroundColor: ORANGE, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2},
-  roomName: {fontSize: 8, color: '#8b796d', marginTop: 4},
+  earlyRibbon: {display: 'none'},
+  earlyRibbonText: {display: 'none'},
+  ageBadge: {position: 'absolute', top: 4, left: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2},
+  ageText: {fontSize: 9, color: '#fff', fontWeight: '900', textAlign: 'center'},
+  movieInfo: {flex: 1, paddingLeft: 14, paddingTop: 1},
+  movieTitle: {fontSize: 16, lineHeight: 22, color: '#111', fontWeight: '800'},
+  movieMeta: {fontSize: 13, lineHeight: 18, color: '#555', marginTop: 4},
+  ratingRow: {flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6},
+  rating: {fontSize: 12, color: '#e49a00', fontWeight: '800'},
+  hotText: {fontSize: 9, color: '#fff', fontWeight: '900', backgroundColor: '#ff5b31', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2},
+  detailLink: {display: 'none'},
+  divider: {display: 'none'},
+  chooseLabel: {display: 'none'},
+  timeGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12},
+  timeButton: {
+    minWidth: 72,
+    minHeight: 36,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d9e2ec',
+    backgroundColor: '#f0f4f8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeTop: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center'},
+  timeValue: {fontSize: 15, color: '#334155', fontWeight: '700'},
+  timeType: {display: 'none'},
+  roomName: {display: 'none'},
 });
 
 export default SuatChieuSom;
