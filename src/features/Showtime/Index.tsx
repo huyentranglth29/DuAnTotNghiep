@@ -105,7 +105,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
               <Text style={styles.memberText}>MEMBER</Text>
               <Text style={styles.starText}>☆ 0</Text>
               <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
-                <Text style={styles.ticketText}>▣ {isEnglish ? 'Tickets' : 'Vé'}</Text>
+                <Text style={styles.ticketText}>▣ {isEnglish ? 'Orders' : 'Đơn đã gửi'}</Text>
               </Pressable>
             </View>
           </View>

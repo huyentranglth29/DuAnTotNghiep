@@ -152,7 +152,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               <Text style={styles.infoLabel}>NGÀY CHIẾU</Text>
               <Text style={styles.infoVal}>{item.bookingDate || '—'}</Text>
             </View>
-            <View style={styles.infoCol}>
+            <View style={[styles.infoCol, styles.infoColRight]}>
               <Text style={styles.infoLabel}>GIỜ CHIẾU</Text>
               <Text style={styles.infoVal}>{item.bookingTime || '—'}</Text>
             </View>
@@ -163,7 +163,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               <Text style={styles.infoLabel}>GHẾ</Text>
               <Text style={styles.infoVal}>{item.seats?.join(', ') || '—'}</Text>
             </View>
-            <View style={styles.infoCol}>
+            <View style={[styles.infoCol, styles.infoColRight]}>
               <Text style={styles.infoLabel}>TỔNG TIỀN</Text>
               <Text style={[styles.infoVal, styles.infoPrice]}>
                 {Number(item.totalPrice).toLocaleString('vi-VN')}đ
@@ -298,7 +298,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
             />
           </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vé của tôi</Text>
+        <Text style={styles.headerTitle}>Đơn vé đã gửi</Text>
         <TouchableOpacity activeOpacity={0.75} style={styles.refreshBtn} onPress={onRefresh}>
           <Text style={styles.refreshText}>↻ Tải lại</Text>
         </TouchableOpacity>
@@ -330,9 +330,9 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🎟️</Text>
-              <Text style={styles.emptyText}>Bạn chưa đặt vé nào.</Text>
+              <Text style={styles.emptyText}>Bạn chưa gửi đơn đặt vé nào.</Text>
               <Text style={styles.emptySubText}>
-                Sau khi đặt vé thành công từ Trang chủ, vé sẽ tự động hiện tại đây.
+                Sau khi đặt vé thành công, đơn và mã QR sẽ tự động hiện tại đây.
               </Text>
             </View>
           }
@@ -518,6 +518,9 @@ const styles = StyleSheet.create({
   },
   infoCol: {
     width: '48%',
+  },
+  infoColRight: {
+    alignItems: 'flex-end',
   },
   infoLabel: {
     fontSize: 10,

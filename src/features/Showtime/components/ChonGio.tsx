@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     gap: 12,
     marginTop: 9,
   },
