@@ -26,6 +26,7 @@ const COLOR_SELECTED = '#d82d8b';   // Ghế bạn chọn - hồng Momo
 const COLOR_NORMAL = '#6c5fc7';     // Ghế thường - tím
 const COLOR_VIP = '#e51937';        // Ghế VIP - đỏ
 const COLOR_HELD = '#a57922';
+const SEAT_HOLD_MINUTES = 15;
 
 type DatVeProps = {
   movie: {
@@ -226,6 +227,15 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     const next = new Set(selectedSeatsRef.current);
     if (next.has(seat)) next.delete(seat);
     else next.add(seat);
+
+    if (!areSeatsAdjacent(Array.from(next))) {
+      Alert.alert(
+        'Chọn ghế liền nhau',
+        'Vui lòng chọn các ghế cùng một hàng và nằm cạnh nhau, không chọn ghế tách rời.',
+      );
+      return;
+    }
+
     // Cập nhật UI ngay, gọi API giữ ghế ở nền (tránh chờ ~1–2s mỗi lần bấm)
     selectedSeatsRef.current = next;
     setSelectedSeats(next);
@@ -318,6 +328,9 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
             <LegendItem color={COLOR_VIP} label="Ghế VIP" />
             <LegendItem isBorder label="Vùng trung tâm" />
           </View>
+          <Text style={styles.seatHoldHint}>
+            Giữ ghế: {SEAT_HOLD_MINUTES} phút khi chọn. Thanh toán sẽ có bộ đếm riêng sau khi tạo đơn.
+          </Text>
         </View>
 
         {/* Bottom padding */}
@@ -336,7 +349,16 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
               activeOpacity={0.85}
               style={[styles.continueBtn, isSyncingHold && styles.continueBtnDisabled]}
               disabled={isSyncingHold}
-              onPress={() => setShowConfirm(true)}>
+              onPress={() => {
+                if (!areSeatsAdjacent(selectedSeatList)) {
+                  Alert.alert(
+                    'Chọn ghế liền nhau',
+                    'Vui lòng chọn các ghế cùng một hàng và nằm cạnh nhau trước khi tiếp tục.',
+                  );
+                  return;
+                }
+                setShowConfirm(true);
+              }}>
               <Text style={styles.continueBtnText}>
                 {isSyncingHold ? 'Đang giữ ghế...' : 'Tiếp tục'}
               </Text>
@@ -435,14 +457,33 @@ function formatMoney(value: number) {
 }
 
 function sortSeats(a: string, b: string) {
-  const rowCompare = a.charCodeAt(0) - b.charCodeAt(0);
+  const rowCompare = getSeatRow(a).localeCompare(getSeatRow(b), 'vi');
   if (rowCompare !== 0) return rowCompare;
   return getSeatNumber(a) - getSeatNumber(b);
+}
+
+function getSeatRow(seat: string) {
+  const match = seat.match(/^[A-Za-z]+/);
+  return (match?.[0] || '').toUpperCase();
 }
 
 function getSeatNumber(seat: string) {
   const match = seat.match(/\d+/);
   return match ? Number(match[0]) : 0;
+}
+
+function areSeatsAdjacent(seats: string[]) {
+  if (seats.length <= 1) {
+    return true;
+  }
+
+  const rows = new Set(seats.map(getSeatRow));
+  if (rows.size !== 1) {
+    return false;
+  }
+
+  const numbers = seats.map(getSeatNumber).sort((a, b) => a - b);
+  return numbers.every((number, index) => index === 0 || number === numbers[index - 1] + 1);
 }
 
 const styles = StyleSheet.create({
@@ -583,6 +624,11 @@ const styles = StyleSheet.create({
   legendText: {
     color: '#ccccdd',
     fontSize: 13,
+  },
+  seatHoldHint: {
+    color: '#9ca3af',
+    fontSize: 12,
+    lineHeight: 17,
   },
   checkoutBar: {
     backgroundColor: '#1a1a2e',

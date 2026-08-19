@@ -35,6 +35,7 @@ const MOMO_PINK = '#d82d8b';
 const TEXT_DARK = '#1a1a1a';
 const TEXT_MUTED = '#888888';
 const BG_GRAY = '#f4f4f6';
+const ORDER_CREATION_TIMEOUT_MINUTES = 15;
 
 type PaymentMethod = 'payos' | 'vnpay' | 'mock';
 
@@ -152,6 +153,28 @@ function DatVeDetail({
   const [editPhone, setEditPhone] = useState('');
   const productsQuery = useQuery({queryKey: ['payment-products'], queryFn: getProducts});
   const vouchersQuery = useQuery({queryKey: ['payment-my-vouchers'], queryFn: getMyVouchers});
+
+  const [timeLeft, setTimeLeft] = useState(ORDER_CREATION_TIMEOUT_MINUTES * 60);
+
+  useEffect(() => {
+    if (showPaymentScreen) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showPaymentScreen]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !showPaymentScreen && !paymentId) {
+      Alert.alert('Hết thời gian tạo đơn', 'Thời gian tạo đơn đã hết. Ghế sẽ được mở lại, vui lòng chọn lại.', [
+        { text: 'Đóng', onPress: onClose }
+      ]);
+    }
+  }, [timeLeft, showPaymentScreen, paymentId, onClose]);
+
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const countdown = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
   useEffect(() => {
     AsyncStorage.getItem(AUTH_USER_KEY)
@@ -545,6 +568,11 @@ function DatVeDetail({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
 
+        <View style={styles.timerBox}>
+          <Text style={styles.timerText}>⏳ Thời gian tạo đơn còn lại</Text>
+          <Text style={styles.timerValue}>{countdown}</Text>
+        </View>
+
         {/* === THÔNG TIN ĐẶT VÉ === */}
         <Text style={styles.sectionLabel}>Thông tin đặt vé</Text>
         <View style={styles.card}>
@@ -819,6 +847,9 @@ function DatVeDetail({
 }
 
 const styles = StyleSheet.create({
+  timerBox: {backgroundColor: '#fff4df', borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16},
+  timerText: {color: '#7d5a12', fontSize: 13},
+  timerValue: {color: '#d97706', fontSize: 15, fontWeight: '900', marginLeft: 7},
   voucherHeaderRow: {marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
   removeVoucher: {color: '#e51978', fontSize: 12, fontWeight: '800'},
   voucherList: {marginHorizontal: -2, marginBottom: 18},

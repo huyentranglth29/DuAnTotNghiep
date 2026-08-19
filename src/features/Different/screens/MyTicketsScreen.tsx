@@ -7,11 +7,15 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  Alert,
+  Linking,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-import { getQuickBookings } from '../../../services/apiService';
+import { getQuickBookings, cancelPayment, getPaymentStatus, completeMockPayment, failMockPayment } from '../../../services/apiService';
 import {useAuth} from '../../../contexts/AuthContext';
+import PayosPaymentScreen from '../../Showtime/screen/PayosPaymentScreen';
+import MockPaymentScreen from '../../Showtime/screen/MockPaymentScreen';
 
 type Ticket = {
   _id: string;
@@ -51,6 +55,14 @@ type MyTicketsScreenProps = {
   onBack: () => void;
 };
 
+const toPaymentCombos = (combos: Ticket['combos'] = []) =>
+  combos.map((combo, index) => ({
+    _id: `${combo.name}-${index}`,
+    name: combo.name,
+    price: Number(combo.unitPrice || combo.totalPrice / Math.max(combo.quantity, 1) || 0),
+    quantity: Number(combo.quantity || 0),
+  }));
+
 const buildOfflineTicketQr = (item: Ticket, seat: string, ticketCode: string) => {
   const seatCount = Math.max(item.seats?.length || 0, 1);
   const ticketPrice = Number(item.ticketTotal || item.totalPrice || 0) / seatCount;
@@ -83,6 +95,90 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<{amount: number, expiresAt: string, qrCode?: string, orderCode?: string} | null>(null);
+  const [showPayment, setShowPayment] = useState<'payos' | 'mock' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleCancelTicket = (ticketId: string) => {
+    Alert.alert('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn vé này không?', [
+      { text: 'Không', style: 'cancel' },
+      { text: 'Hủy vé', style: 'destructive', onPress: async () => {
+          try {
+            await cancelPayment(ticketId);
+            Alert.alert('Thành công', 'Đơn vé đã được hủy.');
+            fetchTickets();
+          } catch (e: any) {
+            Alert.alert('Không thể hủy', e?.message || 'Có lỗi xảy ra.');
+          }
+      }}
+    ]);
+  };
+
+  const handleContinuePayment = async (ticket: Ticket) => {
+    setIsProcessing(true);
+    try {
+      const response = await getPaymentStatus(ticket._id) as any;
+      const payment = response?.data ?? response;
+      if (!payment) {
+        throw new Error('Không lấy được thông tin thanh toán');
+      }
+      if (payment.status !== 'pending' && payment.status !== 'cho_thanh_toan') {
+        throw new Error('Giao dịch không còn ở trạng thái chờ.');
+      }
+      const isVnpay = ticket.paymentMethod === 'vnpay' || payment.method === 'vnpay' || ticket.paymentMethod === 'vnpay_sandbox';
+      const isPayos = ticket.paymentMethod === 'payos' || payment.method === 'payos';
+      
+      if (isVnpay) {
+         if (payment.paymentUrl) {
+           await Linking.openURL(payment.paymentUrl);
+           Alert.alert('Đã mở VNPay', 'Sau khi thanh toán xong hãy tải lại danh sách vé.');
+         } else {
+           throw new Error('Không tìm thấy link VNPay. Bạn vui lòng hủy và đặt lại.');
+         }
+      } else if (isPayos) {
+         if (!payment.qrCode) throw new Error('Không tìm thấy mã QR. Vui lòng đặt lại.');
+         setActiveTicket(ticket);
+         setPaymentInfo({
+           amount: Number(payment.amount || ticket.totalPrice),
+           expiresAt: String(payment.expiresAt),
+           qrCode: String(payment.qrCode),
+           orderCode: String(payment.orderCode || ticket.code),
+         });
+         setShowPayment('payos');
+      } else {
+         setActiveTicket(ticket);
+         setPaymentInfo({
+           amount: Number(payment.amount || ticket.totalPrice),
+           expiresAt: String(payment.expiresAt),
+         });
+         setShowPayment('mock');
+      }
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể tiếp tục thanh toán.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePaymentBack = () => {
+    setShowPayment(null);
+    setActiveTicket(null);
+    setPaymentInfo(null);
+    fetchTickets();
+  };
+
+  const runMockResult = async (id: string, action: 'success'|'failed'|'cancelled', bankCode?: string) => {
+    try {
+      if (action === 'success') await completeMockPayment(id, bankCode);
+      if (action === 'failed') await failMockPayment(id);
+      if (action === 'cancelled') await cancelPayment(id);
+      handlePaymentBack();
+    } catch (e: any) {
+      Alert.alert('Lỗi', 'Không thể cập nhật kết quả: ' + (e?.message || ''));
+    }
+  };
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -190,6 +286,22 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
             </View>
           ) : null}
 
+          {item.status === 'pending' ? (
+            <View style={styles.pendingActionRow}>
+              <TouchableOpacity
+                style={styles.btnCancelPending}
+                onPress={() => handleCancelTicket(item._id)}>
+                <Text style={styles.btnCancelPendingText}>Hủy vé</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.btnContinuePending}
+                onPress={() => handleContinuePayment(item)}
+                disabled={isProcessing}>
+                <Text style={styles.btnContinuePendingText}>Thanh toán tiếp</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           {!!item.combos?.length && (
             <View style={styles.comboTicketBox}>
               <View style={styles.comboTicketHeader}>
@@ -265,6 +377,62 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
       </View>
     );
   };
+
+  if (showPayment === 'payos' && activeTicket && paymentInfo?.qrCode) {
+    return (
+      <PayosPaymentScreen
+        movieTitle={activeTicket.movieTitle}
+        showtime={`${activeTicket.bookingDate} - ${activeTicket.bookingTime}`}
+        cinema={activeTicket.cinema}
+        room={activeTicket.roomName || 'Phòng chiếu'}
+        seats={activeTicket.seats}
+        ticketTotal={activeTicket.ticketTotal || activeTicket.totalPrice}
+        combos={toPaymentCombos(activeTicket.combos)}
+        totalAmount={paymentInfo.amount}
+        expiresAt={paymentInfo.expiresAt}
+        qrCode={paymentInfo.qrCode}
+        orderCode={paymentInfo.orderCode}
+        isProcessing={isProcessing}
+        customerName={activeTicket.user?.fullName || 'Khách'}
+        customerPhone="—"
+        customerEmail="—"
+        onBack={handlePaymentBack}
+      />
+    );
+  }
+
+  if (showPayment === 'mock' && activeTicket && paymentInfo) {
+    return (
+      <MockPaymentScreen
+        movieTitle={activeTicket.movieTitle}
+        showtime={`${activeTicket.bookingDate} - ${activeTicket.bookingTime}`}
+        cinema={activeTicket.cinema}
+        room={activeTicket.roomName || 'Phòng chiếu'}
+        seats={activeTicket.seats}
+        ticketTotal={activeTicket.ticketTotal || activeTicket.totalPrice}
+        combos={toPaymentCombos(activeTicket.combos)}
+        totalAmount={paymentInfo.amount}
+        expiresAt={paymentInfo.expiresAt}
+        isProcessing={isProcessing}
+        customerName={activeTicket.user?.fullName || 'Khách'}
+        customerPhone="—"
+        customerEmail="—"
+        onBack={handlePaymentBack}
+        onConfirm={(bankCode) => {
+          Alert.alert(
+            'Kiểm thử kết quả thanh toán',
+            'Chọn kết quả ngân hàng trả về:',
+            [
+              {text: 'Thất bại', style: 'destructive', onPress: () => runMockResult(activeTicket._id, 'failed', bankCode)},
+              {text: 'Hủy', style: 'cancel', onPress: () => runMockResult(activeTicket._id, 'cancelled', bankCode)},
+              {text: 'Thành công', onPress: () => runMockResult(activeTicket._id, 'success', bankCode)},
+            ],
+            {cancelable: false}
+          );
+        }}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -345,6 +513,37 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  pendingActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  btnCancelPending: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  btnCancelPendingText: {
+    color: '#64748b',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  btnContinuePending: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#e51937',
+  },
+  btnContinuePendingText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f0f4f8',

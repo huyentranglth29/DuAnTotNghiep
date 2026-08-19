@@ -86,7 +86,7 @@ function PayosPaymentScreen(props: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
         <View style={styles.timerBox}>
-          <Text style={styles.timerText}>Ghế và combo được giữ trong</Text>
+          <Text style={styles.timerText}>Thời gian thanh toán còn lại</Text>
           <Text style={styles.timerValue}>{countdown}</Text>
         </View>
 
@@ -138,7 +138,7 @@ function PayosPaymentScreen(props: Props) {
           {props.isProcessing
             ? 'Đang kiểm tra thanh toán...'
             : remainingSeconds === 0
-              ? 'Giao dịch đã hết thời gian giữ ghế'
+              ? 'Giao dịch đã hết thời gian thanh toán'
               : 'Đang chờ thanh toán'}
         </Text>
         <Text style={styles.footerTotal}>{money(props.totalAmount)}</Text>

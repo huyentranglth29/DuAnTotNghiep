@@ -87,6 +87,7 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
 
   const openLoginModal = useCallback(
     (initialScreen: 'login' | 'porgotPass' | 'register' = 'login') => {
+      setAuthPrompt(null);
       setLoginInitialScreen(initialScreen);
       setLoginVisible(true);
     },

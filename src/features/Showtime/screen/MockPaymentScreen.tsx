@@ -78,7 +78,7 @@ function MockPaymentScreen(props: Props) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.timerBox}>
-          <Text style={styles.timerText}>⏳ Ghế và combo được giữ trong</Text>
+          <Text style={styles.timerText}>⏳ Thời gian thanh toán còn lại</Text>
           <Text style={styles.timerValue}>{countdown}</Text>
         </View>
 
