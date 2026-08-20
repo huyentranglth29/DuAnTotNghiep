@@ -49,6 +49,8 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
   const [isVoucherDetail, setIsVoucherDetail] = useState(false);
   const [isDifferentDetail, setIsDifferentDetail] = useState(false);
   const [isPromotionDetail, setIsPromotionDetail] = useState(false);
+  const [isMovieScheduleDetail, setIsMovieScheduleDetail] = useState(false);
+  const [isHomeDetail, setIsHomeDetail] = useState(false);
   const [openMemberDirectly, setOpenMemberDirectly] = useState(false);
   const [showCustomerAi, setShowCustomerAi] = useState(false);
 
@@ -57,6 +59,8 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
     setIsVoucherDetail(false);
     setIsDifferentDetail(false);
     setIsPromotionDetail(false);
+    setIsMovieScheduleDetail(false);
+    setIsHomeDetail(false);
     setOpenMemberDirectly(false);
   };
 
@@ -108,6 +112,8 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
             setIsVoucherDetail,
             setIsDifferentDetail,
             setIsPromotionDetail,
+            setIsMovieScheduleDetail,
+            setIsHomeDetail,
             () => {
               setOpenMemberDirectly(true);
               setActiveTab('different');
@@ -121,7 +127,7 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
           )}
         </View>
 
-        {!isVoucherDetail && !isDifferentDetail && !isPromotionDetail && (
+        {!isHomeDetail && !isVoucherDetail && !isDifferentDetail && !isPromotionDetail && !isMovieScheduleDetail && (
           <View style={styles.tabBar}>
             {tabs.map(tab => {
               const isActive = activeTab === tab.key;
@@ -145,7 +151,7 @@ function TabNavigator({onLoggedOut}: {onLoggedOut: () => void}) {
           </View>
         )}
 
-        {!showCustomerAi && (
+        {!showCustomerAi && !isHomeDetail && !isVoucherDetail && !isDifferentDetail && !isPromotionDetail && !isMovieScheduleDetail && (
           <Animated.View
             {...aiFabPanResponder.panHandlers}
             style={[
@@ -189,16 +195,18 @@ function renderTabContent(
   setIsVoucherDetail: (isDetail: boolean) => void,
   setIsDifferentDetail: (isDetail: boolean) => void,
   setIsPromotionDetail: (isDetail: boolean) => void,
+  setIsMovieScheduleDetail: (isDetail: boolean) => void,
+  setIsHomeDetail: (isDetail: boolean) => void,
   onOpenMember: () => void,
   openMemberDirectly: boolean,
   onLogout: () => void,
 ) {
   if (activeTab === 'home') {
-    return <TrangChu />;
+    return <TrangChu onDetailChange={setIsHomeDetail} />;
   }
 
   if (activeTab === 'movieSchedule') {
-    return <Showtime onOpenMember={onOpenMember} />;
+    return <Showtime onOpenMember={onOpenMember} onDetailChange={setIsMovieScheduleDetail} />;
   }
 
   if (activeTab === 'voucher') {

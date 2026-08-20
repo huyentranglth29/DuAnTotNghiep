@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
@@ -48,6 +49,7 @@ const CENTER_ZONE = new Set([
 ]);
 
 function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
+  const {width: screenWidth} = useWindowDimensions();
   const [selectedSeats, setSelectedSeats] = useState(new Set<string>());
   const [seatItems, setSeatItems] = useState<GheSuatChieu[]>([]);
   const [soldSeats, setSoldSeats] = useState(new Set<string>());
@@ -78,6 +80,14 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       return rows;
     }, new Map<string, GheSuatChieu[]>()),
   ).map(([key, seats]) => ({key, seats}));
+  const maxSeatsInRow = Math.max(...seatRows.map(row => row.seats.length), 1);
+  const seatGap = maxSeatsInRow >= 15 ? 4 : 6;
+  const seatPanelPadding = maxSeatsInRow >= 15 ? 8 : 14;
+  const availableSeatWidth = Math.max(
+    screenWidth - seatPanelPadding * 2 - seatGap * (maxSeatsInRow - 1),
+    0,
+  );
+  const seatSize = Math.max(20, Math.min(26, Math.floor(availableSeatWidth / maxSeatsInRow)));
 
   useEffect(() => {
     let cancelled = false;
@@ -264,7 +274,10 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollBody}>
         {/* Screen indicator */}
         <View style={styles.screenWrapper}>
           <View style={styles.screenArc} />
@@ -280,9 +293,9 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         ) : seatError ? (
           <Text style={styles.seatError}>{seatError}. Vui lòng quay lại và thử lại.</Text>
         ) : null}
-        <View style={styles.seatPanel}>
+        <View style={[styles.seatPanel, {paddingHorizontal: seatPanelPadding}]}>
           {seatRows.map(row => (
-            <View key={row.key} style={styles.seatRow}>
+            <View key={row.key} style={[styles.seatRow, {gap: seatGap}]}>
               {row.seats.map(seatItem => {
                 const seat = seatItem.label;
                 const isSold = soldSeats.has(seat);
@@ -304,11 +317,15 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
                     onPress={() => handleSeatPress(seat)}
                     style={[
                       styles.seat,
-                      {backgroundColor: bgColor},
+                      {
+                        backgroundColor: bgColor,
+                        width: seatSize,
+                        height: seatSize,
+                      },
                       isCenter && styles.seatCenterZone,
                       isSelected && styles.seatSelected,
                     ]}>
-                    <Text style={styles.seatLabel}>{seat}</Text>
+                    <Text style={[styles.seatLabel, {fontSize: seatSize <= 21 ? 7 : 8}]}>{seat}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -333,8 +350,6 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
           </Text>
         </View>
 
-        {/* Bottom padding */}
-        <View style={styles.scrollFooterSpacer} />
       </ScrollView>
 
       {/* Checkout bar */}
@@ -491,6 +506,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#111122',
   },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#111122',
+  },
   header: {
     height: 80,
     backgroundColor: '#1a1a2e',
@@ -522,7 +541,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollBody: {
-    paddingBottom: 12,
+    backgroundColor: '#111122',
+    paddingBottom: 0,
   },
   seatStatus: {
     flexDirection: 'row',
@@ -562,22 +582,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   seatPanel: {
-    paddingHorizontal: 8,
+    minWidth: '100%',
     paddingVertical: 12,
     backgroundColor: '#111122',
-    gap: 5,
+    gap: 6,
   },
   seatRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
   },
   seat: {
-    width: 22,
-    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 5,
+    borderRadius: 6,
   },
   seatCenterZone: {
     borderWidth: 1.5,
@@ -588,7 +605,7 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     color: '#ffffff',
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: '700',
   },
   legendWrapper: {
@@ -684,9 +701,6 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#666688',
     fontSize: 15,
-  },
-  scrollFooterSpacer: {
-    height: 20,
   },
   modalOverlay: {
     flex: 1,
