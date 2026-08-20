@@ -50,6 +50,26 @@ const quickPaymentStatus = (status) => {
   return "unpaid";
 };
 
+const getQuickPrintState = (booking, seatLabel) => {
+  const rows = Array.isArray(booking.printedSeats) ? booking.printedSeats : [];
+  const item = rows.find((row) => String(row.seatLabel) === String(seatLabel));
+  if (item) {
+    return {
+      isPrinted: Number(item.printedCount || 0) > 0,
+      printedAt: item.printedAt || null,
+      printedCount: Number(item.printedCount || 0),
+    };
+  }
+  if (rows.length === 0 && booking.isPrinted) {
+    return {
+      isPrinted: true,
+      printedAt: booking.printedAt || null,
+      printedCount: Number(booking.printedCount || 0),
+    };
+  }
+  return { isPrinted: false, printedAt: null, printedCount: 0 };
+};
+
 const normalizeLegacyTicket = (ticket) => {
   const booking = ticket.booking ? { ...ticket.booking } : {};
   // Một vé đã phát hành còn hiệu lực/đã dùng bắt buộc phải được thanh toán.
@@ -105,9 +125,7 @@ const expandQuickBooking = (booking, showtime) => {
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
     paymentStatus: quickPaymentStatus(booking.status),
-    isPrinted: Boolean(booking.isPrinted),
-    printedAt: booking.printedAt || null,
-    printedCount: Number(booking.printedCount || 0),
+    ...getQuickPrintState(booking, seatLabel),
     cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
     roomName: showtime?.room?.name || "",
     orderCode: bookingCode,
@@ -211,14 +229,46 @@ const update = async (req, res) => {
       if (quickMatch) {
         const booking = await QuickBooking.findById(quickMatch[1]);
         if (!booking) return res.status(404).json({ success: false, message: "Không tìm thấy đơn vé" });
-        booking.isPrinted = true;
-        booking.printedAt = new Date();
+        const seatIndex = Number(id.slice(id.lastIndexOf("-") + 1));
+        const seatLabel = booking.seats?.[seatIndex];
+        if (!seatLabel) return res.status(404).json({ success: false, message: "Không tìm thấy ghế của vé" });
+        const now = new Date();
+        let rows = (booking.printedSeats || []).map((item) => ({
+          seatLabel: item.seatLabel,
+          printedAt: item.printedAt,
+          printedCount: Number(item.printedCount || 0),
+        }));
+        // Dữ liệu cũ chỉ lưu trạng thái in trên cả đơn: giữ nguyên trạng thái đó
+        // khi bắt đầu chuyển sang theo dõi từng ghế.
+        if (rows.length === 0 && booking.isPrinted) {
+          rows = booking.seats.map((seat) => ({
+            seatLabel: seat,
+            printedAt: booking.printedAt || now,
+            printedCount: Number(booking.printedCount || 1),
+          }));
+        }
+        const rowIndex = rows.findIndex((item) => String(item.seatLabel) === String(seatLabel));
+        if (rowIndex >= 0) {
+          rows[rowIndex] = {
+            seatLabel,
+            printedAt: now,
+            printedCount: rows[rowIndex].printedCount + 1,
+          };
+        } else {
+          rows.push({ seatLabel, printedAt: now, printedCount: 1 });
+        }
+        booking.printedSeats = rows;
+        booking.isPrinted = booking.seats.every((seat) =>
+          rows.some((item) => String(item.seatLabel) === String(seat) && item.printedCount > 0),
+        );
+        booking.printedAt = now;
         booking.printedCount = (booking.printedCount || 0) + 1;
         await booking.save();
+        const printState = rows.find((item) => String(item.seatLabel) === String(seatLabel));
         return res.json({
           success: true,
           message: "Đã in vé thành công",
-          data: { isPrinted: true, printedAt: booking.printedAt, printedCount: booking.printedCount },
+          data: { isPrinted: true, printedAt: now, printedCount: printState.printedCount },
         });
       }
       if (!mongoose.Types.ObjectId.isValid(id)) {

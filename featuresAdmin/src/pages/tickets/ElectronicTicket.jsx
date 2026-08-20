@@ -50,6 +50,7 @@ function ElectronicTicket() {
   const [selectedId, setSelectedId] = useState('');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [printing, setPrinting] = useState(false);
   const [error, setError] = useState('');
 
   const loadData = async () => {
@@ -155,13 +156,34 @@ function ElectronicTicket() {
     status: selectedTicket?.status,
   });
 
+  const printTicket = async () => {
+    if (!selectedTicket || printing) return;
+    setPrinting(true);
+    setError('');
+    try {
+      const response = await ticketApi.update(selectedTicket._id, {action: 'print'});
+      const state = response?.data || response;
+      setTickets(current => current.map(ticket =>
+        ticket._id === selectedTicket._id ? {...ticket, ...state} : ticket,
+      ));
+      window.print();
+    } catch (err) {
+      setError(err.message || 'Không ghi nhận được trạng thái in vé.');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   return (
     <section className="electronicTicketPage">
       <div className="pageTitle">
         <h2>Xem vé điện tử</h2>
-        <button type="button" onClick={loadData}>
-          Làm mới
-        </button>
+        <div className="formActions electronicTicketPageActions">
+          <button type="button" className="ghost" onClick={loadData}>Làm mới</button>
+          <button type="button" disabled={!selectedTicket || printing} onClick={printTicket}>
+            {printing ? 'Đang chuẩn bị...' : 'In vé đang chọn'}
+          </button>
+        </div>
       </div>
 
       <div className="panel electronicTicketToolbar">

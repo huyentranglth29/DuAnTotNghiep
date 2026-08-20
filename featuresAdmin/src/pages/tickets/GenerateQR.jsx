@@ -12,6 +12,7 @@ function GenerateQR() {
   const [tickets, setTickets] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState('');
+  const [printing, setPrinting] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -48,6 +49,24 @@ function GenerateQR() {
     paymentStatus: selectedTicket.paymentStatus || selectedTicket.booking?.paymentStatus,
     status: selectedTicket.status,
   }) : '';
+
+  const printTicket = async () => {
+    if (!selectedTicket || printing) return;
+    setPrinting(true);
+    setError('');
+    try {
+      const response = await ticketApi.update(selectedTicket._id, {action: 'print'});
+      const state = response?.data || response;
+      setTickets(current => current.map(ticket =>
+        ticket._id === selectedTicket._id ? {...ticket, ...state} : ticket,
+      ));
+      window.print();
+    } catch (err) {
+      setError(err.message || 'Không ghi nhận được trạng thái in vé.');
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   return (
     <section>
@@ -89,7 +108,9 @@ function GenerateQR() {
           </article>
         )}
         <div className="formActions">
-          <button type="button" onClick={() => window.print()}>In vé</button>
+          <button type="button" disabled={!selectedTicket || printing} onClick={printTicket}>
+            {printing ? 'Đang chuẩn bị...' : 'In vé'}
+          </button>
         </div>
       </div>
     </section>

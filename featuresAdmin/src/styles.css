@@ -7109,6 +7109,110 @@ a.overviewMetric.overviewClickable {
   .no-print {
     display: none !important;
   }
+
+  #order-print-area > :not(.orderTicketPrintStack) {
+    display: none !important;
+  }
+
+  .orderTicketPrintStack {
+    display: block !important;
+  }
+
+  .orderTicketPrintCard {
+    display: block !important;
+    width: 180mm;
+    min-height: 105mm;
+    margin: 0 auto;
+    padding: 10mm;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    color: #07111f;
+    background: #fff;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: always;
+  }
+
+  .orderTicketPrintCard:last-child {
+    page-break-after: auto;
+  }
+}
+
+.orderTicketPrintStack {
+  display: none;
+}
+
+.orderTicketPrintCard header,
+.orderTicketPrintBody {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.orderTicketPrintCard header {
+  padding-bottom: 16px;
+  border-bottom: 2px solid #0b6098;
+}
+
+.orderTicketPrintCard header span,
+.orderTicketPrintInfo span,
+.orderTicketPrintQr span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.orderTicketPrintCard h1 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.orderTicketSeat {
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: #fff;
+  background: #0b6098;
+  font-size: 20px;
+}
+
+.orderTicketPrintBody {
+  padding: 20px 0;
+}
+
+.orderTicketPrintInfo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 1;
+  gap: 16px 24px;
+}
+
+.orderTicketPrintInfo p {
+  margin: 0;
+}
+
+.orderTicketPrintInfo strong,
+.orderTicketPrintQr strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.orderTicketPrintQr {
+  min-width: 190px;
+  text-align: center;
+}
+
+.orderTicketPrintQr svg {
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.orderTicketPrintCard footer {
+  padding-top: 12px;
+  border-top: 1px dashed #94a3b8;
+  color: #64748b;
+  text-align: center;
 }
 
 .orderConfirmOverlay {

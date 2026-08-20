@@ -17,6 +17,7 @@ import {
 import bookingApi from '../../api/bookingApi';
 import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 import {useAdminTheme} from '../../theme/AdminThemeContext';
+import {ticketQrPayload} from '../../utils/ticketVerification';
 
 const PAYMENT_BADGE = {
   da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
@@ -91,6 +92,71 @@ function Timeline({order}) {
         );
       })}
     </ol>
+  );
+}
+
+function OrderTicketPrintStack({order}) {
+  const tickets = order.tickets?.length
+    ? order.tickets
+    : (order.seats || []).map(seatLabel => ({
+        seatLabel,
+        code: `${order.code}-${String(seatLabel).toUpperCase()}`,
+      }));
+  const ticketPrice = tickets.length
+    ? Number(order.ticketTotal || order.totalPrice || 0) / tickets.length
+    : 0;
+  const showtimeDate = order.showtimeStartTime
+    ? new Date(order.showtimeStartTime).toLocaleDateString('vi-VN')
+    : order.showtimeLabel;
+  const showtimeTime = order.showtimeStartTime
+    ? new Date(order.showtimeStartTime).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : order.showtimeLabel;
+
+  return (
+    <div className="orderTicketPrintStack" aria-hidden="true">
+      {tickets.map(ticket => {
+        const qrPayload = ticketQrPayload({
+          code: ticket.code,
+          customerName: order.customerName,
+          movieTitle: order.movieTitle,
+          cinemaName: order.cinema,
+          roomName: order.roomName,
+          seatLabel: ticket.seatLabel,
+          showDate: showtimeDate,
+          showTime: showtimeTime,
+          price: ticketPrice,
+          paymentStatus: 'paid',
+          status: 'valid',
+        });
+        return (
+          <article className="orderTicketPrintCard" key={ticket.code}>
+            <header>
+              <div><span>FILMGO E-TICKET</span><h1>{order.movieTitle}</h1></div>
+              <strong className="orderTicketSeat">GHẾ {ticket.seatLabel}</strong>
+            </header>
+            <div className="orderTicketPrintBody">
+              <div className="orderTicketPrintInfo">
+                <p><span>Khách hàng</span><strong>{order.customerName}</strong></p>
+                <p><span>Rạp</span><strong>{order.cinema}</strong></p>
+                <p><span>Phòng</span><strong>{order.roomName || '—'}</strong></p>
+                <p><span>Suất chiếu</span><strong>{order.showtimeLabel || '—'}</strong></p>
+                <p><span>Giá vé</span><strong>{formatVnd(ticketPrice)}</strong></p>
+                <p><span>Mã đơn</span><strong>{order.code}</strong></p>
+              </div>
+              <div className="orderTicketPrintQr">
+                <QRCodeSVG value={qrPayload} size={170} bgColor="#fff" fgColor="#07111f" />
+                <span>Mã vé</span>
+                <strong>{ticket.code}</strong>
+              </div>
+            </div>
+            <footer>Mỗi mã vé và QR chỉ có hiệu lực cho một ghế.</footer>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -319,30 +385,12 @@ function BookingList() {
   const printTicket = async () => {
     if (!selected) return;
     try {
-      await bookingApi.update(selected._id, {action: 'print'});
-      const now = new Date();
-      setSelected(curr =>
-        curr
-          ? {
-              ...curr,
-              isPrinted: true,
-              printedAt: now,
-              printedCount: (curr.printedCount || 0) + 1,
-            }
-          : null,
-      );
-      setOrders(curr =>
-        curr.map(o =>
-          o._id === selected._id
-            ? {
-                ...o,
-                isPrinted: true,
-                printedAt: now,
-                printedCount: (o.printedCount || 0) + 1,
-              }
-            : o,
-        ),
-      );
+      const response = await bookingApi.update(selected._id, {action: 'print'});
+      const updated = response?.data;
+      if (updated) {
+        setSelected(updated);
+        setOrders(curr => curr.map(order => order._id === updated._id ? updated : order));
+      }
     } catch (err) {
       console.error('Lỗi khi ghi nhận in vé:', err);
     }
@@ -605,6 +653,7 @@ function BookingList() {
 
       {selected ? (
         <aside className="orderDetailPanel" id="order-print-area">
+          <OrderTicketPrintStack order={selected} />
           <div className="orderDetailHead">
             <div>
               <h3>Chi tiết đơn đặt vé</h3>
