@@ -81,13 +81,21 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     }, new Map<string, GheSuatChieu[]>()),
   ).map(([key, seats]) => ({key, seats}));
   const maxSeatsInRow = Math.max(...seatRows.map(row => row.seats.length), 1);
-  const seatGap = maxSeatsInRow >= 15 ? 4 : 6;
-  const seatPanelPadding = maxSeatsInRow >= 15 ? 8 : 14;
+  const seatGap = maxSeatsInRow >= 15 ? 2 : 5;
+  const seatPanelPadding = maxSeatsInRow >= 15 ? 6 : 12;
   const availableSeatWidth = Math.max(
     screenWidth - seatPanelPadding * 2 - seatGap * (maxSeatsInRow - 1),
     0,
   );
-  const seatSize = Math.max(20, Math.min(26, Math.floor(availableSeatWidth / maxSeatsInRow)));
+  const seatSize = Math.max(22, Math.min(28, Math.floor(availableSeatWidth / maxSeatsInRow)));
+  const vipPrice = Math.round(unitPrice * 1.2);
+  const availableSeats = seatItems.filter(
+    seat => !soldSeats.has(seat.label) && !heldSeats.has(seat.label),
+  );
+  const availableVipCount = availableSeats.filter(
+    seat => seat.type === 'vip' || seat.type === 'couple',
+  ).length;
+  const centerAvailableCount = availableSeats.filter(seat => CENTER_ZONE.has(seat.label)).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -350,6 +358,52 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
           </Text>
         </View>
 
+        <View style={styles.selectionGuide}>
+          <View style={styles.guideHeaderRow}>
+            <View style={styles.guideTitleWrap}>
+              <Text style={styles.guideEyebrow}>Gợi ý chọn ghế</Text>
+              <Text style={styles.guideTitle}>
+                {hasSelectedSeats ? 'Kiểm tra lựa chọn của bạn' : 'Chọn ghế đẹp để xem phim thoải mái hơn'}
+              </Text>
+            </View>
+            <View style={styles.guideBadge}>
+              <Text style={styles.guideBadgeText}>{availableSeats.length} ghế trống</Text>
+            </View>
+          </View>
+
+          <View style={styles.guideStatsRow}>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Ghế thường</Text>
+              <Text style={styles.guideStatValue}>{formatMoney(unitPrice)}</Text>
+            </View>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Ghế VIP</Text>
+              <Text style={styles.guideStatValue}>{formatMoney(vipPrice)}</Text>
+            </View>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Trung tâm</Text>
+              <Text style={styles.guideStatValue}>{centerAvailableCount} ghế</Text>
+            </View>
+          </View>
+
+          {hasSelectedSeats ? (
+            <View style={styles.selectedGuideBox}>
+              <Text style={styles.selectedGuideLabel}>Bạn đang chọn</Text>
+              <Text style={styles.selectedGuideSeats}>{selectedSeatList.join(', ')}</Text>
+              <Text style={styles.selectedGuideHint}>
+                Các ghế đã được giữ tạm. Hãy kiểm tra đúng suất chiếu và bấm tiếp tục để thanh toán.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.tipGrid}>
+              <GuideTip title="Đi 1 người" text="Ưu tiên C8, D8 hoặc E8 nếu còn trống." />
+              <GuideTip title="Đi 2 người" text="Chọn cặp ghế liền nhau ở vùng trung tâm." />
+              <GuideTip title="Nhóm bạn" text="Chọn cùng một hàng, tránh để trống ghế lẻ ở giữa." />
+              <GuideTip title="Ghế VIP" text={`${availableVipCount} ghế VIP còn khả dụng cho suất này.`} />
+            </View>
+          )}
+        </View>
+
       </ScrollView>
 
       {/* Checkout bar */}
@@ -467,6 +521,15 @@ function LegendItem({color, label, isBorder}: {color?: string; label: string; is
   );
 }
 
+function GuideTip({title, text}: {title: string; text: string}) {
+  return (
+    <View style={styles.tipCard}>
+      <Text style={styles.tipTitle}>{title}</Text>
+      <Text style={styles.tipText}>{text}</Text>
+    </View>
+  );
+}
+
 function formatMoney(value: number) {
   return `${value.toLocaleString('vi-VN')} đ`;
 }
@@ -542,7 +605,7 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     backgroundColor: '#111122',
-    paddingBottom: 0,
+    paddingBottom: 18,
   },
   seatStatus: {
     flexDirection: 'row',
@@ -646,6 +709,134 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 12,
     lineHeight: 17,
+  },
+  selectionGuide: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#19192d',
+    borderWidth: 1,
+    borderColor: '#2d2d4b',
+  },
+  guideHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  guideTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  guideEyebrow: {
+    color: '#8f8fb5',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  guideTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  guideBadge: {
+    minHeight: 30,
+    maxWidth: 116,
+    borderRadius: 15,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#242446',
+    borderWidth: 1,
+    borderColor: '#38386a',
+  },
+  guideBadgeText: {
+    color: '#d9d9ff',
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  guideStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  guideStat: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    backgroundColor: '#111122',
+    borderWidth: 1,
+    borderColor: '#2c2c49',
+  },
+  guideStatLabel: {
+    color: '#9696ba',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  guideStatValue: {
+    color: '#ffffff',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  tipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tipCard: {
+    width: '48.8%',
+    minHeight: 78,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#20203a',
+    borderWidth: 1,
+    borderColor: '#34345c',
+  },
+  tipTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  tipText: {
+    color: '#b7b7d2',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 6,
+  },
+  selectedGuideBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#231532',
+    borderWidth: 1,
+    borderColor: '#4b285f',
+  },
+  selectedGuideLabel: {
+    color: '#c7a7d8',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  selectedGuideSeats: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 5,
+  },
+  selectedGuideHint: {
+    color: '#c8bed0',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 7,
   },
   checkoutBar: {
     backgroundColor: '#1a1a2e',
