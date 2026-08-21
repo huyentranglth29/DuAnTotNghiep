@@ -20,13 +20,7 @@ const menuItems = [
     ],
   },
   {to: '/bookings', label: 'Đơn đặt vé'},
-  {
-    label: 'Thanh toán',
-    children: [
-      {to: '/payments/status', label: 'Theo dõi thanh toán'},
-      {to: '/payments/history', label: 'Lịch sử thanh toán'},
-    ],
-  },
+  {to: '/payments/history', label: 'Lịch sử thanh toán'},
   {
     label: 'Vé',
     children: [

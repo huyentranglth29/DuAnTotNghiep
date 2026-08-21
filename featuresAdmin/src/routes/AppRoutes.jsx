@@ -28,7 +28,6 @@ import NotificationList from '../pages/notifications/NotificationList';
 import CreateNotification from '../pages/notifications/CreateNotification';
 import PersonalInformation from '../pages/personal information/PersonalInformation';
 import PaymentHistory from '../pages/payments/PaymentHistory';
-import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
 import NewsEventList from '../pages/news-events/NewsEventList';
 import InternalAiAssistant from '../pages/ai/InternalAiAssistant';
@@ -73,7 +72,7 @@ function AppRoutes() {
         <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
-        <Route path="payments/status" element={<PaymentStatus />} />
+        <Route path="payments/status" element={<Navigate to="/payments/history" replace />} />
         <Route path="payments/history" element={<PaymentHistory />} />
         <Route path="tickets" element={<TicketList />} />
         <Route path="tickets/electronic" element={<ElectronicTicket />} />
