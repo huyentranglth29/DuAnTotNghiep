@@ -27,7 +27,6 @@ const menuItems = [
       {to: '/tickets', label: 'Danh sách vé'},
       {to: '/tickets/electronic', label: 'Vé điện tử'},
       {to: '/tickets/qr', label: 'QR / Barcode'},
-      {to: '/tickets/checkin', label: 'Checkin vé'},
       {to: '/tickets/status', label: 'Theo dõi trạng thái vé'},
     ],
   },

@@ -214,6 +214,7 @@ const getAdminOverview = async (req, res) => {
               $match: {
                 showtimeId: { $in: showtimeIds },
                 booking: { $exists: true, $ne: null },
+                status: "booked",
               },
             },
             { $group: { _id: "$showtimeId", sold: { $sum: 1 } } },
@@ -286,29 +287,41 @@ const getAdminOverview = async (req, res) => {
       }))
       .sort((a, b) => b.occupancyRate - a.occupancyRate);
 
+    // Phân bố lấp đầy theo từng suất chiếu. Một phòng có thể có nhiều suất
+    // với lượng vé bán rất khác nhau nên không thể xem cả phòng là một mẫu.
+    const occupancyShowtimes = formattedShowtimes.filter(
+      (showtime) => showtime.totalSeats > 0,
+    );
     const occupancyBands = [
       { label: "0 – 25%", min: 0, max: 25, tone: "green" },
       { label: "25 – 50%", min: 25, max: 50, tone: "blue" },
       { label: "50 – 75%", min: 50, max: 75, tone: "orange" },
       { label: "75 – 100%", min: 75, max: 101, tone: "red" },
     ].map((band) => {
-      const count = roomOccupancy.filter(
-        (room) =>
-          room.occupancyRate >= band.min && room.occupancyRate < band.max,
+      const count = occupancyShowtimes.filter(
+        (showtime) =>
+          showtime.occupancyRate >= band.min && showtime.occupancyRate < band.max,
       ).length;
       return {
         label: band.label,
         count,
-        percentage: roomOccupancy.length
-          ? Math.round((count / roomOccupancy.length) * 100)
+        percentage: occupancyShowtimes.length
+          ? Math.round((count / occupancyShowtimes.length) * 100)
           : 0,
         tone: band.tone,
       };
     });
-    const averageOccupancy = roomOccupancy.length
-      ? Math.round(
-          roomOccupancy.reduce((sum, room) => sum + room.occupancyRate, 0) /
-            roomOccupancy.length,
+    const occupancyTotals = occupancyShowtimes.reduce(
+      (totals, showtime) => ({
+        soldSeats: totals.soldSeats + showtime.soldSeats,
+        totalSeats: totals.totalSeats + showtime.totalSeats,
+      }),
+      { soldSeats: 0, totalSeats: 0 },
+    );
+    const averageOccupancy = occupancyTotals.totalSeats
+      ? Math.min(
+          100,
+          Math.round((occupancyTotals.soldSeats / occupancyTotals.totalSeats) * 100),
         )
       : 0;
 
@@ -449,6 +462,9 @@ const getAdminOverview = async (req, res) => {
           average: averageOccupancy,
           distribution: occupancyBands,
           rooms: roomOccupancy.slice(0, 5),
+          showtimeCount: occupancyShowtimes.length,
+          soldSeats: occupancyTotals.soldSeats,
+          totalSeats: occupancyTotals.totalSeats,
         },
         playingShowtimes,
         upcomingShowtimes,

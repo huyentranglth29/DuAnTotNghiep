@@ -18,8 +18,6 @@ import UserList from '../pages/users/UserList';
 import TicketList from '../pages/tickets/TicketList';
 import ElectronicTicket from '../pages/tickets/ElectronicTicket';
 import GenerateQR from '../pages/tickets/GenerateQR';
-import TicketCheckin from '../pages/tickets/TicketCheckin';
-import CheckinResult from '../pages/tickets/CheckinResult';
 import TicketStatus from '../pages/tickets/TicketStatus';
 import VoucherList from '../pages/vouchers/VoucherList';
 import ProductList from '../pages/products/ProductList';
@@ -77,8 +75,6 @@ function AppRoutes() {
         <Route path="tickets" element={<TicketList />} />
         <Route path="tickets/electronic" element={<ElectronicTicket />} />
         <Route path="tickets/qr" element={<GenerateQR />} />
-        <Route path="tickets/checkin" element={<TicketCheckin />} />
-        <Route path="tickets/checkin-result" element={<CheckinResult />} />
         <Route path="tickets/status" element={<TicketStatus />} />
         <Route path="vouchers" element={<VoucherList />} />
         <Route path="products" element={<ProductList />} />

@@ -185,12 +185,15 @@ function Dashboard() {
   const schedule = overview.todaySchedule || [];
   const distribution = overview.occupancy?.distribution || [];
   const averageOccupancy = Number(overview.occupancy?.average || 0);
-  const donutStops = distribution.reduce(
+  const occupancySoldSeats = Number(overview.occupancy?.soldSeats || 0);
+  const occupancyTotalSeats = Number(overview.occupancy?.totalSeats || 0);
+  const visibleDistribution = distribution.filter(item => Number(item.percentage || 0) > 0);
+  const donutStops = visibleDistribution.reduce(
     (result, item, index) => {
       const start = result.total;
       const end = start + Number(item.percentage || 0);
       result.parts.push(
-        `var(--overview-${item.tone}) ${start}% ${index === distribution.length - 1 ? 100 : end}%`,
+        `var(--overview-${item.tone}) ${start}% ${index === visibleDistribution.length - 1 ? 100 : end}%`,
       );
       result.total = end;
       return result;
@@ -336,11 +339,11 @@ function Dashboard() {
           </svg>
         </Link>
         <article className="overviewPanel overviewOccupancy">
-          <SectionHeader title="Tỷ lệ lấp đầy ghế (Trung bình)" to="/rooms" />
+          <SectionHeader title="Tỷ lệ lấp đầy ghế trong ngày" to="/showtimes" />
           <Link
             className="overviewDonutWrap overviewClickable"
-            to="/rooms"
-            title="Xem phòng chiếu">
+            to="/showtimes"
+            title="Xem danh sách suất chiếu">
             <div
               className="overviewDonut"
               style={{
@@ -349,7 +352,10 @@ function Dashboard() {
                   : undefined,
               }}>
               <span>
-                <strong>{averageOccupancy}%</strong>Trung bình
+                <strong>{averageOccupancy}%</strong>
+                {occupancyTotalSeats
+                  ? `${occupancySoldSeats}/${occupancyTotalSeats} ghế`
+                  : 'Chưa có suất'}
               </span>
             </div>
             <div className="overviewLegend">
@@ -358,7 +364,7 @@ function Dashboard() {
                   <i className={item.tone} />
                   {item.label}
                   <span>
-                    {item.count} phòng ({item.percentage}%)
+                    {item.count} suất ({item.percentage}%)
                   </span>
                 </p>
               ))}
