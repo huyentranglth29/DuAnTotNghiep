@@ -20,20 +20,13 @@ const menuItems = [
     ],
   },
   {to: '/bookings', label: 'Đơn đặt vé'},
-  {
-    label: 'Thanh toán',
-    children: [
-      {to: '/payments/status', label: 'Theo dõi thanh toán'},
-      {to: '/payments/history', label: 'Lịch sử thanh toán'},
-    ],
-  },
+  {to: '/payments/history', label: 'Lịch sử thanh toán'},
   {
     label: 'Vé',
     children: [
       {to: '/tickets', label: 'Danh sách vé'},
       {to: '/tickets/electronic', label: 'Vé điện tử'},
       {to: '/tickets/qr', label: 'QR / Barcode'},
-      {to: '/tickets/checkin', label: 'Checkin vé'},
       {to: '/tickets/status', label: 'Theo dõi trạng thái vé'},
     ],
   },

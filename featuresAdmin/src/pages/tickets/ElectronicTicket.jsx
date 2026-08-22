@@ -16,6 +16,11 @@ const paymentStatusMap = {
   refunded: {label: 'Hoàn tiền', tone: 'info'},
 };
 
+const printStatusMap = {
+  true: {label: 'Đã in vé', tone: 'success'},
+  false: {label: 'Chưa in vé', tone: 'warning'},
+};
+
 function StatusBadge({map, value}) {
   const status = map[value] || {label: value || 'Chưa có', tone: 'info'};
   return <span className={`badge ${status.tone}`}>{status.label}</span>;
@@ -45,6 +50,7 @@ function ElectronicTicket() {
   const [selectedId, setSelectedId] = useState('');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [printing, setPrinting] = useState(false);
   const [error, setError] = useState('');
 
   const loadData = async () => {
@@ -150,13 +156,34 @@ function ElectronicTicket() {
     status: selectedTicket?.status,
   });
 
+  const printTicket = async () => {
+    if (!selectedTicket || printing) return;
+    setPrinting(true);
+    setError('');
+    try {
+      const response = await ticketApi.update(selectedTicket._id, {action: 'print'});
+      const state = response?.data || response;
+      setTickets(current => current.map(ticket =>
+        ticket._id === selectedTicket._id ? {...ticket, ...state} : ticket,
+      ));
+      window.print();
+    } catch (err) {
+      setError(err.message || 'Không ghi nhận được trạng thái in vé.');
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   return (
     <section className="electronicTicketPage">
       <div className="pageTitle">
         <h2>Xem vé điện tử</h2>
-        <button type="button" onClick={loadData}>
-          Làm mới
-        </button>
+        <div className="formActions electronicTicketPageActions">
+          <button type="button" className="ghost" onClick={loadData}>Làm mới</button>
+          <button type="button" disabled={!selectedTicket || printing} onClick={printTicket}>
+            {printing ? 'Đang chuẩn bị...' : 'In vé đang chọn'}
+          </button>
+        </div>
       </div>
 
       <div className="panel electronicTicketToolbar">
@@ -194,6 +221,7 @@ function ElectronicTicket() {
             <div className="electronicTicketStatus">
               <StatusBadge map={ticketStatusMap} value={selectedTicket.status} />
               <StatusBadge map={paymentStatusMap} value={paymentStatus} />
+              <StatusBadge map={printStatusMap} value={String(Boolean(selectedTicket.isPrinted))} />
             </div>
 
             <div className="electronicTicketTop">
@@ -232,6 +260,19 @@ function ElectronicTicket() {
               <div>
                 <small>Giá vé</small>
                 <strong>{formatVnd(selectedTicket.price || booking.totalPrice)}</strong>
+              </div>
+              <div>
+                <small>Trạng thái in</small>
+                <strong>
+                  {selectedTicket.isPrinted
+                    ? `Đã in (${selectedTicket.printedCount || 1} lần)`
+                    : 'Chưa in'}
+                </strong>
+                {selectedTicket.printedAt ? (
+                  <small style={{display: 'block', fontSize: '0.75rem', color: '#64748b'}}>
+                    {formatDateTime(selectedTicket.printedAt)}
+                  </small>
+                ) : null}
               </div>
               <div>
                 <small>Mã đơn</small>

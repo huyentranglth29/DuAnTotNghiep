@@ -118,12 +118,18 @@ export async function sendAuthHeartbeat() {
 }
 
 export async function registerWithApi({fullName, email, password, phone}) {
-  return apiClient.post('/api/auth/register', {
+  const response = await apiClient.post('/api/auth/register', {
     fullName,
     email: email.trim().toLowerCase(),
     password,
     phone,
   });
+
+  if (response?.token) {
+    await saveAuthSession({token: response.token, user: response.user});
+  }
+
+  return response;
 }
 
 /** Danh sách voucher đang mở */

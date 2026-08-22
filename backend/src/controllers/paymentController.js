@@ -12,7 +12,7 @@ const { buildQuery, sign, verify, formatVnpDate } = require("../utils/vnpay");
 const { createNotification } = require("../services/notificationService");
 const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
 
-const HOLD_MINUTES = 15;
+const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYOS_API_URL = "https://api-merchant.payos.vn";
 const STATUS_LABELS = {
   cho_thanh_toan: "Đang chờ thanh toán",
@@ -476,7 +476,7 @@ const createVnpayPayment = async (req, res, next) => {
     const movieTitle = showtime.movie?.title || String(req.body.movieTitle || "").trim();
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
     const orderCode = `FG${Date.now()}${Math.floor(100 + Math.random() * 900)}`;
     payment = await Payment.create({
       user: req.user?._id,
@@ -542,6 +542,8 @@ const createVnpayPayment = async (req, res, next) => {
     };
     const secureHash = sign(params, config.secret);
     const paymentUrl = `${config.paymentUrl}?${buildQuery(params)}&vnp_SecureHash=${secureHash}`;
+    payment.checkoutUrl = paymentUrl;
+    await payment.save();
 
     await notifyPendingPayment(payment);
 
@@ -602,7 +604,7 @@ const createPayosPayment = async (req, res, next) => {
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
     const orderCode = makePayosOrderCode();
     const movieTitle = showtime.movie?.title || String(req.body.movieTitle || "").trim();
 
@@ -743,7 +745,7 @@ const createMockPayment = async (req, res, next) => {
     const voucherInfo = await prepareVoucher(req.user?._id, req.body.voucherCode, subtotal);
     const amount = subtotal - voucherInfo.discount;
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000);
     payment = await Payment.create({
       user: req.user?._id,
       voucher: voucherInfo.voucher?._id,
@@ -941,9 +943,6 @@ const cancelPayment = async (req, res, next) => {
 };
 
 module.exports = {
-  createMockPayment,
-  completeMockPayment,
-  failMockPayment,
   createVnpayPayment,
   createPayosPayment,
   vnpayIpn,

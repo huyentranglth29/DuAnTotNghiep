@@ -107,8 +107,18 @@ function TicketCheckin() {
         price: ticket.price,
         status: 'used',
       };
-      await ticketApi.update(ticket._id, payload);
-      setTicket({...ticket, status: 'used'});
+      const isQuickOrder = String(ticket._id || '').startsWith('quick-');
+      const response = await ticketApi.update(
+        ticket._id,
+        isQuickOrder ? {...payload, action: 'checkin-order'} : payload,
+      );
+      const result = response?.data || response;
+      setTicket({
+        ...ticket,
+        status: 'used',
+        checkedIn: Boolean(result?.checkedIn || isQuickOrder),
+        checkedInSeats: result?.checkedInSeats || ticket.checkedInSeats,
+      });
     } catch (err) {
       window.alert(err.message || 'Checkin thất bại.');
     } finally {

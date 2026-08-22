@@ -1405,43 +1405,133 @@ th {
   border-top: 1px solid #edf1f6;
 }
 
-.ticketDetailModal {
+.modal.ticketDetailModal {
   width: min(920px, calc(100vw - 48px));
-  max-height: min(780px, calc(100vh - 48px));
+  max-height: min(820px, calc(100dvh - 48px));
+  border: 1px solid #dbe4ef;
+  border-radius: 20px;
+  background: #f6f8fc;
+  box-shadow: 0 28px 72px rgba(15, 23, 42, 0.26);
+}
+
+.modal.ticketDetailModal > header {
+  padding: 19px 22px;
+  border-color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.modal.ticketDetailModal > header h2 {
+  color: #172033;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.modal.ticketDetailModal .modalCloseButton {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-color: #d7e0eb;
+  border-radius: 11px;
+  color: #344256;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.modal.ticketDetailModal .modalCloseButton:hover {
+  color: #be123c;
+  border-color: #fda4af;
+  background: #fff1f2;
+  transform: translateY(-1px);
+}
+
+.modal.ticketDetailModal .modalCloseButton:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.28);
+  outline-offset: 2px;
 }
 
 .ticketDetailContent {
   display: grid;
-  gap: 16px;
-  padding: 18px;
+  gap: 18px;
+  padding: 22px;
   overflow-y: auto;
 }
 
 .ticketDetailHero {
+  position: relative;
   display: flex;
+  overflow: hidden;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
-  border: 1px solid #bfdbfe;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #eff6ff, #f8fbff);
+  gap: 24px;
+  padding: 22px 24px;
+  border: 1px solid #bcd6ff;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(37, 99, 235, 0.14), transparent 34%),
+    linear-gradient(135deg, #eaf3ff 0%, #f8fbff 72%);
 }
 
-.ticketDetailHero > div {
+.ticketDetailIdentity {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
-.ticketDetailHero span {
+.ticketDetailEyebrow,
+.ticketDetailHeroStatusLabel {
   color: #64748b;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
-.ticketDetailHero strong {
+.ticketDetailIdentity strong {
+  overflow-wrap: anywhere;
   color: #1d4ed8;
-  font-size: 24px;
+  font-size: clamp(24px, 3vw, 30px);
+  letter-spacing: -0.03em;
+}
+
+.ticketDetailIdentity small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.ticketDetailHeroStatus {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 8px;
+}
+
+.ticketDetailHeroStatus .badge,
+.ticketDetailItem .badge {
+  min-width: 116px;
+  padding: 6px 12px;
+}
+
+.ticketDetailSectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ticketDetailSectionHeading h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 16px;
+}
+
+.ticketDetailSectionHeading p {
+  margin: 4px 0 0;
+  color: #718096;
+  font-size: 12px;
 }
 
 .ticketDetailGrid {
@@ -1450,31 +1540,110 @@ th {
   gap: 12px;
 }
 
-.ticketDetailGrid > div {
+.ticketDetailItem {
   display: flex;
-  min-height: 92px;
+  min-width: 0;
+  min-height: 104px;
   flex-direction: column;
   justify-content: center;
-  padding: 14px 16px;
-  border: 1px solid #e5eaf2;
-  border-radius: 12px;
-  background: #fafbfd;
+  padding: 16px;
+  border: 1px solid #e1e7f0;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.ticketDetailGrid > div > span:first-child {
-  margin-bottom: 7px;
+.ticketDetailItemWide {
+  grid-column: span 2;
+}
+
+.ticketDetailItem > span:first-child {
+  margin-bottom: 8px;
   color: #718096;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.ticketDetailGrid strong {
-  line-height: 1.4;
+.ticketDetailItem strong {
+  overflow-wrap: anywhere;
+  color: #172033;
+  line-height: 1.45;
 }
 
-.ticketDetailGrid small {
+.ticketDetailItem small {
   margin-top: 4px;
+  overflow-wrap: anywhere;
   color: #718096;
+  line-height: 1.35;
+}
+
+.adminDarkMode .modal.ticketDetailModal {
+  color: #edf3fb;
+  border-color: #34445c;
+  background: #111c2c;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+}
+
+.adminDarkMode .modal.ticketDetailModal > header {
+  border-color: #2b394d;
+  background: #172235;
+}
+
+.adminDarkMode .modal.ticketDetailModal > header h2,
+.adminDarkMode .ticketDetailSectionHeading h3 {
+  color: #f4f8fd;
+}
+
+.adminDarkMode .modal.ticketDetailModal .modalCloseButton {
+  color: #dce5f2;
+  border-color: #3a4b63;
+  background: #223149;
+  box-shadow: none;
+}
+
+.adminDarkMode .modal.ticketDetailModal .modalCloseButton:hover {
+  color: #fecdd3;
+  border-color: #9f4256;
+  background: #3a1f2a;
+}
+
+.adminDarkMode .ticketDetailHero {
+  border-color: #31557f;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(96, 165, 250, 0.2), transparent 36%),
+    linear-gradient(135deg, #162943 0%, #172235 76%);
+}
+
+.adminDarkMode .ticketDetailEyebrow,
+.adminDarkMode .ticketDetailHeroStatusLabel {
+  color: #9eb6d4;
+}
+
+.adminDarkMode .ticketDetailIdentity strong {
+  color: #7db4ff;
+}
+
+.adminDarkMode .ticketDetailIdentity small,
+.adminDarkMode .ticketDetailSectionHeading p,
+.adminDarkMode .ticketDetailItem small {
+  color: #98a7bc;
+}
+
+.adminDarkMode .ticketDetailItem {
+  color: #edf3fb;
+  border-color: #2b394d;
+  background: #172235;
+  box-shadow: none;
+}
+
+.adminDarkMode .ticketDetailItem > span:first-child {
+  color: #98a7bc;
+}
+
+.adminDarkMode .ticketDetailItem strong {
+  color: #edf3fb;
 }
 
 @media (max-width: 1280px) {
@@ -1483,14 +1652,66 @@ th {
   }
 }
 
+@media (max-width: 900px) {
+  .modal.ticketDetailModal {
+    width: calc(100vw - 32px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  .ticketDetailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
-  .ticketFilters,
+  .ticketFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .ticketDetailContent {
+    padding: 18px;
+  }
+
+  .modal.ticketDetailModal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+@media (max-width: 580px) {
+  .modal.ticketDetailModal > header {
+    padding: 16px;
+  }
+
+  .modal.ticketDetailModal > header h2 {
+    font-size: 17px;
+  }
+
+  .ticketDetailContent {
+    gap: 15px;
+    padding: 14px;
+  }
+
+  .ticketDetailHero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .ticketDetailHeroStatus {
+    width: 100%;
+    align-items: center;
+    grid-template-columns: 1fr auto;
+    justify-items: start;
+  }
+
   .ticketDetailGrid {
     grid-template-columns: 1fr;
   }
 
-  .ticketDetailModal {
-    width: calc(100vw - 24px);
+  .ticketDetailItemWide {
+    grid-column: span 1;
   }
 }
 
@@ -1902,10 +2123,42 @@ th {
 .qrTicketImage .qrBox svg { width: 220px; height: 220px; }
 .qrTicketCode { display: block; color: #dc2626; text-align: center; letter-spacing: .08em; }
 .qrTicketInfoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 20px; }
+.qrOrderTotals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 0 20px 18px; }
+.qrOrderTotals div { display: grid; gap: 4px; }
+.qrOrderTotals span { color: #64748b; font-size: 10px; font-weight: 900; text-transform: uppercase; }
+.qrOrderTotals strong { color: #111827; font-size: 16px; }
 .qrTicketInfoGrid div { display: grid; gap: 4px; }
 .qrTicketInfoGrid .wide { grid-column: 1 / -1; }
 .qrTicketInfoGrid span { color: #64748b; font-size: 10px; font-weight: 900; text-transform: uppercase; }
 .qrTicketDetail footer { padding: 14px 20px; color: #64748b; text-align: center; background: #f8fafc; }
+
+.adminDarkMode .qrTicketDetail {
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+  background: var(--admin-surface);
+  box-shadow: none;
+}
+.adminDarkMode .qrTicketDetail header {
+  background: linear-gradient(135deg, #07111f, #0b6098);
+}
+.adminDarkMode .qrTicketImage,
+.adminDarkMode .qrTicketInfoGrid,
+.adminDarkMode .qrOrderTotals {
+  background: var(--admin-surface);
+}
+.adminDarkMode .qrTicketInfoGrid strong,
+.adminDarkMode .qrOrderTotals strong {
+  color: var(--admin-text);
+}
+.adminDarkMode .qrTicketInfoGrid span,
+.adminDarkMode .qrOrderTotals span {
+  color: var(--admin-muted);
+}
+.adminDarkMode .qrTicketDetail footer {
+  color: var(--admin-muted);
+  border-color: var(--admin-border);
+  background: var(--admin-control);
+}
 
 @media (max-width: 560px) {
   .qrTicketInfoGrid { grid-template-columns: 1fr; }
@@ -4542,67 +4795,494 @@ th {
 }
 
 .paymentPage {
+  --pay-bg: #f8fafc;
+  --pay-card: #ffffff;
+  --pay-border: #e2e8f0;
+  --pay-text: #0f172a;
+  --pay-muted: #64748b;
+  --pay-hover: #f1f5f9;
+  --pay-control: #ffffff;
+  --pay-thead: #f8fafc;
+  --pay-row-border: #edf2f7;
   display: grid;
+  gap: 20px;
+  color: var(--pay-text);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+
+.adminDarkMode .paymentPage {
+  --pay-bg: #0b1120;
+  --pay-card: #111827;
+  --pay-border: #1f2937;
+  --pay-text: #f8fafc;
+  --pay-muted: #94a3b8;
+  --pay-hover: #1e293b;
+  --pay-control: #0f172a;
+  --pay-thead: #0b1220;
+  --pay-row-border: rgba(31, 41, 55, 0.8);
+}
+
+.paymentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
-.paymentPage .metricGrid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+.paymentHeader h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--pay-text);
 }
 
-.paymentReconcileHint {
-  margin: -6px 0 0;
-  color: #64748b;
+.paymentHeader p {
+  margin: 4px 0 0;
+  color: var(--pay-muted);
+  font-size: 14px;
+}
+
+.paymentHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paymentBtnGhost,
+.paymentBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  text-align: right;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.paymentFilters {
+.paymentBtnGhost {
+  border: 1px solid var(--pay-border);
+  background: var(--pay-card);
+  color: var(--pay-text);
+}
+
+.paymentBtnGhost:hover:not(:disabled) {
+  background: var(--pay-hover);
+  border-color: #cbd5e1;
+}
+
+.paymentBtnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paymentBtnPrimary {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.paymentBtnPrimary:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* Metric Cards */
+.paymentMetricGrid {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(150px, 180px)) auto;
-  gap: 12px;
-  align-items: end;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.paymentDateFilter {
+.paymentMetricCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--pay-card);
+  border: 1px solid var(--pay-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paymentMetricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.paymentMetricIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.paymentMetricInfo {
   display: grid;
-  gap: 5px;
+  gap: 2px;
+  min-width: 0;
 }
 
-.paymentDateFilter span {
-  color: #64748b;
+.paymentMetricInfo span {
+  color: var(--pay-muted);
   font-size: 12px;
-  font-weight: 700;
-}
-
-.paymentFilters > .ghost {
-  min-height: 42px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
 
-.paymentHistoryFilters {
+.paymentMetricInfo strong {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--pay-text);
+  line-height: 1.2;
+}
+
+.paymentMetricInfo small {
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paymentMetricInfo .latestTime {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pay-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Card color themes */
+.paymentMetricCard.total .paymentMetricIcon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.paymentMetricCard.paid .paymentMetricIcon {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+.paymentMetricCard.unpaid .paymentMetricIcon {
+  background: #fefce8;
+  color: #ca8a04;
+}
+.paymentMetricCard.failed .paymentMetricIcon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.paymentMetricCard.latest .paymentMetricIcon {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.adminDarkMode .paymentMetricCard.total .paymentMetricIcon {
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+}
+.adminDarkMode .paymentMetricCard.paid .paymentMetricIcon {
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ade80;
+}
+.adminDarkMode .paymentMetricCard.unpaid .paymentMetricIcon {
+  background: rgba(202, 138, 4, 0.15);
+  color: #facc15;
+}
+.adminDarkMode .paymentMetricCard.failed .paymentMetricIcon {
+  background: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+}
+.adminDarkMode .paymentMetricCard.latest .paymentMetricIcon {
+  background: rgba(124, 58, 237, 0.15);
+  color: #a78bfa;
+}
+
+/* Toolbar & Filters */
+.paymentToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.paymentFilterBar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 190px 190px 160px 160px;
-  gap: 12px;
+  grid-template-columns: minmax(240px, 1.5fr) 170px 170px 170px 170px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--pay-border);
+  border-radius: 14px;
+  background: var(--pay-card);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.paymentSearch,
+.paymentDateWrap {
+  position: relative;
+  display: flex;
   align-items: center;
 }
 
-.paymentFilters input,
-.paymentFilters select,
-.paymentHistoryFilters input,
-.paymentHistoryFilters select {
-  width: 100%;
-  min-height: 42px;
-  padding: 10px 12px;
-  border: 1px solid #cfd6df;
-  border-radius: 6px;
-  background: #fff;
+.paymentSearch svg,
+.paymentDateWrap svg {
+  position: absolute;
+  left: 12px;
+  color: var(--pay-muted);
+  pointer-events: none;
 }
 
-.paymentLatest {
-  font-size: 15px;
-  line-height: 20px;
+.paymentFilterBar input,
+.paymentFilterBar select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--pay-border);
+  border-radius: 10px;
+  color: var(--pay-text);
+  background: var(--pay-control);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paymentFilterBar input:focus,
+.paymentFilterBar select:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.paymentSearch input {
+  padding-left: 36px;
+}
+
+.paymentDateWrap input {
+  padding-left: 34px;
+}
+
+.paymentClearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--pay-border);
+  color: var(--pay-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.paymentClearBtn:hover {
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.adminDarkMode .paymentClearBtn:hover {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.paymentReconcileBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--pay-hover);
+  border: 1px solid var(--pay-border);
+  font-size: 12px;
+  color: var(--pay-muted);
+  font-weight: 500;
+}
+
+.paymentReconcileBar strong {
+  color: var(--pay-text);
+  font-weight: 700;
+}
+
+.paymentReconcilePills {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.paymentPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.paymentPillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.paymentPillDot.paid { background: #16a34a; }
+.paymentPillDot.unpaid { background: #ca8a04; }
+.paymentPillDot.failed { background: #dc2626; }
+
+/* Table Container Card */
+.paymentTableCard {
+  overflow: hidden;
+  border: 1px solid var(--pay-border);
+  border-radius: 14px;
+  background: var(--pay-card);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.paymentTableCard .tableWrap {
+  overflow-x: auto;
+}
+
+.paymentTableCard table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.paymentTableCard thead th {
+  padding: 13px 14px;
+  background: var(--pay-thead);
+  color: var(--pay-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--pay-border);
+  white-space: nowrap;
+}
+
+.paymentTableCard tbody td {
+  padding: 14px;
+  border-bottom: 1px solid var(--pay-row-border);
+  vertical-align: middle;
+}
+
+.paymentTableCard tbody tr:hover {
+  background: var(--pay-hover);
+}
+
+.paymentTableCard tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.paymentTxCode {
+  font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.adminDarkMode .paymentTxCode {
+  color: #f87171;
+}
+
+.paymentAmount {
+  font-weight: 700;
+  color: var(--pay-text);
+}
+
+.paymentMethodTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--pay-hover);
+  color: var(--pay-text);
+  border: 1px solid var(--pay-border);
+}
+
+.paymentPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--pay-border);
+  background: var(--pay-thead);
+  font-size: 13px;
+  color: var(--pay-muted);
+}
+
+.paymentPaginationBtns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.paymentPaginationBtns button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--pay-border);
+  background: var(--pay-card);
+  color: var(--pay-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.paymentPaginationBtns button:hover:not(:disabled) {
+  background: var(--pay-hover);
+  border-color: #cbd5e1;
+}
+
+.paymentPaginationBtns button.active {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.paymentPaginationBtns button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1200px) {
+  .paymentMetricGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .paymentFilterBar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .paymentMetricGrid {
+    grid-template-columns: 1fr;
+  }
+  .paymentFilterBar {
+    grid-template-columns: 1fr;
+  }
+  .paymentReconcileBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .bookingAdminPage {
@@ -6075,6 +6755,35 @@ a.overviewMetric.overviewClickable {
   box-shadow: none;
 }
 
+/* Vé điện tử phải giữ đúng bảng màu tối; các màu nền sáng của bản in
+   không được rò vào giao diện xem trên màn hình. */
+.adminDarkMode .electronicTicketCard,
+.adminDarkMode .electronicTicketGrid,
+.adminDarkMode .electronicTicketCode {
+  color: var(--admin-text);
+  background: var(--admin-surface);
+}
+
+.adminDarkMode .electronicTicketStatus {
+  color: var(--admin-text);
+  background: var(--admin-control);
+}
+
+.adminDarkMode .electronicTicketGrid strong,
+.adminDarkMode .electronicTicketCode strong {
+  color: var(--admin-text);
+}
+
+.adminDarkMode .electronicTicketGrid small,
+.adminDarkMode .electronicTicketCode small,
+.adminDarkMode .electronicTicketCode p {
+  color: var(--admin-muted);
+}
+
+.adminDarkMode .electronicTicketCombo {
+  color: var(--admin-text);
+}
+
 .adminDarkMode table,
 .adminDarkMode th,
 .adminDarkMode td,
@@ -7109,6 +7818,110 @@ a.overviewMetric.overviewClickable {
   .no-print {
     display: none !important;
   }
+
+  #order-print-area > :not(.orderTicketPrintStack) {
+    display: none !important;
+  }
+
+  .orderTicketPrintStack {
+    display: block !important;
+  }
+
+  .orderTicketPrintCard {
+    display: block !important;
+    width: 180mm;
+    min-height: 105mm;
+    margin: 0 auto;
+    padding: 10mm;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    color: #07111f;
+    background: #fff;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    page-break-after: always;
+  }
+
+  .orderTicketPrintCard:last-child {
+    page-break-after: auto;
+  }
+}
+
+.orderTicketPrintStack {
+  display: none;
+}
+
+.orderTicketPrintCard header,
+.orderTicketPrintBody {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.orderTicketPrintCard header {
+  padding-bottom: 16px;
+  border-bottom: 2px solid #0b6098;
+}
+
+.orderTicketPrintCard header span,
+.orderTicketPrintInfo span,
+.orderTicketPrintQr span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.orderTicketPrintCard h1 {
+  margin: 4px 0 0;
+  font-size: 24px;
+}
+
+.orderTicketSeat {
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: #fff;
+  background: #0b6098;
+  font-size: 20px;
+}
+
+.orderTicketPrintBody {
+  padding: 20px 0;
+}
+
+.orderTicketPrintInfo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 1;
+  gap: 16px 24px;
+}
+
+.orderTicketPrintInfo p {
+  margin: 0;
+}
+
+.orderTicketPrintInfo strong,
+.orderTicketPrintQr strong {
+  display: block;
+  margin-top: 4px;
+}
+
+.orderTicketPrintQr {
+  min-width: 190px;
+  text-align: center;
+}
+
+.orderTicketPrintQr svg {
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.orderTicketPrintCard footer {
+  padding-top: 12px;
+  border-top: 1px dashed #94a3b8;
+  color: #64748b;
+  text-align: center;
 }
 
 .orderConfirmOverlay {

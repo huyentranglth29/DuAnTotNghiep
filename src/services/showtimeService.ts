@@ -19,6 +19,8 @@ export type SuatChieuApi = {
     duration?: string | number;
     posterUrl?: string;
     genre?: string | string[];
+    ageRating?: string;
+    status?: string;
   };
   room?: {
     _id?: string;

@@ -33,6 +33,20 @@ const ticketSchema = new mongoose.Schema(
       enum: ["valid", "used", "cancelled"],
       default: "valid",
     },
+    isPrinted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    printedAt: {
+      type: Date,
+      default: null,
+    },
+    printedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,

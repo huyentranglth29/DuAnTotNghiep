@@ -30,8 +30,8 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   {
-    title: {vi: 'Vé của tôi', en: 'My Tickets'},
-    icon: 'voucher',
+    title: {vi: 'Đơn vé đã gửi', en: 'Sent Orders'},
+    icon: 'ticket',
     color: '#e51937',
     backgroundColor: '#fff3f7',
     screen: 'myTickets',

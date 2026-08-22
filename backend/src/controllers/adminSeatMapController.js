@@ -1,6 +1,7 @@
 const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const BookedSeat = require("../models/BookedSeat");
+const Room = require("../models/Room");
 
 const SEAT_TYPES = ["normal", "vip", "couple"];
 
@@ -320,8 +321,141 @@ const changeSeatType = async (req, res, next) => {
   }
 };
 
+/**
+ * Sơ đồ ghế vật lý theo Phòng chiếu cho Admin.
+ * Hiển thị tất cả các ghế của phòng, phân loại (thường/vip/couple) và trạng thái bảo trì (active/inactive).
+ */
+const getRoomSeatMap = async (req, res, next) => {
+  try {
+    const room = await Room.findById(req.params.roomId);
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy phòng chiếu" });
+    }
+
+    const seats = await Seat.find({ room: room._id })
+      .sort({ row: 1, number: 1 })
+      .lean();
+
+    const mappedSeats = seats.map((seat) => ({
+      id: String(seat._id),
+      label: `${seat.row}${seat.number}`.toUpperCase(),
+      row: seat.row,
+      number: seat.number,
+      type: seat.type || "normal",
+      status: seat.status === "inactive" ? "maintenance" : "available",
+    }));
+
+    const stats = {
+      total: mappedSeats.length,
+      available: mappedSeats.filter((s) => s.status === "available").length,
+      maintenance: mappedSeats.filter((s) => s.status === "maintenance").length,
+      normal: mappedSeats.filter((s) => s.type === "normal").length,
+      vip: mappedSeats.filter((s) => s.type === "vip").length,
+      couple: mappedSeats.filter((s) => s.type === "couple").length,
+    };
+
+    return res.json({
+      success: true,
+      message: "Sơ đồ ghế phòng chiếu",
+      data: {
+        room: {
+          id: String(room._id),
+          name: room.name,
+          type: room.type,
+          totalSeats: room.totalSeats,
+          status: room.status,
+        },
+        seats: mappedSeats,
+        stats,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Khởi tạo sơ đồ ghế chuẩn cho phòng nếu phòng chưa có ghế hoặc muốn reset */
+const generateRoomSeats = async (req, res, next) => {
+  try {
+    const room = await Room.findById(req.params.roomId);
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy phòng chiếu" });
+    }
+
+    const existingSeats = await Seat.countDocuments({ room: room._id });
+    if (existingSeats > 0 && !req.body.force) {
+      return res.status(409).json({
+        success: false,
+        message: `Phòng đã có ${existingSeats} ghế. Nếu muốn tạo lại, hãy xác nhận ghi đè.`,
+      });
+    }
+
+    if (req.body.force) {
+      const activeShowtimes = await Showtime.find({
+        room: room._id,
+        endTime: { $gte: new Date() },
+        status: { $ne: "cancelled" },
+      }).select("_id");
+      if (activeShowtimes.length) {
+        const hasBooked = await BookedSeat.exists({
+          showtimeId: { $in: activeShowtimes.map((s) => String(s._id)) },
+        });
+        if (hasBooked) {
+          return res.status(409).json({
+            success: false,
+            message: "Phòng đang có suất chiếu đã bán vé, không thể xóa tạo lại sơ đồ ghế.",
+          });
+        }
+      }
+      await Seat.deleteMany({ room: room._id });
+    }
+
+    const rows = {
+      A: 14,
+      B: 14,
+      C: 15,
+      D: 15,
+      E: 14,
+      F: 15,
+      G: 13,
+      H: 13,
+    };
+
+    const newSeats = [];
+    for (const [row, count] of Object.entries(rows)) {
+      for (let number = 1; number <= count; number += 1) {
+        newSeats.push({
+          room: room._id,
+          row,
+          number,
+          type: row >= "E" ? "vip" : "normal",
+          status: "active",
+        });
+      }
+    }
+
+    await Seat.insertMany(newSeats);
+    room.totalSeats = newSeats.length;
+    await room.save();
+
+    return res.json({
+      success: true,
+      message: `Đã tạo thành công ${newSeats.length} ghế cho ${room.name}`,
+      data: { totalSeats: newSeats.length },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getSeatMap,
+  getRoomSeatMap,
+  generateRoomSeats,
   releaseHeldSeat,
   lockSeat,
   unlockSeat,

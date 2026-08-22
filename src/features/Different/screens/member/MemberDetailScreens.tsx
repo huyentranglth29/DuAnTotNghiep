@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
 import {resolveMediaUrl} from '../../../../config/api.config';
+import {getQuickBookings} from '../../../../services/apiService';
 import {
   AUTH_USER_KEY,
   getAuthProfile,
@@ -107,13 +110,180 @@ export function PointHistoryScreen({ onBack }: { onBack: () => void }) {
 }
 
 export function TransactionHistoryScreen({ onBack }: { onBack: () => void }) {
+  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadTransactions = useCallback(async (nextRefreshing = false) => {
+    if (nextRefreshing) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setError('');
+    try {
+      const response = await getQuickBookings() as any;
+      const data = response?.data ?? response ?? [];
+      setTransactions(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      setError(err?.message || 'Không tải được lịch sử giao dịch');
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
+
   return (
-    <EmptyHistory
-      title="LỊCH SỬ GIAO DỊCH"
-      message="Bạn chưa có lịch sử giao dịch nào"
-      receipt
-      onBack={onBack}
-    />
+    <View style={styles.historyScreen}>
+      <MemberHeader title="LỊCH SỬ GIAO DỊCH" onBack={onBack} />
+      {loading ? (
+        <View style={styles.transactionState}>
+          <ActivityIndicator color={BLUE} size="large" />
+          <Text style={styles.transactionStateText}>Đang tải lịch sử giao dịch...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={[
+            styles.transactionContent,
+            !transactions.length && styles.transactionContentEmpty,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadTransactions(true)}
+              tintColor={BLUE}
+            />
+          }
+        >
+          {!!error && <Text style={styles.transactionError}>{error}</Text>}
+          {transactions.length ? (
+            transactions.map(item => (
+              <TransactionCard key={item._id || item.code} item={item} />
+            ))
+          ) : (
+            <View style={styles.emptyWrap}>
+              <ReceiptIcon />
+              <Text style={styles.emptyText}>Bạn chưa có lịch sử giao dịch nào</Text>
+            </View>
+          )}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+type TransactionItem = {
+  _id: string;
+  code?: string;
+  movieTitle?: string;
+  seats?: string[];
+  totalPrice?: number;
+  ticketTotal?: number;
+  comboTotal?: number;
+  bookingDate?: string;
+  bookingTime?: string;
+  cinema?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: 'pending' | 'paid' | 'cancelled' | 'refunded' | string;
+  paymentMethod?: string;
+  roomName?: string;
+};
+
+const paymentMethodLabels: Record<string, string> = {
+  cash: 'Tiền mặt',
+  card: 'Thẻ',
+  momo: 'Momo',
+  vnpay: 'VNPay',
+  vnpay_sandbox: 'VNPay',
+  payos: 'PayOS',
+  mock: 'Mô phỏng',
+  mo_phong: 'Mô phỏng',
+  MBBANK_MO_PHONG: 'MB Bank',
+  VCB_MO_PHONG: 'Vietcombank',
+  NCB_MO_PHONG: 'NCB',
+};
+
+function formatTransactionDate(value?: string) {
+  if (!value) {
+    return 'Đang cập nhật';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getTransactionStatus(status?: string) {
+  if (status === 'pending') {
+    return {label: 'Chờ thanh toán', tone: styles.transactionStatusPending};
+  }
+  if (status === 'cancelled') {
+    return {label: 'Đã hủy', tone: styles.transactionStatusCancelled};
+  }
+  if (status === 'refunded') {
+    return {label: 'Đã hoàn tiền', tone: styles.transactionStatusRefunded};
+  }
+  return {label: 'Đã thanh toán', tone: styles.transactionStatusPaid};
+}
+
+function TransactionCard({item}: {item: TransactionItem}) {
+  const status = getTransactionStatus(item.status);
+  const amount = Number(item.totalPrice || item.ticketTotal || 0);
+  const code = item.code || `GD-${String(item._id || '').slice(-6).toUpperCase()}`;
+  const method = item.paymentMethod
+    ? paymentMethodLabels[item.paymentMethod] || item.paymentMethod
+    : 'Đang cập nhật';
+
+  return (
+    <View style={styles.transactionCard}>
+      <View style={styles.transactionTopRow}>
+        <View style={styles.transactionCodeWrap}>
+          <Text style={styles.transactionCodeLabel}>Mã giao dịch</Text>
+          <Text style={styles.transactionCode}>{code}</Text>
+        </View>
+        <View style={[styles.transactionStatus, status.tone]}>
+          <Text style={styles.transactionStatusText}>{status.label}</Text>
+        </View>
+      </View>
+      <Text style={styles.transactionMovie} numberOfLines={2}>
+        {item.movieTitle || 'Phim chưa xác định'}
+      </Text>
+      <View style={styles.transactionMetaGrid}>
+        <TransactionMeta label="Rạp" value={item.cinema || 'FilmGo'} />
+        <TransactionMeta label="Phòng" value={item.roomName || 'Đang cập nhật'} />
+        <TransactionMeta label="Suất chiếu" value={[item.bookingDate, item.bookingTime].filter(Boolean).join(' · ') || 'Đang cập nhật'} />
+        <TransactionMeta label="Ghế" value={item.seats?.length ? item.seats.join(', ') : 'Đang cập nhật'} />
+        <TransactionMeta label="Thanh toán" value={method} />
+        <TransactionMeta label="Thời gian đặt" value={formatTransactionDate(item.createdAt || item.updatedAt)} />
+      </View>
+      <View style={styles.transactionFooter}>
+        <Text style={styles.transactionTotalLabel}>Tổng tiền</Text>
+        <Text style={styles.transactionTotal}>{formatMoney(amount)}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TransactionMeta({label, value}: {label: string; value: string}) {
+  return (
+    <View style={styles.transactionMetaItem}>
+      <Text style={styles.transactionMetaLabel}>{label}</Text>
+      <Text style={styles.transactionMetaValue} numberOfLines={2}>{value}</Text>
+    </View>
   );
 }
 
@@ -684,6 +854,137 @@ const styles = StyleSheet.create({
     color: '#b7b4b4',
     fontSize: 22,
     marginTop: 16,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  transactionState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 90,
+  },
+  transactionStateText: {
+    color: '#68717c',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 14,
+  },
+  transactionContent: {
+    padding: 14,
+    paddingBottom: 28,
+  },
+  transactionContentEmpty: {
+    flexGrow: 1,
+  },
+  transactionError: {
+    color: '#dc2626',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  transactionCard: {
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d8dadd',
+    elevation: 2,
+  },
+  transactionTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  transactionCodeWrap: {
+    flex: 1,
+  },
+  transactionCodeLabel: {
+    color: '#7a8591',
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  transactionCode: {
+    color: '#17212b',
+    fontSize: 16,
+    fontWeight: '900',
+    marginTop: 3,
+  },
+  transactionStatus: {
+    minHeight: 30,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transactionStatusPaid: {
+    backgroundColor: '#dff7e8',
+  },
+  transactionStatusPending: {
+    backgroundColor: '#fff3cd',
+  },
+  transactionStatusCancelled: {
+    backgroundColor: '#ffe4e6',
+  },
+  transactionStatusRefunded: {
+    backgroundColor: '#e8f1ff',
+  },
+  transactionStatusText: {
+    color: '#173247',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  transactionMovie: {
+    color: '#061a2e',
+    fontSize: 19,
+    lineHeight: 25,
+    fontWeight: '900',
+    marginTop: 12,
+  },
+  transactionMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+    marginTop: 10,
+  },
+  transactionMetaItem: {
+    width: '50%',
+    paddingHorizontal: 5,
+    paddingTop: 10,
+  },
+  transactionMetaLabel: {
+    color: '#7a8591',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  transactionMetaValue: {
+    color: '#253342',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  transactionFooter: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#d8dadd',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  transactionTotalLabel: {
+    flex: 1,
+    color: '#536170',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  transactionTotal: {
+    color: '#e11d48',
+    fontSize: 18,
+    fontWeight: '900',
   },
   cardDetail: {
     padding: 16,

@@ -74,6 +74,7 @@ const register = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Đăng ký thành công",
+      token: generateToken(user._id, user.role),
       user: sanitizeUser(user),
     });
 

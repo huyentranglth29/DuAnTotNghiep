@@ -3,6 +3,7 @@ import {
   AppState,
   Image,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useQueryClient} from '@tanstack/react-query';
 import ShowtimeNavigator from '../../Navigation/ShowtimeNavigator';
 import {resolveMediaUrl} from '../../config/api.config';
 import {AUTH_USER_KEY} from '../../services/voucherService';
@@ -24,8 +26,15 @@ type CurrentUser = {
   avatar?: string;
 };
 
-function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
+function Showtime({
+  onOpenMember,
+  onDetailChange,
+}: {
+  onOpenMember?: () => void;
+  onDetailChange?: (isDetail: boolean) => void;
+}) {
   const {language} = useLanguage();
+  const queryClient = useQueryClient();
   const isEnglish = language === 'en';
   const [dangTim, setDangTim] = useState(false);
   const [tuKhoa, setTuKhoa] = useState('');
@@ -33,6 +42,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
   const [searchPressed, setSearchPressed] = useState(false);
   const [anThanhTim, setAnThanhTim] = useState(false);
   const [xemVe, setXemVe] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser>({});
 
   const loadCurrentUser = useCallback(async () => {
@@ -59,6 +69,10 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
     return () => subscription.remove();
   }, [loadCurrentUser]);
 
+  useEffect(() => {
+    onDetailChange?.(anThanhTim || xemVe);
+  }, [anThanhTim, onDetailChange, xemVe]);
+
   const displayName =
     currentUser.fullName?.trim() ||
     currentUser.email?.split('@')[0] ||
@@ -78,14 +92,40 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
     }
   };
 
+  const lamMoiLichChieu = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({queryKey: ['phim']}),
+        queryClient.invalidateQueries({queryKey: ['lich-chieu']}),
+        loadCurrentUser(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadCurrentUser, queryClient]);
+
   if (xemVe) {
     return <MyTicketsScreen onBack={() => setXemVe(false)} />;
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
-      {!anThanhTim && (
-        <View style={styles.profileHeader}>
+    <ScrollView
+      scrollEnabled={!anThanhTim}
+      showsVerticalScrollIndicator={false}
+      style={[styles.container, anThanhTim && styles.detailContainer]}
+      contentContainerStyle={anThanhTim && styles.detailScrollContent}
+      refreshControl={
+        !anThanhTim ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={lamMoiLichChieu}
+            colors={['#005f98']}
+            tintColor="#005f98"
+          />
+        ) : undefined
+      }>
+      <View style={[styles.profileHeader, anThanhTim && styles.hiddenSection]}>
           <Pressable style={styles.avatar} onPress={onOpenMember} accessibilityLabel="Mở trang thành viên">
             {avatarUri ? (
               <Image
@@ -105,18 +145,16 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
               <Text style={styles.memberText}>MEMBER</Text>
               <Text style={styles.starText}>☆ 0</Text>
               <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
-                <Text style={styles.ticketText}>▣ {isEnglish ? 'Tickets' : 'Vé'}</Text>
+                <Text style={styles.ticketText}>▣ {isEnglish ? 'Orders' : 'Đơn đã gửi'}</Text>
               </Pressable>
             </View>
           </View>
           <View style={styles.logoBlock}>
             <Text style={styles.logoFilm}>FilmGo</Text>
           </View>
-        </View>
-      )}
+      </View>
 
-      {!anThanhTim && (
-        <View style={styles.searchSection}>
+      <View style={[styles.searchSection, anThanhTim && styles.hiddenSection]}>
           <Pressable
             onPressIn={() => setSearchPressed(true)}
             onPressOut={() => setSearchPressed(false)}
@@ -153,8 +191,7 @@ function Showtime({onOpenMember}: {onOpenMember?: () => void}) {
               </Pressable>
             )}
           </Pressable>
-        </View>
-      )}
+      </View>
 
       <ShowtimeNavigator
         dangTim={dangTim && !anThanhTim}
@@ -170,6 +207,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  detailContainer: {
+    backgroundColor: '#111122',
+  },
+  detailScrollContent: {
+    flexGrow: 1,
+    backgroundColor: '#111122',
+  },
+  hiddenSection: {
+    height: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+    opacity: 0,
+    paddingVertical: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    borderBottomWidth: 0,
   },
   profileHeader: {
     minHeight: 72,
@@ -250,33 +304,26 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   searchSection: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 12,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 46,
-    paddingHorizontal: 12,
-    borderRadius: 14,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: '#f0f4f8',
     borderWidth: 1,
-    borderColor: '#d7e3ef',
-    backgroundColor: '#ffffff',
-    shadowColor: '#0f2744',
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: {width: 0, height: 4},
-    elevation: 5,
+    borderColor: 'transparent',
     gap: 8,
   },
   searchBarHover: {
-    transform: [{scale: 1.02}],
-    borderColor: '#8eb8da',
-    shadowOpacity: 0.22,
-    elevation: 8,
+    backgroundColor: '#e2e8f0',
   },
   searchBarActive: {
+    backgroundColor: '#ffffff',
     borderColor: BLUE,
   },
   searchIcon: {

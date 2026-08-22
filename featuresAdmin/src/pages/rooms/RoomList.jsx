@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import roomApi from '../../api/roomApi';
 import AdminListPage from '../../components/AdminListPage';
 
@@ -39,6 +40,30 @@ function RoomList() {
         {key: 'type', title: 'Loại phòng'},
         {key: 'totalSeats', title: 'Số ghế'},
         {key: 'status', title: 'Trạng thái'},
+        {
+          key: 'seat_map',
+          title: 'Sơ đồ ghế',
+          render: item => (
+            <Link
+              to={`/seats?roomId=${item._id || item.id}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 10px',
+                backgroundColor: '#eef2ff',
+                color: '#4338ca',
+                borderRadius: '6px',
+                fontWeight: '600',
+                fontSize: '12px',
+                border: '1px solid #c7d2fe',
+                textDecoration: 'none',
+              }}
+            >
+              💺 Xem sơ đồ
+            </Link>
+          ),
+        },
       ]}
     />
   );

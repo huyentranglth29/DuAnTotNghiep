@@ -117,7 +117,8 @@ const saveMine = async (req, res, next) => {
     if (comment.length < 3 || comment.length > 1000) {
       return res.status(400).json({message: "Nội dung đánh giá phải từ 3 đến 1000 ký tự"});
     }
-    if (!await Movie.exists({_id: movieId})) {
+    const movie = await Movie.findById(movieId).select("title").lean();
+    if (!movie) {
       return res.status(404).json({message: "Phim không tồn tại"});
     }
 
@@ -135,12 +136,20 @@ const saveMine = async (req, res, next) => {
           rating,
           comment,
           status: "pending",
+          movieTitle: movie.title || "",
+          userName: req.user.fullName || req.user.name || "",
+          userEmail: req.user.email || "",
           verifiedViewer: eligibility.verifiedViewer,
           verifiedAt: eligibility.verifiedViewer ? new Date() : null,
         },
         $setOnInsert: {movie: movieId, user: req.user._id},
       },
-      {new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true},
+      {
+        returnDocument: "after",
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+      },
     ).populate("user", "fullName avatar");
 
     return res.status(201).json({

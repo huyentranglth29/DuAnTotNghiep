@@ -141,7 +141,9 @@ router.get("/reports/top-movies", reports.topMovies);
 router.get("/reports/voucher-stats", reports.voucherStats);
 router.get("/reports/movie-revenue", reports.movieRevenue);
 
-// Sơ đồ ghế trực quan theo suất chiếu
+// Sơ đồ ghế trực quan theo phòng chiếu và theo suất chiếu
+router.get("/seat-map/room/:roomId", adminSeatMap.getRoomSeatMap);
+router.post("/seat-map/room/:roomId/generate-default", adminSeatMap.generateRoomSeats);
 router.get("/seat-map/:showtimeId", adminSeatMap.getSeatMap);
 router.post("/seat-map/:showtimeId/release", adminSeatMap.releaseHeldSeat);
 router.post("/seat-map/seats/:seatId/lock", adminSeatMap.lockSeat);

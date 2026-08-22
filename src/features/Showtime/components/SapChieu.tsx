@@ -98,25 +98,7 @@ function SapChieu({onMoviePress}: SapChieuProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.heroCircle} />
-        <Text style={styles.eyebrow}>{isEnglish ? 'COMING SOON AT FILMGO' : 'SẮP RA MẮT TẠI FILMGO'}</Text>
-        <Text style={styles.heading}>{t(language, 'Phim sắp chiếu', 'Upcoming movies')}</Text>
-        <Text style={styles.subheading}>
-          {t(language, 'Khám phá trước những bộ phim đáng mong chờ', 'Discover the most anticipated movies before release')}
-        </Text>
-        <View style={styles.heroStats}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{movies.length}</Text>
-            <Text style={styles.statLabel}>{t(language, 'phim mới', 'new movies')}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>FilmGo</Text>
-            <Text style={styles.statLabel}>Hà Trung</Text>
-          </View>
-        </View>
-      </View>
+
 
       {genres.length > 1 && (
         <ScrollView
@@ -164,10 +146,6 @@ function SapChieu({onMoviePress}: SapChieuProps) {
         </View>
       ) : (
         <View style={styles.movieList}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>{t(language, 'Danh sách sắp ra mắt', 'Upcoming releases')}</Text>
-            <Text style={styles.dataLabel}>{t(language, '● Từ Admin', '● From Admin')}</Text>
-          </View>
           {visibleMovies.map((phim, index) => {
             const release = getRelease(phim.ngayPhatHanh, isEnglish);
             const saleAt = phim.moBanVeTu ? new Date(phim.moBanVeTu) : null;
@@ -277,63 +255,26 @@ function SapChieu({onMoviePress}: SapChieuProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {backgroundColor: '#f4f7fa', minHeight: 700, paddingBottom: 28},
-  hero: {
-    backgroundColor: '#073b5b',
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 18,
-    overflow: 'hidden',
-  },
-  heroCircle: {
-    position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    right: -45,
-    top: -55,
-    backgroundColor: 'rgba(25,160,218,0.22)',
-  },
-  eyebrow: {color: '#63cff5', fontSize: 10, fontWeight: '900', letterSpacing: 1.1},
-  heading: {color: '#fff', fontSize: 27, fontWeight: '900', marginTop: 3},
-  subheading: {color: '#c2d8e5', fontSize: 13, marginTop: 5},
-  heroStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 17,
-    alignSelf: 'flex-start',
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.11)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  statItem: {alignItems: 'center', minWidth: 65},
-  statValue: {color: '#fff', fontSize: 14, fontWeight: '900'},
-  statLabel: {color: '#a9c7d8', fontSize: 9, marginTop: 2},
-  statDivider: {height: 28, width: 1, backgroundColor: '#5f8194', marginHorizontal: 8},
+  container: {backgroundColor: '#ffffff', minHeight: 700, paddingBottom: 28},
   filterList: {
-    paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     gap: 8,
     alignItems: 'center',
   },
   filterScroll: {
-    height: 68,
+    height: 56,
     flexGrow: 0,
   },
   filterChip: {
-    borderWidth: 1,
-    borderColor: '#d4dfe7',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    backgroundColor: '#fff',
-    height: 38,
-    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  filterChipActive: {backgroundColor: '#e7f5fb', borderColor: BLUE},
-  filterText: {color: '#728296', fontSize: 11, fontWeight: '800'},
-  filterTextActive: {color: BLUE},
+  filterChipActive: {backgroundColor: '#e6f0fa'},
+  filterText: {color: '#555', fontSize: 13, fontWeight: '600'},
+  filterTextActive: {color: BLUE, fontWeight: '800'},
   loader: {marginTop: 45},
   stateBox: {paddingHorizontal: 24, paddingVertical: 55, alignItems: 'center'},
   emptyIcon: {fontSize: 38, marginBottom: 10},
@@ -341,47 +282,35 @@ const styles = StyleSheet.create({
   stateHint: {fontSize: 13, color: '#718096', textAlign: 'center', marginTop: 6},
   retryBtn: {marginTop: 14, backgroundColor: BLUE, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 10},
   retryText: {color: '#fff', fontWeight: '800'},
-  movieList: {paddingHorizontal: 14},
-  sectionRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10},
-  sectionTitle: {fontSize: 18, color: '#172a3f', fontWeight: '900'},
-  dataLabel: {fontSize: 10, color: '#20a464', fontWeight: '800'},
+  movieList: {paddingHorizontal: 16, paddingTop: 10},
   movieCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 11,
-    marginBottom: 13,
-    borderWidth: 1,
-    borderColor: '#e1e9ef',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 7,
-    shadowOffset: {width: 0, height: 3},
-    elevation: 2,
+    marginBottom: 20,
   },
-  posterWrap: {width: 106, height: 151, borderRadius: 12, overflow: 'hidden', backgroundColor: '#e7edf2'},
+  posterWrap: {width: 80, height: 116, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f0f0f0'},
   poster: {width: '100%', height: '100%', resizeMode: 'cover'},
-  ageBadge: {position: 'absolute', top: 6, left: 6, borderRadius: 5, minWidth: 31, paddingHorizontal: 5, paddingVertical: 2},
-  ageText: {fontSize: 10, color: '#fff', fontWeight: '900', textAlign: 'center'},
-  orderBadge: {position: 'absolute', right: 6, bottom: 6, width: 29, height: 29, borderRadius: 15, backgroundColor: 'rgba(4,32,49,0.82)', alignItems: 'center', justifyContent: 'center'},
-  orderText: {color: '#fff', fontSize: 10, fontWeight: '900'},
-  movieInfo: {flex: 1, paddingLeft: 12, paddingTop: 1},
+  ageBadge: {position: 'absolute', top: 4, left: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2},
+  ageText: {fontSize: 9, color: '#fff', fontWeight: '900', textAlign: 'center'},
+  orderBadge: {display: 'none'},
+  orderText: {display: 'none'},
+  movieInfo: {flex: 1, paddingLeft: 14, paddingTop: 1},
   releaseRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
-  monthBadge: {backgroundColor: '#fff0f7', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3},
-  monthText: {fontSize: 9, color: PINK, fontWeight: '900'},
-  countdown: {fontSize: 9, color: '#e18400', fontWeight: '800'},
-  movieTitle: {fontSize: 17, lineHeight: 21, color: '#142437', fontWeight: '900', marginTop: 8},
-  movieMeta: {fontSize: 11, lineHeight: 16, color: '#718096', marginTop: 5},
-  releaseBox: {flexDirection: 'row', alignItems: 'center', backgroundColor: '#f4f9fc', borderRadius: 9, paddingHorizontal: 8, paddingVertical: 7, marginTop: 10},
-  calendarIcon: {color: BLUE, fontSize: 15, marginRight: 7},
-  releaseLabel: {fontSize: 8, color: '#8b9aac', fontWeight: '700'},
-  releaseDate: {fontSize: 10, color: BLUE, fontWeight: '900', marginTop: 1},
-  saleDate: {fontSize: 9, color: '#64748b', fontWeight: '700', marginTop: 7},
-  upcomingAction: {marginTop: 8, borderRadius: 8, paddingVertical: 7, alignItems: 'center', backgroundColor: '#eef2f6'},
-  upcomingActionPrimary: {backgroundColor: PINK},
-  upcomingActionText: {fontSize: 11, color: '#536273', fontWeight: '900'},
+  monthBadge: {backgroundColor: '#f5f5f5', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2},
+  monthText: {fontSize: 9, color: '#555', fontWeight: '700'},
+  countdown: {fontSize: 11, color: '#e18400', fontWeight: '700'},
+  movieTitle: {fontSize: 16, lineHeight: 22, color: '#111', fontWeight: '800', marginTop: 6},
+  movieMeta: {fontSize: 13, lineHeight: 18, color: '#555', marginTop: 4},
+  releaseBox: {flexDirection: 'row', alignItems: 'center', marginTop: 8},
+  calendarIcon: {display: 'none'},
+  releaseLabel: {fontSize: 11, color: '#777', fontWeight: '600'},
+  releaseDate: {fontSize: 12, color: '#111', fontWeight: '800', marginTop: 1},
+  saleDate: {fontSize: 11, color: '#555', fontWeight: '600', marginTop: 6},
+  upcomingAction: {marginTop: 12, borderRadius: 6, paddingVertical: 8, alignItems: 'center', backgroundColor: '#f0f4f8', borderWidth: 1, borderColor: '#d9e2ec'},
+  upcomingActionPrimary: {backgroundColor: BLUE, borderColor: BLUE},
+  upcomingActionText: {fontSize: 13, color: '#334155', fontWeight: '700'},
   upcomingActionTextPrimary: {color: '#fff'},
-  detailLink: {fontSize: 10, color: PINK, fontWeight: '900', marginTop: 9},
+  detailLink: {display: 'none'},
   refreshHint: {textAlign: 'center', fontSize: 11, color: '#94a3b8'},
 });
 

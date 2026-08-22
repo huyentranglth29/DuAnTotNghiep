@@ -17,6 +17,11 @@ const PAYMENT_STATUS_META = {
   da_hoan_tien: {label: 'Đã hoàn tiền', tone: 'danger'},
 };
 
+const PRINT_STATUS_META = {
+  da_in: {label: 'Đã in', tone: 'success'},
+  chua_in: {label: 'Chưa in', tone: 'warning'},
+};
+
 function StatusBadge({status}) {
   const meta = STATUS_META[status] || {label: status || 'Chưa rõ', tone: 'info'};
   return <span className={`badge ${meta.tone}`}>{meta.label}</span>;
@@ -24,6 +29,12 @@ function StatusBadge({status}) {
 
 function PaymentBadge({status}) {
   const meta = PAYMENT_STATUS_META[status] || {label: status || 'Chưa rõ', tone: 'info'};
+  return <span className={`badge ${meta.tone}`}>{meta.label}</span>;
+}
+
+function PrintBadge({isPrinted, cancelled}) {
+  if (cancelled) return <span className="badge muted">—</span>;
+  const meta = isPrinted ? PRINT_STATUS_META.da_in : PRINT_STATUS_META.chua_in;
   return <span className={`badge ${meta.tone}`}>{meta.label}</span>;
 }
 
@@ -41,6 +52,8 @@ function TicketStatus() {
   const [orders, setOrders] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [printFilter, setPrintFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState('');
   const [error, setError] = useState('');
@@ -68,6 +81,14 @@ function TicketStatus() {
         params.payment = 'da_huy';
       }
 
+      if (paymentFilter !== 'all') {
+        params.payment = paymentFilter;
+      }
+
+      if (printFilter !== 'all') {
+        params.print = printFilter;
+      }
+
       const response = await bookingApi.getAll(params);
       const rows = Array.isArray(response?.data) ? response.data : [];
       setOrders(rows);
@@ -84,10 +105,23 @@ function TicketStatus() {
   }, []);
 
   const stats = useMemo(() => {
-    const initial = {total: orders.length, valid: 0, used: 0, cancelled: 0};
+    const initial = {
+      total: orders.length,
+      paid: 0,
+      unpaid: 0,
+      printed: 0,
+      unprinted: 0,
+      valid: 0,
+      used: 0,
+      cancelled: 0,
+    };
     orders.forEach(order => {
       const nextStatus = getTicketStatus(order);
-      initial[nextStatus] += 1;
+      initial[nextStatus] = (initial[nextStatus] || 0) + 1;
+      if (order.paymentStatus === 'da_thanh_toan') initial.paid += 1;
+      else if (order.paymentStatus === 'cho_thanh_toan') initial.unpaid += 1;
+      if (order.isPrinted) initial.printed += 1;
+      else initial.unprinted += 1;
     });
     return initial;
   }, [orders]);
@@ -107,6 +141,10 @@ function TicketStatus() {
           return;
         }
         await bookingApi.update(order._id, {action: 'cancel', reason: reason.trim()});
+      }
+
+      if (nextStatus === 'print') {
+        await bookingApi.update(order._id, {action: 'print'});
       }
 
       await loadTickets();
@@ -135,6 +173,16 @@ function TicketStatus() {
     {key: 'seat', title: 'Ghế', render: item => (item.seats || []).join(', ') || '—'},
     {key: 'price', title: 'Tổng tiền', render: item => formatVnd(item.totalPrice)},
     {key: 'paymentStatus', title: 'Thanh toán', render: item => <PaymentBadge status={item.paymentStatus} />},
+    {
+      key: 'isPrinted',
+      title: 'In vé',
+      render: item => (
+        <PrintBadge
+          isPrinted={item.isPrinted}
+          cancelled={item.paymentStatus === 'da_huy' || item.paymentStatus === 'da_hoan_tien'}
+        />
+      ),
+    },
     {key: 'status', title: 'Trạng thái vé', render: item => <StatusBadge status={getTicketStatus(item)} />},
     {key: 'createdAt', title: 'Ngày đặt', render: item => formatDateTime(item.createdAt)},
     {
@@ -142,6 +190,14 @@ function TicketStatus() {
       title: 'Cập nhật',
       render: item => (
         <div className="actionGroup">
+          {!item.isPrinted && item.paymentStatus === 'da_thanh_toan' ? (
+            <button
+              type="button"
+              disabled={savingId === item._id}
+              onClick={() => updateStatus(item, 'print')}>
+              In vé
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={
@@ -194,13 +250,18 @@ function TicketStatus() {
         </article>
         <article className="statusMetric success">
           <CheckCircle2 size={18} />
-          <span>Hợp lệ</span>
-          <strong>{stats.valid}</strong>
+          <span>Đã thanh toán</span>
+          <strong>{stats.paid}</strong>
+        </article>
+        <article className="statusMetric warning">
+          <Ticket size={18} />
+          <span>Chưa in</span>
+          <strong>{stats.unprinted}</strong>
         </article>
         <article className="statusMetric info">
           <CheckCircle2 size={18} />
-          <span>Đã dùng</span>
-          <strong>{stats.used}</strong>
+          <span>Đã in</span>
+          <strong>{stats.printed}</strong>
         </article>
         <article className="statusMetric danger">
           <XCircle size={18} />
@@ -218,8 +279,19 @@ function TicketStatus() {
             placeholder="Tìm mã vé, khách hàng, phim..."
           />
         </label>
+        <select value={paymentFilter} onChange={event => setPaymentFilter(event.target.value)}>
+          <option value="all">Tất cả thanh toán</option>
+          <option value="da_thanh_toan">Đã thanh toán</option>
+          <option value="cho_thanh_toan">Chờ thanh toán</option>
+          <option value="da_huy">Đã hủy</option>
+        </select>
+        <select value={printFilter} onChange={event => setPrintFilter(event.target.value)}>
+          <option value="all">In vé (Tất cả)</option>
+          <option value="da_in">Đã in</option>
+          <option value="chua_in">Chưa in</option>
+        </select>
         <select value={status} onChange={event => setStatus(event.target.value)}>
-          <option value="all">Tất cả trạng thái</option>
+          <option value="all">Trạng thái sử dụng</option>
           <option value="valid">Hợp lệ</option>
           <option value="used">Đã dùng</option>
           <option value="cancelled">Đã hủy</option>

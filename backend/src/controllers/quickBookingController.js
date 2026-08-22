@@ -1,5 +1,6 @@
 const QuickBooking = require("../models/QuickBooking");
 const BookedSeat = require("../models/BookedSeat");
+const Payment = require("../models/Payment");
 const Showtime = require("../models/Showtime");
 const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
 const {assertTicketSaleOpen} = require("../services/ticketSaleService");
@@ -17,6 +18,56 @@ const enrichBookingRooms = async (bookings) => {
     const showtime = map.get(String(item.showtimeId || ""));
     return {...item, roomName: showtime?.room?.name || "", roomType: showtime?.room?.type || ""};
   });
+};
+
+const PAYMENT_STATUS_TO_BOOKING = {
+  cho_thanh_toan: {
+    status: "pending",
+    cancelReason: "",
+  },
+  da_huy: {
+    status: "cancelled",
+    cancelReason: "Đơn thanh toán đã được hủy.",
+  },
+  het_han: {
+    status: "cancelled",
+    cancelReason: "Đơn thanh toán đã hết thời gian giữ ghế.",
+  },
+  that_bai: {
+    status: "cancelled",
+    cancelReason: "Thanh toán thất bại.",
+  },
+  da_hoan_tien: {
+    status: "refunded",
+    cancelReason: "Đơn đã được hoàn tiền.",
+  },
+};
+
+const paymentToBookingLike = (payment) => {
+  const data = payment.bookingData || {};
+  const statusMeta = PAYMENT_STATUS_TO_BOOKING[payment.status] || PAYMENT_STATUS_TO_BOOKING.da_huy;
+  return {
+    _id: payment._id,
+    user: payment.user,
+    showtimeId: data.showtimeId,
+    movieTitle: data.movieTitle,
+    movieDuration: data.movieDuration,
+    movieGenre: data.movieGenre,
+    seats: data.seats || [],
+    combos: data.combos || [],
+    ticketTotal: data.ticketTotal || 0,
+    comboTotal: data.comboTotal || 0,
+    totalPrice: data.totalPrice || payment.amount || 0,
+    cinema: data.cinema || "FilmGo Hà Trung (Thanh Hóa)",
+    bookingDate: data.bookingDate,
+    bookingTime: data.bookingTime,
+    code: payment.orderCode,
+    status: statusMeta.status,
+    cancelReason: statusMeta.cancelReason,
+    paymentMethod: payment.bankCode || payment.provider,
+    createdAt: payment.createdAt,
+    updatedAt: payment.updatedAt,
+  };
 };
 
 // GET /api/quick-bookings/sold-seats?showtimeId=...
@@ -158,7 +209,19 @@ const getMine = async (req, res, next) => {
       .populate("user", "fullName")
       .sort({createdAt: -1})
       .lean();
-    const bookings = await enrichBookingRooms(rows);
+    const paymentRows = await Payment.find({
+      user: req.user._id,
+      booking: {$exists: false},
+      status: {$in: Object.keys(PAYMENT_STATUS_TO_BOOKING)},
+    })
+      .populate("user", "fullName")
+      .sort({createdAt: -1})
+      .lean();
+    const bookings = await enrichBookingRooms([
+      ...rows,
+      ...paymentRows.map(paymentToBookingLike),
+    ]);
+    bookings.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     res.json({success: true, data: bookings});
   } catch (error) {
     next(error);

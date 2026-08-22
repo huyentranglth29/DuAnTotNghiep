@@ -18,8 +18,6 @@ import UserList from '../pages/users/UserList';
 import TicketList from '../pages/tickets/TicketList';
 import ElectronicTicket from '../pages/tickets/ElectronicTicket';
 import GenerateQR from '../pages/tickets/GenerateQR';
-import TicketCheckin from '../pages/tickets/TicketCheckin';
-import CheckinResult from '../pages/tickets/CheckinResult';
 import TicketStatus from '../pages/tickets/TicketStatus';
 import VoucherList from '../pages/vouchers/VoucherList';
 import ProductList from '../pages/products/ProductList';
@@ -28,7 +26,6 @@ import NotificationList from '../pages/notifications/NotificationList';
 import CreateNotification from '../pages/notifications/CreateNotification';
 import PersonalInformation from '../pages/personal information/PersonalInformation';
 import PaymentHistory from '../pages/payments/PaymentHistory';
-import PaymentStatus from '../pages/payments/PaymentStatus';
 import RevenueReport from '../pages/reports/RevenueReport';
 import NewsEventList from '../pages/news-events/NewsEventList';
 import InternalAiAssistant from '../pages/ai/InternalAiAssistant';
@@ -73,13 +70,11 @@ function AppRoutes() {
         <Route path="showtimes/:id/edit" element={<CreateShowtime />} />
         <Route path="showtimes/status" element={<ShowtimeStatus />} />
         <Route path="bookings" element={<BookingList />} />
-        <Route path="payments/status" element={<PaymentStatus />} />
+        <Route path="payments/status" element={<Navigate to="/payments/history" replace />} />
         <Route path="payments/history" element={<PaymentHistory />} />
         <Route path="tickets" element={<TicketList />} />
         <Route path="tickets/electronic" element={<ElectronicTicket />} />
         <Route path="tickets/qr" element={<GenerateQR />} />
-        <Route path="tickets/checkin" element={<TicketCheckin />} />
-        <Route path="tickets/checkin-result" element={<CheckinResult />} />
         <Route path="tickets/status" element={<TicketStatus />} />
         <Route path="vouchers" element={<VoucherList />} />
         <Route path="products" element={<ProductList />} />

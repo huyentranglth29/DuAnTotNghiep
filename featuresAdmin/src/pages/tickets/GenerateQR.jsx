@@ -12,6 +12,7 @@ function GenerateQR() {
   const [tickets, setTickets] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState('');
+  const [printing, setPrinting] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -33,13 +34,23 @@ function GenerateQR() {
     [tickets, selectedId],
   );
 
+  const combos = selectedTicket?.combos?.length
+    ? selectedTicket.combos
+    : selectedTicket?.booking?.combos || [];
+  const comboTotal = combos.reduce(
+    (sum, combo) => sum + Number(combo.totalPrice || (combo.unitPrice || 0) * (combo.quantity || 0)),
+    0,
+  );
+  const orderTotal = Number(selectedTicket?.booking?.totalPrice || selectedTicket?.totalPrice || selectedTicket?.price || 0);
+  const orderTicketTotal = Number(selectedTicket?.booking?.ticketTotal || Math.max(0, orderTotal - comboTotal));
+
   const qrPayload = selectedTicket ? ticketQrPayload({
     code: selectedTicket.qrValue || selectedTicket.code,
     customerName: getUserName(selectedTicket.booking) || 'Khách FilmGo',
     movieTitle: selectedTicket.booking?.movieTitle || selectedTicket.showtime?.movie?.title,
     cinemaName: selectedTicket.cinemaName || selectedTicket.booking?.cinemaName,
     roomName: selectedTicket.roomName || selectedTicket.showtime?.room?.name,
-    seatLabel: getSeatLabel(selectedTicket),
+    seatLabel: (selectedTicket.orderSeats || selectedTicket.booking?.seats || [getSeatLabel(selectedTicket)]).filter(Boolean).join(', '),
     showDate: selectedTicket.bookingDate || (selectedTicket.showtime?.startTime
       ? new Date(selectedTicket.showtime.startTime).toLocaleDateString('vi-VN') : ''),
     showTime: selectedTicket.bookingTime || (selectedTicket.showtime?.startTime
@@ -48,6 +59,24 @@ function GenerateQR() {
     paymentStatus: selectedTicket.paymentStatus || selectedTicket.booking?.paymentStatus,
     status: selectedTicket.status,
   }) : '';
+
+  const printTicket = async () => {
+    if (!selectedTicket || printing) return;
+    setPrinting(true);
+    setError('');
+    try {
+      const response = await ticketApi.update(selectedTicket._id, {action: 'print'});
+      const state = response?.data || response;
+      setTickets(current => current.map(ticket =>
+        ticket._id === selectedTicket._id ? {...ticket, ...state} : ticket,
+      ));
+      window.print();
+    } catch (err) {
+      setError(err.message || 'Không ghi nhận được trạng thái in vé.');
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   return (
     <section>
@@ -73,9 +102,14 @@ function GenerateQR() {
             </header>
             <div className="qrTicketImage"><QRBlock value={qrPayload} size={220} /></div>
             <strong className="qrTicketCode">{selectedTicket.code}</strong>
+            <div className="qrOrderTotals">
+              <div><span>Tổng tiền ghế</span><strong>{formatVnd(orderTicketTotal)}</strong></div>
+              <div><span>Tiền combo</span><strong>{formatVnd(comboTotal)}</strong></div>
+              <div><span>Tổng đơn</span><strong>{formatVnd(orderTotal)}</strong></div>
+            </div>
             <div className="qrTicketInfoGrid">
               <div><span>Khách hàng</span><strong>{getUserName(selectedTicket.booking) || 'Khách FilmGo'}</strong></div>
-              <div><span>Ghế</span><strong>{getSeatLabel(selectedTicket) || '—'}</strong></div>
+              <div><span>Ghế</span><strong>{(selectedTicket.orderSeats || selectedTicket.booking?.seats || [getSeatLabel(selectedTicket)]).filter(Boolean).join(', ') || '—'}</strong></div>
               <div><span>Suất chiếu</span><strong>{formatDateTime(selectedTicket.showtime?.startTime) || [selectedTicket.bookingTime, selectedTicket.bookingDate].filter(Boolean).join(' · ') || '—'}</strong></div>
               <div><span>Phòng</span><strong>{selectedTicket.roomName || selectedTicket.showtime?.room?.name || '—'}</strong></div>
               <div><span>Mã đơn</span><strong>{selectedTicket.orderCode || selectedTicket.booking?.ticketCode || '—'}</strong></div>
@@ -89,7 +123,9 @@ function GenerateQR() {
           </article>
         )}
         <div className="formActions">
-          <button type="button" onClick={() => window.print()}>In vé</button>
+          <button type="button" disabled={!selectedTicket || printing} onClick={printTicket}>
+            {printing ? 'Đang chuẩn bị...' : 'In vé'}
+          </button>
         </div>
       </div>
     </section>

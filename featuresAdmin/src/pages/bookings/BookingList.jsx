@@ -17,6 +17,7 @@ import {
 import bookingApi from '../../api/bookingApi';
 import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 import {useAdminTheme} from '../../theme/AdminThemeContext';
+import {ticketQrPayload} from '../../utils/ticketVerification';
 
 const PAYMENT_BADGE = {
   da_thanh_toan: {label: 'Đã thanh toán', tone: 'success'},
@@ -48,6 +49,16 @@ function CheckInBadge({checkedIn, cancelled}) {
     return <span className="orderBadge orderBadge--success">Đã check-in</span>;
   }
   return <span className="orderBadge orderBadge--muted">Chưa check-in</span>;
+}
+
+function PrintBadge({isPrinted, cancelled}) {
+  if (cancelled) {
+    return <span className="orderBadge orderBadge--muted">—</span>;
+  }
+  if (isPrinted) {
+    return <span className="orderBadge orderBadge--success">Đã in</span>;
+  }
+  return <span className="orderBadge orderBadge--warning">Chưa in</span>;
 }
 
 function Timeline({order}) {
@@ -84,6 +95,71 @@ function Timeline({order}) {
   );
 }
 
+function OrderTicketPrintStack({order}) {
+  const tickets = order.tickets?.length
+    ? order.tickets
+    : (order.seats || []).map(seatLabel => ({
+        seatLabel,
+        code: `${order.code}-${String(seatLabel).toUpperCase()}`,
+      }));
+  const ticketPrice = tickets.length
+    ? Number(order.ticketTotal || order.totalPrice || 0) / tickets.length
+    : 0;
+  const showtimeDate = order.showtimeStartTime
+    ? new Date(order.showtimeStartTime).toLocaleDateString('vi-VN')
+    : order.showtimeLabel;
+  const showtimeTime = order.showtimeStartTime
+    ? new Date(order.showtimeStartTime).toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : order.showtimeLabel;
+
+  return (
+    <div className="orderTicketPrintStack" aria-hidden="true">
+      {tickets.map(ticket => {
+        const qrPayload = ticketQrPayload({
+          code: ticket.code,
+          customerName: order.customerName,
+          movieTitle: order.movieTitle,
+          cinemaName: order.cinema,
+          roomName: order.roomName,
+          seatLabel: ticket.seatLabel,
+          showDate: showtimeDate,
+          showTime: showtimeTime,
+          price: ticketPrice,
+          paymentStatus: 'paid',
+          status: 'valid',
+        });
+        return (
+          <article className="orderTicketPrintCard" key={ticket.code}>
+            <header>
+              <div><span>FILMGO E-TICKET</span><h1>{order.movieTitle}</h1></div>
+              <strong className="orderTicketSeat">GHẾ {ticket.seatLabel}</strong>
+            </header>
+            <div className="orderTicketPrintBody">
+              <div className="orderTicketPrintInfo">
+                <p><span>Khách hàng</span><strong>{order.customerName}</strong></p>
+                <p><span>Rạp</span><strong>{order.cinema}</strong></p>
+                <p><span>Phòng</span><strong>{order.roomName || '—'}</strong></p>
+                <p><span>Suất chiếu</span><strong>{order.showtimeLabel || '—'}</strong></p>
+                <p><span>Giá vé</span><strong>{formatVnd(ticketPrice)}</strong></p>
+                <p><span>Mã đơn</span><strong>{order.code}</strong></p>
+              </div>
+              <div className="orderTicketPrintQr">
+                <QRCodeSVG value={qrPayload} size={170} bgColor="#fff" fgColor="#07111f" />
+                <span>Mã vé</span>
+                <strong>{ticket.code}</strong>
+              </div>
+            </div>
+            <footer>Mỗi mã vé và QR chỉ có hiệu lực cho một ghế.</footer>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function BookingList() {
   const {darkMode} = useAdminTheme();
   const initialKeyword =
@@ -104,6 +180,7 @@ function BookingList() {
     movie: '',
     date: '',
     payment: '',
+    print: '',
     checkIn: '',
   });
   const [filters, setFilters] = useState(draft);
@@ -129,6 +206,7 @@ function BookingList() {
         movie: nextFilters.movie || undefined,
         date: nextFilters.date || undefined,
         payment: nextFilters.payment || undefined,
+        print: nextFilters.print || undefined,
         checkIn: nextFilters.checkIn || undefined,
       });
       const rows = Array.isArray(response?.data) ? response.data : [];
@@ -162,7 +240,7 @@ function BookingList() {
     }
     setFilters(draft);
     loadOrders(1, draft);
-  }, [draft.movie, draft.date, draft.payment, draft.checkIn]);
+  }, [draft.movie, draft.date, draft.payment, draft.print, draft.checkIn]);
 
   // Ô tìm kiếm: debounce 350ms rồi lọc
   useEffect(() => {
@@ -304,8 +382,18 @@ function BookingList() {
     URL.revokeObjectURL(url);
   };
 
-  const printTicket = () => {
+  const printTicket = async () => {
     if (!selected) return;
+    try {
+      const response = await bookingApi.update(selected._id, {action: 'print'});
+      const updated = response?.data;
+      if (updated) {
+        setSelected(updated);
+        setOrders(curr => curr.map(order => order._id === updated._id ? updated : order));
+      }
+    } catch (err) {
+      console.error('Lỗi khi ghi nhận in vé:', err);
+    }
     window.print();
   };
 
@@ -370,6 +458,14 @@ function BookingList() {
             <option value="da_huy">Đã hủy</option>
           </select>
           <select
+            value={draft.print}
+            onChange={event => updateDraft('print', event.target.value)}
+            aria-label="Lọc trạng thái in">
+            <option value="">In vé (Tất cả)</option>
+            <option value="chua_in">Chưa in</option>
+            <option value="da_in">Đã in</option>
+          </select>
+          <select
             value={draft.checkIn}
             onChange={event => updateDraft('checkIn', event.target.value)}
             aria-label="Lọc check-in">
@@ -393,6 +489,7 @@ function BookingList() {
                   <th>Ghế</th>
                   <th>Tổng tiền</th>
                   <th>Thanh toán</th>
+                  <th>In vé</th>
                   <th>Check-in</th>
                   <th>Thời gian đặt</th>
                   <th>Hành động</th>
@@ -401,13 +498,13 @@ function BookingList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="orderEmpty">
+                    <td colSpan={11} className="orderEmpty">
                       Đang tải đơn đặt vé...
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="orderEmpty">
+                    <td colSpan={11} className="orderEmpty">
                       Không có đơn đặt vé phù hợp.
                     </td>
                   </tr>
@@ -452,6 +549,9 @@ function BookingList() {
                         <td>{formatVnd(order.totalPrice)}</td>
                         <td>
                           <Badge map={PAYMENT_BADGE} value={order.paymentStatus} />
+                        </td>
+                        <td>
+                          <PrintBadge isPrinted={order.isPrinted} cancelled={cancelled} />
                         </td>
                         <td>
                           <CheckInBadge checkedIn={order.checkedIn} cancelled={cancelled} />
@@ -553,6 +653,7 @@ function BookingList() {
 
       {selected ? (
         <aside className="orderDetailPanel" id="order-print-area">
+          <OrderTicketPrintStack order={selected} />
           <div className="orderDetailHead">
             <div>
               <h3>Chi tiết đơn đặt vé</h3>
@@ -565,6 +666,7 @@ function BookingList() {
 
           <div className="orderDetailBadges">
             <Badge map={PAYMENT_BADGE} value={selected.paymentStatus} />
+            <PrintBadge isPrinted={selected.isPrinted} cancelled={isCancelled} />
             <CheckInBadge checkedIn={selected.checkedIn} cancelled={isCancelled} />
           </div>
 
@@ -595,6 +697,17 @@ function BookingList() {
               <span>Thanh toán</span>
               <strong>{METHOD_LABEL[selected.paymentMethod] || selected.paymentMethod || '—'}</strong>
               <small>{formatVnd(selected.totalPrice)}</small>
+            </div>
+            <div>
+              <span>Trạng thái in</span>
+              <strong>
+                {selected.isPrinted
+                  ? `Đã in (${selected.printedCount || 1} lần)`
+                  : 'Chưa in'}
+              </strong>
+              {selected.printedAt ? (
+                <small>Lúc: {formatDateTime(selected.printedAt)}</small>
+              ) : null}
             </div>
             <div>
               <span>Combo</span>

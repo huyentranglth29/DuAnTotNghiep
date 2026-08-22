@@ -1,6 +1,9 @@
 const express = require("express");
 const path = require("path");
 const dotenv = require("dotenv");
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 const cors = require("cors");
 const connectDB = require("./config/db");
 
@@ -25,8 +28,6 @@ const movieReminderRoutes = require("./routes/movieReminderRoutes");
 const { releaseExpiredPayments } = require("./controllers/paymentController");
 const {sendDueMovieReminders} = require("./services/movieReminderService");
 const {syncAllMovieScheduleStates} = require("./services/movieScheduleStateService");
-
-dotenv.config();
 
 const app = express();
 

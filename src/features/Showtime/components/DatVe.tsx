@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
@@ -26,6 +27,7 @@ const COLOR_SELECTED = '#d82d8b';   // Ghế bạn chọn - hồng Momo
 const COLOR_NORMAL = '#6c5fc7';     // Ghế thường - tím
 const COLOR_VIP = '#e51937';        // Ghế VIP - đỏ
 const COLOR_HELD = '#a57922';
+const SEAT_HOLD_MINUTES = 15;
 
 type DatVeProps = {
   movie: {
@@ -47,6 +49,7 @@ const CENTER_ZONE = new Set([
 ]);
 
 function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
+  const {width: screenWidth} = useWindowDimensions();
   const [selectedSeats, setSelectedSeats] = useState(new Set<string>());
   const [seatItems, setSeatItems] = useState<GheSuatChieu[]>([]);
   const [soldSeats, setSoldSeats] = useState(new Set<string>());
@@ -77,6 +80,22 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
       return rows;
     }, new Map<string, GheSuatChieu[]>()),
   ).map(([key, seats]) => ({key, seats}));
+  const maxSeatsInRow = Math.max(...seatRows.map(row => row.seats.length), 1);
+  const seatGap = maxSeatsInRow >= 15 ? 2 : 5;
+  const seatPanelPadding = maxSeatsInRow >= 15 ? 6 : 12;
+  const availableSeatWidth = Math.max(
+    screenWidth - seatPanelPadding * 2 - seatGap * (maxSeatsInRow - 1),
+    0,
+  );
+  const seatSize = Math.max(22, Math.min(28, Math.floor(availableSeatWidth / maxSeatsInRow)));
+  const vipPrice = Math.round(unitPrice * 1.2);
+  const availableSeats = seatItems.filter(
+    seat => !soldSeats.has(seat.label) && !heldSeats.has(seat.label),
+  );
+  const availableVipCount = availableSeats.filter(
+    seat => seat.type === 'vip' || seat.type === 'couple',
+  ).length;
+  const centerAvailableCount = availableSeats.filter(seat => CENTER_ZONE.has(seat.label)).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +245,15 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     const next = new Set(selectedSeatsRef.current);
     if (next.has(seat)) next.delete(seat);
     else next.add(seat);
+
+    if (!areSeatsAdjacent(Array.from(next))) {
+      Alert.alert(
+        'Chọn ghế liền nhau',
+        'Vui lòng chọn các ghế cùng một hàng và nằm cạnh nhau, không chọn ghế tách rời.',
+      );
+      return;
+    }
+
     // Cập nhật UI ngay, gọi API giữ ghế ở nền (tránh chờ ~1–2s mỗi lần bấm)
     selectedSeatsRef.current = next;
     setSelectedSeats(next);
@@ -254,7 +282,10 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollBody}>
         {/* Screen indicator */}
         <View style={styles.screenWrapper}>
           <View style={styles.screenArc} />
@@ -270,9 +301,9 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
         ) : seatError ? (
           <Text style={styles.seatError}>{seatError}. Vui lòng quay lại và thử lại.</Text>
         ) : null}
-        <View style={styles.seatPanel}>
+        <View style={[styles.seatPanel, {paddingHorizontal: seatPanelPadding}]}>
           {seatRows.map(row => (
-            <View key={row.key} style={styles.seatRow}>
+            <View key={row.key} style={[styles.seatRow, {gap: seatGap}]}>
               {row.seats.map(seatItem => {
                 const seat = seatItem.label;
                 const isSold = soldSeats.has(seat);
@@ -294,11 +325,15 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
                     onPress={() => handleSeatPress(seat)}
                     style={[
                       styles.seat,
-                      {backgroundColor: bgColor},
+                      {
+                        backgroundColor: bgColor,
+                        width: seatSize,
+                        height: seatSize,
+                      },
                       isCenter && styles.seatCenterZone,
                       isSelected && styles.seatSelected,
                     ]}>
-                    <Text style={styles.seatLabel}>{seat}</Text>
+                    <Text style={[styles.seatLabel, {fontSize: seatSize <= 21 ? 7 : 8}]}>{seat}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -318,10 +353,57 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
             <LegendItem color={COLOR_VIP} label="Ghế VIP" />
             <LegendItem isBorder label="Vùng trung tâm" />
           </View>
+          <Text style={styles.seatHoldHint}>
+            Giữ ghế: {SEAT_HOLD_MINUTES} phút khi chọn. Thanh toán sẽ có bộ đếm riêng sau khi tạo đơn.
+          </Text>
         </View>
 
-        {/* Bottom padding */}
-        <View style={styles.scrollFooterSpacer} />
+        <View style={styles.selectionGuide}>
+          <View style={styles.guideHeaderRow}>
+            <View style={styles.guideTitleWrap}>
+              <Text style={styles.guideEyebrow}>Gợi ý chọn ghế</Text>
+              <Text style={styles.guideTitle}>
+                {hasSelectedSeats ? 'Kiểm tra lựa chọn của bạn' : 'Chọn ghế đẹp để xem phim thoải mái hơn'}
+              </Text>
+            </View>
+            <View style={styles.guideBadge}>
+              <Text style={styles.guideBadgeText}>{availableSeats.length} ghế trống</Text>
+            </View>
+          </View>
+
+          <View style={styles.guideStatsRow}>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Ghế thường</Text>
+              <Text style={styles.guideStatValue}>{formatMoney(unitPrice)}</Text>
+            </View>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Ghế VIP</Text>
+              <Text style={styles.guideStatValue}>{formatMoney(vipPrice)}</Text>
+            </View>
+            <View style={styles.guideStat}>
+              <Text style={styles.guideStatLabel}>Trung tâm</Text>
+              <Text style={styles.guideStatValue}>{centerAvailableCount} ghế</Text>
+            </View>
+          </View>
+
+          {hasSelectedSeats ? (
+            <View style={styles.selectedGuideBox}>
+              <Text style={styles.selectedGuideLabel}>Bạn đang chọn</Text>
+              <Text style={styles.selectedGuideSeats}>{selectedSeatList.join(', ')}</Text>
+              <Text style={styles.selectedGuideHint}>
+                Các ghế đã được giữ tạm. Hãy kiểm tra đúng suất chiếu và bấm tiếp tục để thanh toán.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.tipGrid}>
+              <GuideTip title="Đi 1 người" text="Ưu tiên C8, D8 hoặc E8 nếu còn trống." />
+              <GuideTip title="Đi 2 người" text="Chọn cặp ghế liền nhau ở vùng trung tâm." />
+              <GuideTip title="Nhóm bạn" text="Chọn cùng một hàng, tránh để trống ghế lẻ ở giữa." />
+              <GuideTip title="Ghế VIP" text={`${availableVipCount} ghế VIP còn khả dụng cho suất này.`} />
+            </View>
+          )}
+        </View>
+
       </ScrollView>
 
       {/* Checkout bar */}
@@ -336,7 +418,16 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
               activeOpacity={0.85}
               style={[styles.continueBtn, isSyncingHold && styles.continueBtnDisabled]}
               disabled={isSyncingHold}
-              onPress={() => setShowConfirm(true)}>
+              onPress={() => {
+                if (!areSeatsAdjacent(selectedSeatList)) {
+                  Alert.alert(
+                    'Chọn ghế liền nhau',
+                    'Vui lòng chọn các ghế cùng một hàng và nằm cạnh nhau trước khi tiếp tục.',
+                  );
+                  return;
+                }
+                setShowConfirm(true);
+              }}>
               <Text style={styles.continueBtnText}>
                 {isSyncingHold ? 'Đang giữ ghế...' : 'Tiếp tục'}
               </Text>
@@ -430,14 +521,28 @@ function LegendItem({color, label, isBorder}: {color?: string; label: string; is
   );
 }
 
+function GuideTip({title, text}: {title: string; text: string}) {
+  return (
+    <View style={styles.tipCard}>
+      <Text style={styles.tipTitle}>{title}</Text>
+      <Text style={styles.tipText}>{text}</Text>
+    </View>
+  );
+}
+
 function formatMoney(value: number) {
   return `${value.toLocaleString('vi-VN')} đ`;
 }
 
 function sortSeats(a: string, b: string) {
-  const rowCompare = a.charCodeAt(0) - b.charCodeAt(0);
+  const rowCompare = getSeatRow(a).localeCompare(getSeatRow(b), 'vi');
   if (rowCompare !== 0) return rowCompare;
   return getSeatNumber(a) - getSeatNumber(b);
+}
+
+function getSeatRow(seat: string) {
+  const match = seat.match(/^[A-Za-z]+/);
+  return (match?.[0] || '').toUpperCase();
 }
 
 function getSeatNumber(seat: string) {
@@ -445,8 +550,26 @@ function getSeatNumber(seat: string) {
   return match ? Number(match[0]) : 0;
 }
 
+function areSeatsAdjacent(seats: string[]) {
+  if (seats.length <= 1) {
+    return true;
+  }
+
+  const rows = new Set(seats.map(getSeatRow));
+  if (rows.size !== 1) {
+    return false;
+  }
+
+  const numbers = seats.map(getSeatNumber).sort((a, b) => a - b);
+  return numbers.every((number, index) => index === 0 || number === numbers[index - 1] + 1);
+}
+
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: '#111122',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: '#111122',
   },
@@ -481,7 +604,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scrollBody: {
-    paddingBottom: 12,
+    backgroundColor: '#111122',
+    paddingBottom: 18,
   },
   seatStatus: {
     flexDirection: 'row',
@@ -521,22 +645,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   seatPanel: {
-    paddingHorizontal: 8,
+    minWidth: '100%',
     paddingVertical: 12,
     backgroundColor: '#111122',
-    gap: 5,
+    gap: 6,
   },
   seatRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
   },
   seat: {
-    width: 22,
-    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 5,
+    borderRadius: 6,
   },
   seatCenterZone: {
     borderWidth: 1.5,
@@ -547,7 +668,7 @@ const styles = StyleSheet.create({
   },
   seatLabel: {
     color: '#ffffff',
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: '700',
   },
   legendWrapper: {
@@ -583,6 +704,139 @@ const styles = StyleSheet.create({
   legendText: {
     color: '#ccccdd',
     fontSize: 13,
+  },
+  seatHoldHint: {
+    color: '#9ca3af',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  selectionGuide: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#19192d',
+    borderWidth: 1,
+    borderColor: '#2d2d4b',
+  },
+  guideHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  guideTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  guideEyebrow: {
+    color: '#8f8fb5',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  guideTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  guideBadge: {
+    minHeight: 30,
+    maxWidth: 116,
+    borderRadius: 15,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#242446',
+    borderWidth: 1,
+    borderColor: '#38386a',
+  },
+  guideBadgeText: {
+    color: '#d9d9ff',
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  guideStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  guideStat: {
+    flex: 1,
+    minHeight: 62,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    backgroundColor: '#111122',
+    borderWidth: 1,
+    borderColor: '#2c2c49',
+  },
+  guideStatLabel: {
+    color: '#9696ba',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  guideStatValue: {
+    color: '#ffffff',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  tipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tipCard: {
+    width: '48.8%',
+    minHeight: 78,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#20203a',
+    borderWidth: 1,
+    borderColor: '#34345c',
+  },
+  tipTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  tipText: {
+    color: '#b7b7d2',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 6,
+  },
+  selectedGuideBox: {
+    marginTop: 12,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#231532',
+    borderWidth: 1,
+    borderColor: '#4b285f',
+  },
+  selectedGuideLabel: {
+    color: '#c7a7d8',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  selectedGuideSeats: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    marginTop: 5,
+  },
+  selectedGuideHint: {
+    color: '#c8bed0',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 7,
   },
   checkoutBar: {
     backgroundColor: '#1a1a2e',
@@ -638,9 +892,6 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#666688',
     fontSize: 15,
-  },
-  scrollFooterSpacer: {
-    height: 20,
   },
   modalOverlay: {
     flex: 1,

@@ -78,6 +78,29 @@ const quickBookingSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isPrinted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    printedAt: {
+      type: Date,
+      default: null,
+    },
+    printedCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    printedSeats: {
+      type: [{
+        _id: false,
+        seatLabel: { type: String, required: true, trim: true },
+        printedAt: { type: Date, default: null },
+        printedCount: { type: Number, default: 0, min: 0 },
+      }],
+      default: [],
+    },
     note: {
       type: String,
       trim: true,

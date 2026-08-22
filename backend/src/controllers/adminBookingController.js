@@ -13,6 +13,14 @@ const PAYMENT_LABEL = {
   refunded: "da_hoan_tien",
 };
 
+const ticketCodeForSeat = (orderCode, seatLabel) =>
+  `${orderCode}-${String(seatLabel || "").trim().toUpperCase()}`;
+
+const getPrintedSeat = (booking, seatLabel) =>
+  (booking.printedSeats || []).find(
+    (item) => String(item.seatLabel) === String(seatLabel),
+  );
+
 const formatShowtimeLabel = (booking, showtime) => {
   if (showtime?.startTime) {
     return new Date(showtime.startTime).toLocaleString("vi-VN", {
@@ -41,6 +49,23 @@ const mapOrder = (booking, showtimeMap = {}, posterMap = {}) => {
     showtime?.movie?.poster ||
     posterMap[movieTitle.toLowerCase()] ||
     "";
+  const seats = Array.isArray(booking.seats) ? booking.seats : [];
+  const hasSeatPrintHistory =
+    Array.isArray(booking.printedSeats) && booking.printedSeats.length > 0;
+  const tickets = seats.map((seatLabel) => {
+    const print = getPrintedSeat(booking, seatLabel);
+    return {
+      seatLabel,
+      code: ticketCodeForSeat(code, seatLabel),
+      isPrinted: print
+        ? Number(print.printedCount || 0) > 0
+        : !hasSeatPrintHistory && Boolean(booking.isPrinted),
+      printedAt: print?.printedAt || (!hasSeatPrintHistory ? booking.printedAt : null),
+      printedCount: Number(
+        print?.printedCount || (!hasSeatPrintHistory ? booking.printedCount : 0) || 0,
+      ),
+    };
+  });
 
   return {
     _id: booking._id,
@@ -52,13 +77,19 @@ const mapOrder = (booking, showtimeMap = {}, posterMap = {}) => {
     movieTitle,
     moviePoster,
     showtimeLabel: formatShowtimeLabel(booking, showtime),
+    showtimeStartTime: showtime?.startTime || null,
     roomName: showtime?.room?.name || "",
     cinema: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
-    seats: Array.isArray(booking.seats) ? booking.seats : [],
-    ticketCount: Array.isArray(booking.seats) ? booking.seats.length : 0,
+    seats,
+    tickets,
+    ticketCount: seats.length,
+    ticketTotal: Number(booking.ticketTotal || booking.totalPrice || 0),
     totalPrice: Number(booking.totalPrice || 0),
     paymentStatus: paymentKey,
     status: booking.status,
+    isPrinted: Boolean(booking.isPrinted),
+    printedAt: booking.printedAt || null,
+    printedCount: Number(booking.printedCount || 0),
     checkedIn: Boolean(booking.checkedIn),
     checkedInAt: booking.checkedInAt || null,
     paymentMethod: booking.paymentMethod || "",
@@ -75,6 +106,7 @@ const mapOrder = (booking, showtimeMap = {}, posterMap = {}) => {
       paidAt: booking.status === "paid" || booking.status === "refunded" ? booking.updatedAt || booking.createdAt : null,
       ticketIssuedAt:
         booking.status === "paid" || booking.status === "refunded" ? booking.createdAt : null,
+      printedAt: booking.printedAt || null,
       checkedInAt: booking.checkedInAt || null,
       completedAt: booking.checkedIn ? booking.checkedInAt : null,
       cancelledAt: booking.cancelledAt || null,
@@ -130,6 +162,7 @@ const listOrders = async (req, res) => {
     const date = String(req.query.date || "").trim();
     const payment = String(req.query.payment || "").trim();
     const checkIn = String(req.query.checkIn || "").trim();
+    const print = String(req.query.print || req.query.printStatus || "").trim();
 
     const filter = {};
 
@@ -143,6 +176,9 @@ const listOrders = async (req, res) => {
 
     if (checkIn === "da_check_in") filter.checkedIn = true;
     if (checkIn === "chua_check_in") filter.checkedIn = { $ne: true };
+
+    if (print === "da_in") filter.isPrinted = true;
+    if (print === "chua_in") filter.isPrinted = { $ne: true };
 
     if (date) {
       const start = new Date(`${date}T00:00:00.000`);
@@ -292,6 +328,22 @@ const updateOrder = async (req, res) => {
       booking.checkedIn = true;
       booking.checkedInSeats = [...booking.seats];
       booking.checkedInAt = new Date();
+    } else if (action === "print") {
+      const now = new Date();
+      const existing = new Map(
+        (booking.printedSeats || []).map((item) => [String(item.seatLabel), item]),
+      );
+      booking.printedSeats = booking.seats.map((seatLabel) => {
+        const previous = existing.get(String(seatLabel));
+        return {
+          seatLabel,
+          printedAt: now,
+          printedCount: Number(previous?.printedCount || 0) + 1,
+        };
+      });
+      booking.isPrinted = true;
+      booking.printedAt = now;
+      booking.printedCount = (booking.printedCount || 0) + 1;
     } else if (action === "note") {
       booking.note = String(req.body.note || "").trim();
     } else {

@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  Alert,
+  Linking,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-import { getQuickBookings } from '../../../services/apiService';
+import { getQuickBookings, cancelPayment, getPaymentStatus } from '../../../services/apiService';
 import {useAuth} from '../../../contexts/AuthContext';
+import PayosPaymentScreen from '../../Showtime/screen/PayosPaymentScreen';
 
 type Ticket = {
   _id: string;
@@ -51,6 +54,14 @@ type MyTicketsScreenProps = {
   onBack: () => void;
 };
 
+const toPaymentCombos = (combos: Ticket['combos'] = []) =>
+  combos.map((combo, index) => ({
+    _id: `${combo.name}-${index}`,
+    name: combo.name,
+    price: Number(combo.unitPrice || combo.totalPrice / Math.max(combo.quantity, 1) || 0),
+    quantity: Number(combo.quantity || 0),
+  }));
+
 const buildOfflineTicketQr = (item: Ticket, seat: string, ticketCode: string) => {
   const seatCount = Math.max(item.seats?.length || 0, 1);
   const ticketPrice = Number(item.ticketTotal || item.totalPrice || 0) / seatCount;
@@ -83,6 +94,77 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<{amount: number, expiresAt: string, qrCode?: string, orderCode?: string} | null>(null);
+  const [showPayment, setShowPayment] = useState<'payos' | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleCancelTicket = (ticketId: string) => {
+    Alert.alert('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn vé này không?', [
+      { text: 'Không', style: 'cancel' },
+      { text: 'Hủy vé', style: 'destructive', onPress: async () => {
+          try {
+            await cancelPayment(ticketId);
+            Alert.alert('Thành công', 'Đơn vé đã được hủy.');
+            fetchTickets();
+          } catch (e: any) {
+            Alert.alert('Không thể hủy', e?.message || 'Có lỗi xảy ra.');
+          }
+      }}
+    ]);
+  };
+
+  const handleContinuePayment = async (ticket: Ticket) => {
+    setIsProcessing(true);
+    try {
+      const response = await getPaymentStatus(ticket._id) as any;
+      const payment = response?.data ?? response;
+      if (!payment) {
+        throw new Error('Không lấy được thông tin thanh toán');
+      }
+      if (payment.status !== 'pending' && payment.status !== 'cho_thanh_toan') {
+        throw new Error('Giao dịch không còn ở trạng thái chờ.');
+      }
+      const provider = String(
+        payment.provider || payment.method || ticket.paymentMethod || '',
+      ).toLowerCase();
+      const isVnpay = provider === 'vnpay' || provider === 'vnpay_sandbox';
+      const isPayos = provider === 'payos';
+      
+      if (isVnpay) {
+         const paymentUrl = String(payment.paymentUrl || payment.checkoutUrl || '').trim();
+         if (!/^https:\/\/\S+$/i.test(paymentUrl)) {
+           throw new Error('Không tìm thấy link VNPay. Bạn vui lòng hủy và đặt lại.');
+         }
+         await Linking.openURL(paymentUrl);
+      } else if (isPayos) {
+         if (!payment.qrCode) throw new Error('Không tìm thấy mã QR. Vui lòng đặt lại.');
+         setActiveTicket(ticket);
+         setPaymentInfo({
+           amount: Number(payment.amount || ticket.totalPrice),
+           expiresAt: String(payment.expiresAt),
+           qrCode: String(payment.qrCode),
+           orderCode: String(payment.orderCode || ticket.code),
+         });
+         setShowPayment('payos');
+      } else {
+         throw new Error('Phương thức thanh toán không được hỗ trợ.');
+      }
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể tiếp tục thanh toán.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePaymentBack = () => {
+    setShowPayment(null);
+    setActiveTicket(null);
+    setPaymentInfo(null);
+    fetchTickets();
+  };
+
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -152,7 +234,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               <Text style={styles.infoLabel}>NGÀY CHIẾU</Text>
               <Text style={styles.infoVal}>{item.bookingDate || '—'}</Text>
             </View>
-            <View style={styles.infoCol}>
+            <View style={[styles.infoCol, styles.infoColRight]}>
               <Text style={styles.infoLabel}>GIỜ CHIẾU</Text>
               <Text style={styles.infoVal}>{item.bookingTime || '—'}</Text>
             </View>
@@ -163,7 +245,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
               <Text style={styles.infoLabel}>GHẾ</Text>
               <Text style={styles.infoVal}>{item.seats?.join(', ') || '—'}</Text>
             </View>
-            <View style={styles.infoCol}>
+            <View style={[styles.infoCol, styles.infoColRight]}>
               <Text style={styles.infoLabel}>TỔNG TIỀN</Text>
               <Text style={[styles.infoVal, styles.infoPrice]}>
                 {Number(item.totalPrice).toLocaleString('vi-VN')}đ
@@ -187,6 +269,22 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
                 {item.status === 'refunded' ? 'LÝ DO HOÀN TIỀN' : 'LÝ DO HỦY'}
               </Text>
               <Text style={styles.cancelReasonText}>{item.cancelReason}</Text>
+            </View>
+          ) : null}
+
+          {item.status === 'pending' ? (
+            <View style={styles.pendingActionRow}>
+              <TouchableOpacity
+                style={styles.btnCancelPending}
+                onPress={() => handleCancelTicket(item._id)}>
+                <Text style={styles.btnCancelPendingText}>Hủy vé</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.btnContinuePending}
+                onPress={() => handleContinuePayment(item)}
+                disabled={isProcessing}>
+                <Text style={styles.btnContinuePendingText}>Thanh toán tiếp</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -229,22 +327,24 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 
         {/* Phần dưới của vé (cuống vé / mã nhận vé) */}
         <View style={styles.ticketBottom}>
-          <Text style={styles.codeLabel}>QR CHECK-IN THEO GHẾ</Text>
+          <Text style={styles.codeLabel}>QR CHECK-IN ĐƠN VÉ</Text>
           <View style={styles.seatQrList}>
-            {seats.map(seat => {
-              const ticketCode = seat ? `${item.code}-${seat}` : item.code;
+            {(() => {
+              const seatList = seats.join(', ');
+              const ticketCode = item.code;
               const used = Boolean(
-                item.checkedIn || (seat && item.checkedInSeats?.includes(seat)),
+                item.checkedIn ||
+                (seats.length > 0 && seats.every(seat => item.checkedInSeats?.includes(seat))),
               );
               return (
                 <View key={ticketCode} style={styles.seatQrCard}>
                   <View style={styles.seatQrHeader}>
-                    <Text style={styles.seatQrSeat}>{seat ? `Ghế ${seat}` : 'Vé FilmGo'}</Text>
+                    <Text style={styles.seatQrSeat}>Ghế {seatList || '—'}</Text>
                     {used ? <Text style={styles.seatQrUsed}>ĐÃ DÙNG</Text> : null}
                   </View>
                   {!isInactive ? (
                     <View style={styles.qrCodeFrame}>
-                      <QRCode value={buildOfflineTicketQr(item, seat, ticketCode)} size={190} ecl="L" />
+                      <QRCode value={buildOfflineTicketQr(item, seatList, ticketCode)} size={190} ecl="L" />
                     </View>
                   ) : null}
                   <Text style={[styles.codeVal, isInactive && styles.codeValInactive]}>
@@ -252,19 +352,42 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
                   </Text>
                 </View>
               );
-            })}
+            })()}
           </View>
           <Text style={styles.ticketNote}>
             {isInactive
               ? item.status === 'refunded'
                 ? 'Vé này đã được hoàn tiền, không còn hiệu lực'
                 : 'Vé này đã bị hủy, không còn hiệu lực'
-              : 'Xuất trình QR của đúng ghế tại quầy hoặc cửa phòng chiếu'}
+              : 'Xuất trình QR của đơn vé tại quầy hoặc cửa phòng chiếu'}
           </Text>
         </View>
       </View>
     );
   };
+
+  if (showPayment === 'payos' && activeTicket && paymentInfo?.qrCode) {
+    return (
+      <PayosPaymentScreen
+        movieTitle={activeTicket.movieTitle}
+        showtime={`${activeTicket.bookingDate} - ${activeTicket.bookingTime}`}
+        cinema={activeTicket.cinema}
+        room={activeTicket.roomName || 'Phòng chiếu'}
+        seats={activeTicket.seats}
+        ticketTotal={activeTicket.ticketTotal || activeTicket.totalPrice}
+        combos={toPaymentCombos(activeTicket.combos)}
+        totalAmount={paymentInfo.amount}
+        expiresAt={paymentInfo.expiresAt}
+        qrCode={paymentInfo.qrCode}
+        orderCode={paymentInfo.orderCode}
+        isProcessing={isProcessing}
+        customerName={activeTicket.user?.fullName || 'Khách'}
+        customerPhone="—"
+        customerEmail="—"
+        onBack={handlePaymentBack}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -298,7 +421,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
             />
           </Svg>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Vé của tôi</Text>
+        <Text style={styles.headerTitle}>Đơn vé đã gửi</Text>
         <TouchableOpacity activeOpacity={0.75} style={styles.refreshBtn} onPress={onRefresh}>
           <Text style={styles.refreshText}>↻ Tải lại</Text>
         </TouchableOpacity>
@@ -330,9 +453,9 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🎟️</Text>
-              <Text style={styles.emptyText}>Bạn chưa đặt vé nào.</Text>
+              <Text style={styles.emptyText}>Bạn chưa gửi đơn đặt vé nào.</Text>
               <Text style={styles.emptySubText}>
-                Sau khi đặt vé thành công từ Trang chủ, vé sẽ tự động hiện tại đây.
+                Sau khi đặt vé thành công, đơn và mã QR sẽ tự động hiện tại đây.
               </Text>
             </View>
           }
@@ -345,6 +468,37 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  pendingActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  btnCancelPending: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+  },
+  btnCancelPendingText: {
+    color: '#64748b',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  btnContinuePending: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#e51937',
+  },
+  btnContinuePendingText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
   container: {
     flex: 1,
     backgroundColor: '#f0f4f8',
@@ -518,6 +672,9 @@ const styles = StyleSheet.create({
   },
   infoCol: {
     width: '48%',
+  },
+  infoColRight: {
+    alignItems: 'flex-end',
   },
   infoLabel: {
     fontSize: 10,

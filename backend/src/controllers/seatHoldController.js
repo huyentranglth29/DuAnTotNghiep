@@ -3,7 +3,7 @@ const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const {assertTicketSaleOpen} = require("../services/ticketSaleService");
 
-const HOLD_MINUTES = 15;
+const SEAT_HOLD_MINUTES = 15;
 
 const normalizeSeats = (seats) =>
   [...new Set((Array.isArray(seats) ? seats : [])
@@ -62,7 +62,7 @@ async function holdSeats(req, res, next) {
     });
 
     try {
-      const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+      const expiresAt = new Date(now.getTime() + SEAT_HOLD_MINUTES * 60 * 1000);
       await BookedSeat.insertMany(
         seats.map((seatLabel) => ({
           showtimeId,

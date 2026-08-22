@@ -135,11 +135,12 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
           style={styles.showtimeCard}>
           <Text style={styles.cinemaName}>FilmGo Hà Trung (Thanh Hóa)</Text>
           <Text style={styles.dateLabel}>{group.dateLabel}</Text>
-          <Text style={styles.roomType}>
-            {group.roomName} · {group.roomType}
-          </Text>
+          <View style={styles.roomAndTimeRow}>
+            <Text style={styles.roomType}>
+              {group.roomName} · {group.roomType}
+            </Text>
 
-          <View style={styles.timeRow}>
+            <View style={styles.timeRow}>
             {group.showtimes.map(item => {
               const hour = new Date(item.startTime).getHours();
               const late = hour >= 22;
@@ -168,6 +169,7 @@ function ChonGio({movieId, selectedDateKey, selectedShowtimeId, onShowtimePress}
                 </TouchableOpacity>
               );
             })}
+            </View>
           </View>
 
         </View>
@@ -203,11 +205,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
+  roomAndTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
   roomType: {
     color: '#1d1d1d',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '900',
-    marginTop: 5,
+    flexShrink: 1,
+    paddingRight: 10,
   },
   dateLabel: {
     color: '#005f98',
@@ -217,34 +226,37 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   timeRow: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 9,
+    justifyContent: 'flex-end',
+    gap: 10,
   },
   timeBlock: {
-    minWidth: 92,
-    minHeight: 62,
+    minWidth: 72,
+    minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 28,
-    backgroundColor: '#e9eeee',
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#f0f4f8',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#d9e2ec',
   },
   timeBlockLate: {
-    backgroundColor: '#b9d4f4',
+    backgroundColor: '#e0e7ff',
+    borderColor: '#c7d2fe',
   },
   timeBlockSelected: {
     backgroundColor: '#ec168c',
-    borderWidth: 2,
-    borderColor: '#bd0f6d',
+    borderColor: '#ec168c',
   },
   selectedText: {color: '#ffffff'},
   timeText: {
-    color: '#111111',
-    fontSize: 17,
-    fontWeight: '900',
+    color: '#334155',
+    fontSize: 15,
+    fontWeight: '700',
   },
   timeDate: {
     color: '#111111',

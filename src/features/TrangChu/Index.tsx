@@ -2,6 +2,7 @@ import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {
   FlatList,
   Image,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -42,7 +43,7 @@ import {t} from '../../utils/i18n';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
-function TrangChu() {
+function TrangChu({onDetailChange}: {onDetailChange?: (isDetail: boolean) => void}) {
   const {requestAuth} = useAuth();
   const {language} = useLanguage();
   const isEnglish = language === 'en';
@@ -77,6 +78,7 @@ function TrangChu() {
   const [searchQueryDebounced, setSearchQueryDebounced] = useState('');
   const [selectedNews, setSelectedNews] = useState<any | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [claimingVoucher, setClaimingVoucher] = useState('');
   const [claimedVouchers, setClaimedVouchers] = useState<Set<string>>(new Set());
 
@@ -120,6 +122,33 @@ function TrangChu() {
     productsQuery.refetch();
     notificationsQuery.refetch();
     newsEventsQuery.refetch();
+  }, [
+    phimNoiBat,
+    phimDangChieu,
+    phimSapChieu,
+    quickMoviesQuery,
+    vouchersQuery,
+    productsQuery,
+    notificationsQuery,
+    newsEventsQuery,
+  ]);
+
+  const lamMoiTrang = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.allSettled([
+        phimNoiBat.refetch(),
+        phimDangChieu.refetch(),
+        phimSapChieu.refetch(),
+        quickMoviesQuery.refetch(),
+        vouchersQuery.refetch(),
+        productsQuery.refetch(),
+        notificationsQuery.refetch(),
+        newsEventsQuery.refetch(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [
     phimNoiBat,
     phimDangChieu,
@@ -179,6 +208,10 @@ function TrangChu() {
     price: number;
     cinemaName?: string;
   } | null>(null);
+
+  useEffect(() => {
+    onDetailChange?.(Boolean(selectedDetailMovie || showBooking || bookingSummary || xemVe));
+  }, [bookingSummary, onDetailChange, selectedDetailMovie, showBooking, xemVe]);
 
   // Cấu hình Auto-slide cho Banner
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -643,7 +676,15 @@ function TrangChu() {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}>
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={lamMoiTrang}
+                colors={['#005f98']}
+                tintColor="#005f98"
+              />
+            }>
           
           {/* Banner Slider */}
           {listBannerPhim.length > 0 && (
