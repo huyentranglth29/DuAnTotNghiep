@@ -4,7 +4,7 @@ const paymentSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     orderCode: { type: String, required: true, unique: true, trim: true },
-    provider: { type: String, enum: ["vnpay", "payos", "mo_phong"], default: "vnpay" },
+    provider: { type: String, enum: ["vnpay", "payos"], default: "vnpay" },
     status: {
       type: String,
       enum: [

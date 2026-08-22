@@ -14,15 +14,11 @@ import {
 } from 'react-native';
 import Svg, {Path} from 'react-native-svg';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import MockPaymentScreen from './MockPaymentScreen';
 import PayosPaymentScreen from './PayosPaymentScreen';
 import {
   cancelPayment,
-  completeMockPayment,
-  createMockPayment,
   createPayosPayment,
   createVnpayPayment,
-  failMockPayment,
   getPaymentStatus,
   getProducts,
 } from '../../../services/apiService';
@@ -37,14 +33,16 @@ const TEXT_MUTED = '#888888';
 const BG_GRAY = '#f4f4f6';
 const ORDER_CREATION_TIMEOUT_MINUTES = 15;
 
-type PaymentMethod = 'payos' | 'vnpay' | 'mock';
+type PaymentMethod = 'payos' | 'vnpay';
 
-const PAYMENT_METHODS: {
+type PaymentMethodOption = {
   id: PaymentMethod;
   title: string;
   description: string;
   badge: string;
-}[] = [
+};
+
+const PAYMENT_METHODS: PaymentMethodOption[] = [
   {
     id: 'payos',
     title: 'Quét QR',
@@ -337,25 +335,6 @@ function DatVeDetail({
     };
   }, [movie.title, onClose, onPaymentSuccess, paymentId, queryClient]);
 
-  const runMockResult = async (
-    id: string,
-    action: 'success' | 'failed' | 'cancelled',
-    bankCode?: string,
-  ) => {
-    setIsProcessing(true);
-    try {
-      if (action === 'success') await completeMockPayment(id, bankCode);
-      if (action === 'failed') await failMockPayment(id);
-      if (action === 'cancelled') await cancelPayment(id);
-    } catch (error) {
-      setPaymentId(null);
-      setIsProcessing(false);
-      Alert.alert(
-        'Không thể cập nhật thanh toán',
-        (error as Error)?.message || 'Vui lòng kiểm tra kết nối và thử lại.',
-      );
-    }
-  };
 
   const buildPaymentPayload = () => ({
     showtimeId: showtime?.id,
@@ -377,43 +356,32 @@ function DatVeDetail({
 
   const runContinuePayment = async () => {
     if (isProcessing) return;
+    let createdVnpayPaymentId: string | null = null;
     setIsProcessing(true);
     try {
       const payload = buildPaymentPayload();
-      if (paymentMethod === 'mock') {
-        const response = await createMockPayment(payload) as any;
-        const payment = response?.data ?? response;
-        if (!payment?.paymentId) {
-          throw new Error('Backend không tạo được giao dịch mô phỏng');
-        }
-        setPaymentId(payment.paymentId);
-        setPaymentInfo({
-          amount: Number(payment.amount || orderTotal),
-          expiresAt: String(payment.expiresAt),
-        });
-        setShowPaymentScreen(true);
-        setIsProcessing(false);
-        return;
-      }
-
       if (paymentMethod === 'vnpay') {
         const response = await createVnpayPayment(payload) as any;
         const payment = response?.data ?? response;
-        if (!payment?.paymentId || !payment?.paymentUrl) {
+        const nextPaymentId = String(payment?.paymentId || '').trim();
+        const paymentUrl = String(payment?.paymentUrl || '').trim();
+        createdVnpayPaymentId = nextPaymentId || null;
+        if (!nextPaymentId || !paymentUrl) {
           throw new Error('Backend không tạo được link VNPay Sandbox');
         }
-        setPaymentId(payment.paymentId);
+        if (!/^https:\/\/\S+$/i.test(paymentUrl)) {
+          throw new Error('Link VNPay Sandbox không hợp lệ');
+        }
+        setPaymentId(nextPaymentId);
         setPaymentInfo({
           amount: Number(payment.amount || orderTotal),
           expiresAt: String(payment.expiresAt),
           orderCode: String(payment.orderCode || ''),
         });
-        await Linking.openURL(String(payment.paymentUrl));
-        Alert.alert(
-          'Đã mở VNPay Sandbox',
-          'Sau khi thanh toán test xong, quay lại app. Hệ thống sẽ tự kiểm tra và phát hành vé nếu giao dịch thành công.',
-        );
         setIsProcessing(false);
+        // Mở trình duyệt sẽ đưa app xuống nền. Không hiển thị Alert sau
+        // openURL vì Activity có thể đang tạm dừng trên một số thiết bị.
+        await Linking.openURL(paymentUrl);
         return;
       }
 
@@ -435,7 +403,12 @@ function DatVeDetail({
       setShowPaymentScreen(true);
       setIsProcessing(false);
     } catch (e) {
-      const methodName = paymentMethod === 'vnpay' ? 'VNPay Sandbox' : paymentMethod === 'mock' ? 'thanh toán thử' : 'thanh toán';
+      if (createdVnpayPaymentId) {
+        await cancelPayment(createdVnpayPaymentId).catch(() => undefined);
+        setPaymentId(null);
+        setPaymentInfo(null);
+      }
+      const methodName = paymentMethod === 'vnpay' ? 'VNPay Sandbox' : 'thanh toán';
       Alert.alert('Không thể mở thanh toán', (e as Error)?.message || `Vui lòng kiểm tra cấu hình ${methodName} và thử lại.`);
       setIsProcessing(false);
     }
@@ -464,9 +437,7 @@ function DatVeDetail({
     ? 'Đang tạo giao dịch...'
     : paymentMethod === 'vnpay'
       ? 'Thanh toán qua VNPay Sandbox'
-      : paymentMethod === 'mock'
-        ? 'Thanh toán thử nội bộ'
-        : 'Thanh toán';
+      : 'Thanh toán';
 
   const handlePaymentBack = async () => {
     const id = paymentId;
@@ -481,20 +452,6 @@ function DatVeDetail({
         Alert.alert('Không thể hủy giao dịch', (error as Error)?.message || 'Vui lòng thử lại.');
       }
     }
-  };
-
-  const handleBankConfirm = (bankCode: string) => {
-    if (!paymentId) return;
-    Alert.alert(
-      'Kiểm thử kết quả thanh toán',
-      'Chọn kết quả ngân hàng trả về. Khi chọn thành công, vé và ghế sẽ được lưu thật vào MongoDB.',
-      [
-        {text: 'Thất bại', style: 'destructive', onPress: () => runMockResult(paymentId, 'failed', bankCode)},
-        {text: 'Hủy', style: 'cancel', onPress: () => runMockResult(paymentId, 'cancelled', bankCode)},
-        {text: 'Thành công', onPress: () => runMockResult(paymentId, 'success', bankCode)},
-      ],
-      {cancelable: false},
-    );
   };
 
   if (showPaymentScreen && paymentInfo?.qrCode) {
@@ -518,30 +475,6 @@ function DatVeDetail({
         customerPhone={recipient.phone || 'Chưa có SĐT'}
         customerEmail={recipient.email || 'Chưa có email'}
         onBack={handlePaymentBack}
-      />
-    );
-  }
-
-  if (showPaymentScreen && paymentInfo) {
-    return (
-      <MockPaymentScreen
-        movieTitle={movie.title}
-        showtime={`${bookingDate} - ${startTime}`}
-        cinema="FilmGo Hà Trung (Thanh Hóa)"
-        room={roomName}
-        seats={seats}
-        ticketTotal={totalPrice}
-        combos={selectedCombos}
-        totalAmount={paymentInfo.amount}
-        voucherCode={selectedVoucher?.code}
-        voucherDiscount={voucherDiscount}
-        expiresAt={paymentInfo.expiresAt}
-        isProcessing={isProcessing}
-        customerName={recipientName}
-        customerPhone={recipient.phone || 'Chưa có SĐT'}
-        customerEmail={recipient.email || 'Chưa có email'}
-        onBack={handlePaymentBack}
-        onConfirm={handleBankConfirm}
       />
     );
   }

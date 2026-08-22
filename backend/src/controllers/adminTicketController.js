@@ -129,10 +129,14 @@ const expandQuickBooking = (booking, showtime) => {
     cinemaName: booking.cinema || "FilmGo Hà Trung (Thanh Hóa)",
     roomName: showtime?.room?.name || "",
     orderCode: bookingCode,
+    orderSeats: seats,
     bookedAt: booking.createdAt,
     bookingDate: booking.bookingDate || "",
     bookingTime: booking.bookingTime || "",
-    combos: booking.combos || [],
+    // Combo thuộc về toàn bộ đơn đặt vé, không thuộc từng ghế.
+    // Chỉ gắn vào vé đầu tiên để màn hình quản trị không hiểu nhầm
+    // rằng mỗi ghế được mua một combo riêng.
+    combos: index === 0 ? (booking.combos || []) : [],
     qrValue: `${bookingCode}-${seatLabel}`,
     seatLabel,
     source: "quickBooking",
@@ -140,6 +144,7 @@ const expandQuickBooking = (booking, showtime) => {
     booking: {
       _id: booking._id,
       ticketCode: bookingCode,
+      seats,
       movieTitle: booking.movieTitle,
       roomName: showtime?.room?.name || "",
       totalPrice: booking.totalPrice,
@@ -224,6 +229,30 @@ const update = async (req, res) => {
     const id = String(req.params.id || "");
     const action = String(req.body.action || "").trim();
     const quickMatch = id.match(/^quick-([a-f\d]{24})-\d+$/i);
+
+    if (action === "checkin-order" && quickMatch) {
+      const booking = await QuickBooking.findById(quickMatch[1]);
+      if (!booking) return res.status(404).json({ success: false, message: "Không tìm thấy đơn vé" });
+      if (booking.status !== "paid") {
+        return res.status(409).json({ success: false, message: "Chỉ check-in vé đã thanh toán" });
+      }
+      const seats = Array.isArray(booking.seats) ? booking.seats : [];
+      const checkedSeats = new Set(booking.checkedInSeats || []);
+      const newlyChecked = seats.filter(seat => !checkedSeats.has(seat));
+      if (!newlyChecked.length) {
+        return res.status(409).json({ success: false, message: "Toàn bộ ghế trong đơn đã được check-in" });
+      }
+      seats.forEach(seat => checkedSeats.add(seat));
+      booking.checkedInSeats = [...checkedSeats];
+      booking.checkedIn = true;
+      booking.checkedInAt = new Date();
+      await booking.save();
+      return res.json({
+        success: true,
+        message: `Check-in thành công ${newlyChecked.length} ghế trong đơn`,
+        data: { seatLabels: seats, checkedInSeats: booking.checkedInSeats, checkedIn: true },
+      });
+    }
 
     if (action === "print") {
       if (quickMatch) {

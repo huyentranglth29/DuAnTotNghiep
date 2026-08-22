@@ -77,6 +77,51 @@ function showtimeDateKey(value) {
   return `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
 }
 
+// Một đơn có thể chứa nhiều ghế. Giao diện quản trị hiển thị theo đơn
+// để combo và tổng tiền không bị hiểu nhầm là lặp lại cho từng ghế.
+function groupTicketsByOrder(rows) {
+  const groups = new Map();
+  rows.forEach(ticket => {
+    const orderCode = ticket.orderCode || ticket.booking?.ticketCode || ticket.booking?._id || ticket.code;
+    const key = String(orderCode || ticket.code);
+    const seat = getSeatLabel(ticket);
+    const current = groups.get(key);
+    if (!current) {
+      const comboTotal = (ticket.combos || []).reduce(
+        (sum, combo) => sum + Number(combo.totalPrice || (combo.unitPrice || 0) * (combo.quantity || 0)),
+        0,
+      );
+      groups.set(key, {
+        ...ticket,
+        code: key,
+        orderCode: key,
+        seatLabel: seat,
+        price: Number(ticket.price || 0),
+        _comboTotal: comboTotal,
+        _seatTickets: [ticket],
+      });
+      return;
+    }
+    current._seatTickets.push(ticket);
+    current.price += Number(ticket.price || 0);
+    if (!current._comboTotal) {
+      current._comboTotal = (ticket.combos || []).reduce(
+        (sum, combo) => sum + Number(combo.totalPrice || (combo.unitPrice || 0) * (combo.quantity || 0)),
+        0,
+      );
+    }
+    const seats = current.seatLabel ? current.seatLabel.split(', ') : [];
+    if (seat && !seats.includes(seat)) seats.push(seat);
+    current.seatLabel = seats.join(', ');
+    current.isPrinted = current.isPrinted && Boolean(ticket.isPrinted);
+  });
+  return [...groups.values()].map(group => ({
+    ...group,
+    // Cột giá của danh sách đơn phải khớp với tổng tiền người dùng đã thanh toán.
+    price: group.price + Number(group._comboTotal || 0),
+  }));
+}
+
 function TicketList() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +140,8 @@ function TicketList() {
     setError('');
     try {
       const response = await ticketApi.getAll({limit: 500, page: 1, sort: '-createdAt'});
-      setTickets(Array.isArray(response) ? response : response?.data || []);
+      const rows = Array.isArray(response) ? response : response?.data || [];
+      setTickets(groupTicketsByOrder(rows));
     } catch (loadError) {
       setError(loadError.message || 'Không tải được danh sách vé.');
       setTickets([]);
@@ -247,7 +293,7 @@ function TicketList() {
                 <th>Phòng</th>
                 <th>Ghế</th>
                 <th>Khách hàng</th>
-                <th>Giá vé</th>
+                <th>Tổng đơn</th>
                 <th>In vé</th>
                 <th>Trạng thái</th>
                 <th>Chi tiết</th>
@@ -303,27 +349,37 @@ function TicketList() {
         {selected ? (
           <div className="ticketDetailContent">
             <div className="ticketDetailHero">
-              <div>
-                <span>MÃ VÉ FILMGO</span>
+              <div className="ticketDetailIdentity">
+                <span className="ticketDetailEyebrow">VÉ ĐIỆN TỬ FILMGO</span>
                 <strong>{selected.code}</strong>
+                <small>Thông tin phát hành và sử dụng vé</small>
               </div>
-              <StatusBadge status={getTicketPaymentStatus(selected)} />
+              <div className="ticketDetailHeroStatus">
+                <span className="ticketDetailHeroStatusLabel">Trạng thái</span>
+                <StatusBadge status={getTicketPaymentStatus(selected)} />
+              </div>
+            </div>
+            <div className="ticketDetailSectionHeading">
+              <div>
+                <h3>Thông tin vé</h3>
+                <p>Kiểm tra lịch chiếu, ghế, khách hàng và trạng thái thanh toán.</p>
+              </div>
             </div>
             <div className="ticketDetailGrid">
-              <div><span>Phim</span><strong>{movieOf(selected).title || selected.booking?.movieTitle || 'Không tìm thấy phim'}</strong></div>
-              <div><span>Suất chiếu</span><strong>{formatDateTime(selected.showtime?.startTime || selected.booking?.showtime?.startTime) || 'Suất chiếu không còn tồn tại'}</strong></div>
-              <div><span>Phòng chiếu</span><strong>{roomOf(selected).name || selected.booking?.roomName || 'Chưa có dữ liệu'} {roomOf(selected).type ? `· ${roomOf(selected).type}` : ''}</strong></div>
-              <div><span>Ghế</span><strong>{getSeatLabel(selected) || 'Chưa có dữ liệu'}</strong></div>
-              <div><span>Khách hàng</span><strong>{customerOf(selected).name}</strong><small>{customerOf(selected).email || 'Chưa có email'}</small><small>{customerOf(selected).phone || 'Chưa có số điện thoại'}</small></div>
-              <div><span>Giá vé</span><strong>{formatVnd(selected.price)}</strong></div>
-              <div><span>Mã đơn</span><strong>{selected.booking?.ticketCode || selected.booking?._id || 'Không tìm thấy đơn'}</strong></div>
-              <div><span>Trạng thái</span><StatusBadge status={getTicketPaymentStatus(selected)} /></div>
-              <div>
+              <div className="ticketDetailItem ticketDetailItemWide"><span>Phim</span><strong>{movieOf(selected).title || selected.booking?.movieTitle || 'Không tìm thấy phim'}</strong></div>
+              <div className="ticketDetailItem"><span>Suất chiếu</span><strong>{formatDateTime(selected.showtime?.startTime || selected.booking?.showtime?.startTime) || 'Suất chiếu không còn tồn tại'}</strong></div>
+              <div className="ticketDetailItem"><span>Phòng chiếu</span><strong>{roomOf(selected).name || selected.booking?.roomName || 'Chưa có dữ liệu'} {roomOf(selected).type ? `· ${roomOf(selected).type}` : ''}</strong></div>
+              <div className="ticketDetailItem"><span>Ghế</span><strong>{getSeatLabel(selected) || 'Chưa có dữ liệu'}</strong></div>
+              <div className="ticketDetailItem"><span>Tổng đơn</span><strong>{formatVnd(selected.price)}</strong></div>
+              <div className="ticketDetailItem ticketDetailItemWide"><span>Khách hàng</span><strong>{customerOf(selected).name}</strong><small>{customerOf(selected).email || 'Chưa có email'}</small><small>{customerOf(selected).phone || 'Chưa có số điện thoại'}</small></div>
+              <div className="ticketDetailItem"><span>Mã đơn</span><strong>{selected.booking?.ticketCode || selected.booking?._id || 'Không tìm thấy đơn'}</strong></div>
+              <div className="ticketDetailItem"><span>Trạng thái</span><StatusBadge status={getTicketPaymentStatus(selected)} /></div>
+              <div className="ticketDetailItem">
                 <span>Trạng thái in</span>
                 <StatusBadge status={String(Boolean(selected.isPrinted))} map={PRINT_META} />
                 {selected.printedAt ? <small>Lúc: {formatDateTime(selected.printedAt)}</small> : null}
               </div>
-              <div><span>Ngày tạo vé</span><strong>{formatDateTime(selected.createdAt)}</strong></div>
+              <div className="ticketDetailItem"><span>Ngày tạo vé</span><strong>{formatDateTime(selected.createdAt)}</strong></div>
             </div>
           </div>
         ) : null}

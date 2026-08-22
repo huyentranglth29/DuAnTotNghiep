@@ -542,6 +542,8 @@ const createVnpayPayment = async (req, res, next) => {
     };
     const secureHash = sign(params, config.secret);
     const paymentUrl = `${config.paymentUrl}?${buildQuery(params)}&vnp_SecureHash=${secureHash}`;
+    payment.checkoutUrl = paymentUrl;
+    await payment.save();
 
     await notifyPendingPayment(payment);
 
@@ -941,9 +943,6 @@ const cancelPayment = async (req, res, next) => {
 };
 
 module.exports = {
-  createMockPayment,
-  completeMockPayment,
-  failMockPayment,
   createVnpayPayment,
   createPayosPayment,
   vnpayIpn,

@@ -12,10 +12,9 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import QRCode from 'react-native-qrcode-svg';
-import { getQuickBookings, cancelPayment, getPaymentStatus, completeMockPayment, failMockPayment } from '../../../services/apiService';
+import { getQuickBookings, cancelPayment, getPaymentStatus } from '../../../services/apiService';
 import {useAuth} from '../../../contexts/AuthContext';
 import PayosPaymentScreen from '../../Showtime/screen/PayosPaymentScreen';
-import MockPaymentScreen from '../../Showtime/screen/MockPaymentScreen';
 
 type Ticket = {
   _id: string;
@@ -98,7 +97,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<{amount: number, expiresAt: string, qrCode?: string, orderCode?: string} | null>(null);
-  const [showPayment, setShowPayment] = useState<'payos' | 'mock' | null>(null);
+  const [showPayment, setShowPayment] = useState<'payos' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCancelTicket = (ticketId: string) => {
@@ -127,16 +126,18 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
       if (payment.status !== 'pending' && payment.status !== 'cho_thanh_toan') {
         throw new Error('Giao dịch không còn ở trạng thái chờ.');
       }
-      const isVnpay = ticket.paymentMethod === 'vnpay' || payment.method === 'vnpay' || ticket.paymentMethod === 'vnpay_sandbox';
-      const isPayos = ticket.paymentMethod === 'payos' || payment.method === 'payos';
+      const provider = String(
+        payment.provider || payment.method || ticket.paymentMethod || '',
+      ).toLowerCase();
+      const isVnpay = provider === 'vnpay' || provider === 'vnpay_sandbox';
+      const isPayos = provider === 'payos';
       
       if (isVnpay) {
-         if (payment.paymentUrl) {
-           await Linking.openURL(payment.paymentUrl);
-           Alert.alert('Đã mở VNPay', 'Sau khi thanh toán xong hãy tải lại danh sách vé.');
-         } else {
+         const paymentUrl = String(payment.paymentUrl || payment.checkoutUrl || '').trim();
+         if (!/^https:\/\/\S+$/i.test(paymentUrl)) {
            throw new Error('Không tìm thấy link VNPay. Bạn vui lòng hủy và đặt lại.');
          }
+         await Linking.openURL(paymentUrl);
       } else if (isPayos) {
          if (!payment.qrCode) throw new Error('Không tìm thấy mã QR. Vui lòng đặt lại.');
          setActiveTicket(ticket);
@@ -148,12 +149,7 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
          });
          setShowPayment('payos');
       } else {
-         setActiveTicket(ticket);
-         setPaymentInfo({
-           amount: Number(payment.amount || ticket.totalPrice),
-           expiresAt: String(payment.expiresAt),
-         });
-         setShowPayment('mock');
+         throw new Error('Phương thức thanh toán không được hỗ trợ.');
       }
     } catch (e: any) {
       Alert.alert('Lỗi', e?.message || 'Không thể tiếp tục thanh toán.');
@@ -169,16 +165,6 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
     fetchTickets();
   };
 
-  const runMockResult = async (id: string, action: 'success'|'failed'|'cancelled', bankCode?: string) => {
-    try {
-      if (action === 'success') await completeMockPayment(id, bankCode);
-      if (action === 'failed') await failMockPayment(id);
-      if (action === 'cancelled') await cancelPayment(id);
-      handlePaymentBack();
-    } catch (e: any) {
-      Alert.alert('Lỗi', 'Không thể cập nhật kết quả: ' + (e?.message || ''));
-    }
-  };
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -341,22 +327,24 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
 
         {/* Phần dưới của vé (cuống vé / mã nhận vé) */}
         <View style={styles.ticketBottom}>
-          <Text style={styles.codeLabel}>QR CHECK-IN THEO GHẾ</Text>
+          <Text style={styles.codeLabel}>QR CHECK-IN ĐƠN VÉ</Text>
           <View style={styles.seatQrList}>
-            {seats.map(seat => {
-              const ticketCode = seat ? `${item.code}-${seat}` : item.code;
+            {(() => {
+              const seatList = seats.join(', ');
+              const ticketCode = item.code;
               const used = Boolean(
-                item.checkedIn || (seat && item.checkedInSeats?.includes(seat)),
+                item.checkedIn ||
+                (seats.length > 0 && seats.every(seat => item.checkedInSeats?.includes(seat))),
               );
               return (
                 <View key={ticketCode} style={styles.seatQrCard}>
                   <View style={styles.seatQrHeader}>
-                    <Text style={styles.seatQrSeat}>{seat ? `Ghế ${seat}` : 'Vé FilmGo'}</Text>
+                    <Text style={styles.seatQrSeat}>Ghế {seatList || '—'}</Text>
                     {used ? <Text style={styles.seatQrUsed}>ĐÃ DÙNG</Text> : null}
                   </View>
                   {!isInactive ? (
                     <View style={styles.qrCodeFrame}>
-                      <QRCode value={buildOfflineTicketQr(item, seat, ticketCode)} size={190} ecl="L" />
+                      <QRCode value={buildOfflineTicketQr(item, seatList, ticketCode)} size={190} ecl="L" />
                     </View>
                   ) : null}
                   <Text style={[styles.codeVal, isInactive && styles.codeValInactive]}>
@@ -364,14 +352,14 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
                   </Text>
                 </View>
               );
-            })}
+            })()}
           </View>
           <Text style={styles.ticketNote}>
             {isInactive
               ? item.status === 'refunded'
                 ? 'Vé này đã được hoàn tiền, không còn hiệu lực'
                 : 'Vé này đã bị hủy, không còn hiệu lực'
-              : 'Xuất trình QR của đúng ghế tại quầy hoặc cửa phòng chiếu'}
+              : 'Xuất trình QR của đơn vé tại quầy hoặc cửa phòng chiếu'}
           </Text>
         </View>
       </View>
@@ -397,39 +385,6 @@ function MyTicketsScreen({ onBack }: MyTicketsScreenProps) {
         customerPhone="—"
         customerEmail="—"
         onBack={handlePaymentBack}
-      />
-    );
-  }
-
-  if (showPayment === 'mock' && activeTicket && paymentInfo) {
-    return (
-      <MockPaymentScreen
-        movieTitle={activeTicket.movieTitle}
-        showtime={`${activeTicket.bookingDate} - ${activeTicket.bookingTime}`}
-        cinema={activeTicket.cinema}
-        room={activeTicket.roomName || 'Phòng chiếu'}
-        seats={activeTicket.seats}
-        ticketTotal={activeTicket.ticketTotal || activeTicket.totalPrice}
-        combos={toPaymentCombos(activeTicket.combos)}
-        totalAmount={paymentInfo.amount}
-        expiresAt={paymentInfo.expiresAt}
-        isProcessing={isProcessing}
-        customerName={activeTicket.user?.fullName || 'Khách'}
-        customerPhone="—"
-        customerEmail="—"
-        onBack={handlePaymentBack}
-        onConfirm={(bankCode) => {
-          Alert.alert(
-            'Kiểm thử kết quả thanh toán',
-            'Chọn kết quả ngân hàng trả về:',
-            [
-              {text: 'Thất bại', style: 'destructive', onPress: () => runMockResult(activeTicket._id, 'failed', bankCode)},
-              {text: 'Hủy', style: 'cancel', onPress: () => runMockResult(activeTicket._id, 'cancelled', bankCode)},
-              {text: 'Thành công', onPress: () => runMockResult(activeTicket._id, 'success', bankCode)},
-            ],
-            {cancelable: false}
-          );
-        }}
       />
     );
   }
