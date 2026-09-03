@@ -1,6 +1,7 @@
 import React, {useMemo, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -19,12 +20,15 @@ import {
 import {MovieBookingInfo} from './MovieName';
 import {SelectedShowtimeInfo} from './ChonGio';
 import {layMauNhanTuoi, phimSangBooking} from './phimUtils';
+import {Phim} from '../../../types/phim';
 import {useLanguage} from '../../../contexts/LanguageContext';
 import {t} from '../../../utils/i18n';
 
 const BLUE = '#00689d';
 const ORANGE = '#ff7817';
 const WEEKDAY = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const DEFAULT_POSTER =
+  'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&auto=format&fit=crop&q=80';
 
 type SuatChieuSomProps = {
   onMoviePress: (movie: MovieBookingInfo) => void;
@@ -33,6 +37,30 @@ type SuatChieuSomProps = {
     showtime: SelectedShowtimeInfo,
   ) => void;
 };
+
+function movieFromShowtime(item?: SuatChieuApi): Phim | null {
+  const movie = item?.movie;
+  const id = String(movie?._id || '');
+  if (!movie || !id) return null;
+
+  const genre = Array.isArray(movie.genre)
+    ? movie.genre.map(value => String(value || '').trim()).filter(Boolean).join(', ')
+    : String(movie.genre || '').trim();
+
+  return {
+    id,
+    tieuDe: movie.title || 'Phim chiếu sớm',
+    posterUrl: movie.posterUrl || DEFAULT_POSTER,
+    diemDanhGia: 0,
+    theLoai: genre || 'Đang cập nhật',
+    thoiLuong: String(movie.duration || 'Đang cập nhật'),
+    trangThai: 'sap-chieu',
+    nhanTuoi: movie.ageRating || 'T13',
+    laPhimHot: false,
+    moBanVeTu: movie.ticketSaleStartAt,
+    ngayPhatHanh: movie.expectedReleaseDate,
+  };
+}
 
 function asSelected(item: SuatChieuApi): SelectedShowtimeInfo {
   return {
@@ -58,23 +86,12 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
     staleTime: 15_000,
     refetchOnMount: true,
   });
-  const preferredMovies = useMemo(() => {
-    const byId = new Map();
-    [...(upcomingMoviesQuery.data ?? []), ...(showingMoviesQuery.data ?? [])]
-      .forEach(movie => byId.set(String(movie.id), movie));
-    return Array.from(byId.values());
-  }, [showingMoviesQuery.data, upcomingMoviesQuery.data]);
-  const movieIds = useMemo(
-    () => new Set(preferredMovies.map(movie => String(movie.id))),
-    [preferredMovies],
-  );
+
   const showtimes = useMemo(
-    () =>
-      (showtimesQuery.data ?? []).filter(item =>
-        movieIds.has(String(item.movie?._id || '')),
-      ),
-    [movieIds, showtimesQuery.data],
+    () => showtimesQuery.data ?? [],
+    [showtimesQuery.data],
   );
+
   const dates = useMemo(
     () =>
       Array.from(new Set(showtimes.map(item => toDateKey(item.startTime))))
@@ -92,18 +109,36 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
       ),
     [selectedDate, showtimes],
   );
-  const grouped = useMemo(
-    () =>
-      preferredMovies
-        .map(movie => ({
+
+  const moviesById = useMemo(() => {
+    const map = new Map<string, Phim>();
+    [...(upcomingMoviesQuery.data ?? []), ...(showingMoviesQuery.data ?? [])]
+      .forEach(movie => map.set(String(movie.id), movie));
+    return map;
+  }, [showingMoviesQuery.data, upcomingMoviesQuery.data]);
+
+  const showtimesByMovie = useMemo(() => {
+    const map = new Map<string, SuatChieuApi[]>();
+    filteredShowtimes.forEach(item => {
+      const id = String(item.movie?._id || '');
+      if (!id) return;
+      if (!map.has(id)) map.set(id, []);
+      map.get(id)!.push(item);
+    });
+    return map;
+  }, [filteredShowtimes]);
+
+  const grouped = useMemo(() => {
+    return Array.from(showtimesByMovie.entries())
+      .map(([id, items]) => {
+        const movie = moviesById.get(id) ?? movieFromShowtime(items[0]);
+        return {
           movie,
-          showtimes: filteredShowtimes.filter(
-            item => String(item.movie?._id || '') === String(movie.id),
-          ),
-        }))
-        .filter(group => group.showtimes.length > 0),
-    [filteredShowtimes, preferredMovies],
-  );
+          showtimes: items,
+        };
+      })
+      .filter((group): group is {movie: Phim; showtimes: SuatChieuApi[]} => Boolean(group.movie));
+  }, [moviesById, showtimesByMovie]);
 
   const loading =
     showingMoviesQuery.isLoading ||
@@ -226,11 +261,36 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                       key={item._id}
                       activeOpacity={0.78}
                       style={styles.timeButton}
-                      onPress={() =>
-                        onShowtimePress
-                          ? onShowtimePress(movie, asSelected(item))
-                          : onMoviePress(movie)
-                      }>
+                      onPress={() => {
+                        const saleAt = phim.moBanVeTu ? new Date(phim.moBanVeTu) : null;
+                        const saleOpened = !saleAt || saleAt <= new Date();
+                        if (!saleOpened) {
+                          Alert.alert(
+                            t(language, 'Chưa mở bán vé', 'Ticket sale not opened'),
+                            t(
+                              language,
+                              `Vé cho suất chiếu sớm này sẽ mở bán từ ${saleAt!.toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}.`,
+                              `Tickets for this early screening will go on sale from ${saleAt!.toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}.`,
+                            ),
+                          );
+                          return;
+                        }
+                        if (onShowtimePress) {
+                          onShowtimePress(movie, asSelected(item));
+                        } else {
+                          onMoviePress(movie);
+                        }
+                      }}>
                       <View style={styles.timeTop}>
                         <Text style={styles.timeValue}>
                           {formatGio(item.startTime)}

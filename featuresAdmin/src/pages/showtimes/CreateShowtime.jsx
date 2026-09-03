@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
+import {Sparkles, Calendar, Clock, AlertCircle} from 'lucide-react';
 import movieApi from '../../api/movieApi';
 import roomApi from '../../api/roomApi';
 import showtimeApi from '../../api/showtimeApi';
@@ -78,13 +79,30 @@ function CreateShowtime() {
             note: '',
           });
         } else {
+          const firstMovie = nextMovies[0];
           const today = toDateInputValue(new Date());
+
+          let initialDate = today;
+          let initialType = 'regular';
+
+          if (firstMovie) {
+            const isUpcoming = ['coming-soon', 'coming_soon'].includes(firstMovie.status);
+            const releaseDate = firstMovie.expectedReleaseDate ? toDateInputValue(firstMovie.expectedReleaseDate) : '';
+
+            if (isUpcoming && releaseDate && releaseDate > today) {
+              // Phim chưa ra rạp: mặc định ngày chiếu là ngày khởi chiếu
+              initialDate = releaseDate;
+              initialType = 'regular';
+            }
+          }
+
           setForm(current => ({
             ...current,
-            movie: nextMovies[0]?.id || nextMovies[0]?._id || '',
+            movie: firstMovie?.id || firstMovie?._id || '',
             room: nextRooms[0]?._id || '',
-            date: today,
+            date: initialDate,
             time: '19:00',
+            screeningType: initialType,
           }));
         }
       } catch (err) {
@@ -108,6 +126,71 @@ function CreateShowtime() {
     [rooms, form.room],
   );
 
+  // Xử lý khi Admin đổi chọn phim khác
+  const handleMovieChange = newMovieId => {
+    const movie = movies.find(item => String(item.id || item._id) === String(newMovieId));
+    setForm(current => {
+      let nextDate = current.date;
+      let nextType = current.screeningType;
+
+      if (movie) {
+        const today = toDateInputValue(new Date());
+        const isUpcoming = ['coming-soon', 'coming_soon'].includes(movie.status);
+        const releaseDate = movie.expectedReleaseDate ? toDateInputValue(movie.expectedReleaseDate) : '';
+
+        if (isUpcoming && releaseDate && releaseDate > today) {
+          // Nếu phim chưa tới ngày ra mắt:
+          // Nếu đang là suất thường thì đổi ngày chiếu = ngày khởi chiếu
+          if (nextType === 'regular' && (!nextDate || nextDate < releaseDate)) {
+            nextDate = releaseDate;
+          }
+        }
+      }
+
+      return {
+        ...current,
+        movie: newMovieId,
+        date: nextDate,
+        screeningType: nextType,
+      };
+    });
+  };
+
+  // Xử lý khi đổi loại suất chiếu (Thông thường <-> Chiếu sớm)
+  const handleScreeningTypeChange = newType => {
+    setForm(current => {
+      let nextDate = current.date;
+      if (selectedMovie && selectedMovie.expectedReleaseDate) {
+        const releaseDate = toDateInputValue(selectedMovie.expectedReleaseDate);
+        const today = toDateInputValue(new Date());
+
+        if (newType === 'early') {
+          // Suất chiếu sớm: gợi ý ngày trước ngày khởi chiếu (ví dụ: hôm nay hoặc trước ngày khởi chiếu 1 ngày)
+          if (!nextDate || nextDate >= releaseDate) {
+            const earlyD = new Date(releaseDate);
+            earlyD.setDate(earlyD.getDate() - 1);
+            const earlyDateStr = toDateInputValue(earlyD);
+            nextDate = earlyDateStr >= today ? earlyDateStr : today;
+          }
+        } else if (newType === 'regular') {
+          // Suất thông thường: nếu phim sắp chiếu thì ngày chiếu phải từ ngày khởi chiếu trở đi
+          const isUpcoming = ['coming-soon', 'coming_soon'].includes(selectedMovie.status);
+          if (isUpcoming && releaseDate && releaseDate > today) {
+            if (!nextDate || nextDate < releaseDate) {
+              nextDate = releaseDate;
+            }
+          }
+        }
+      }
+
+      return {
+        ...current,
+        screeningType: newType,
+        date: nextDate,
+      };
+    });
+  };
+
   const computedEndIso = useMemo(() => {
     if (!form.date || !form.time || !selectedMovie) {
       return '';
@@ -125,7 +208,7 @@ function CreateShowtime() {
     if (!form.date) return '';
     const releaseDate = toDateInputValue(releaseValue);
     if (form.date >= releaseDate) {
-      return `Suất chiếu sớm phải nằm trước ngày khởi chiếu ${formatDate(releaseValue)}.`;
+      return `Suất chiếu sớm phải nằm trước ngày khởi chiếu ${formatDate(releaseValue)}. Hiện tại bạn đang chọn ngày ${formatDate(`${form.date}T00:00:00`)}.`;
     }
     if (selectedMovie?.ticketSaleStartAt && form.time) {
       const showtimeStart = new Date(buildStartTimeIso(form.date, form.time));
@@ -136,6 +219,18 @@ function CreateShowtime() {
     }
     return '';
   }, [form.date, form.screeningType, form.time, selectedMovie]);
+
+  const regularScreeningNotice = useMemo(() => {
+    if (form.screeningType !== 'regular') return '';
+    if (!selectedMovie?.expectedReleaseDate || !form.date) return '';
+    const isUpcoming = ['coming-soon', 'coming_soon'].includes(selectedMovie.status);
+    const releaseDate = toDateInputValue(selectedMovie.expectedReleaseDate);
+
+    if (isUpcoming && form.date < releaseDate) {
+      return `Lưu ý: Phim dự kiến khởi chiếu ngày ${formatDate(selectedMovie.expectedReleaseDate)}. Nếu bạn muốn chiếu trước ngày này, hãy chuyển loại suất sang "Suất chiếu sớm".`;
+    }
+    return '';
+  }, [form.screeningType, form.date, selectedMovie]);
 
   useEffect(() => {
     if (!form.room || !form.date) {
@@ -173,13 +268,14 @@ function CreateShowtime() {
   }, [form.room, form.date, form.movie, form.time, id, isEdit]);
 
   useEffect(() => {
-    if (
-      !form.room ||
-      !form.movie ||
-      !form.date ||
-      !form.time ||
-      form.status === 'cancelled'
-    ) {
+    if (!form.room || !form.movie || !form.date || !form.time) {
+      setConflicts([]);
+      setEarliestAvailable(null);
+      setConflictMessage('');
+      return undefined;
+    }
+
+    if (form.status === 'cancelled') {
       setConflicts([]);
       setEarliestAvailable(null);
       setConflictMessage('');
@@ -258,11 +354,8 @@ function CreateShowtime() {
       return;
     }
 
-    if (conflicts.length && form.status !== 'cancelled') {
-      setError(
-        conflictMessage ||
-          'Phòng chiếu đã có suất chiếu hoặc chưa đủ 15 phút nghỉ.',
-      );
+    if (conflicts.length > 0 && form.status !== 'cancelled') {
+      setError(conflictMessage || 'Suất chiếu bị trùng lịch phòng');
       return;
     }
 
@@ -273,7 +366,7 @@ function CreateShowtime() {
         movie: form.movie,
         room: form.room,
         startTime,
-        price: Number(String(form.price).replace(/[^\d]/g, '')),
+        price: Number(form.price),
         status: form.status,
         screeningType: form.screeningType,
       };
@@ -283,59 +376,40 @@ function CreateShowtime() {
       } else {
         await showtimeApi.create(payload);
       }
-
       navigate('/showtimes');
     } catch (err) {
-      setError(
-        err.message ||
-          'Phòng chiếu đã có suất chiếu hoặc chưa đủ 15 phút nghỉ.',
-      );
+      setError(err.message || 'Không thể lưu suất chiếu');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <section>
-        <p className="mutedText">Đang tải form suất chiếu...</p>
-      </section>
-    );
-  }
-
-  const existingShowtimes = schedule?.showtimes || [];
-  const freeGaps = (schedule?.freeGaps || []).filter(gap => gap.canFit);
+  const existingShowtimes = schedule?.existingShowtimes || [];
+  const freeGaps = schedule?.freeGaps || [];
 
   return (
-    <section className="showtimeEditPage">
+    <section className="showtimeCreatePage">
       <div className="pageTitle">
         <div>
-          <h2>{isEdit ? 'Sửa suất chiếu' : 'Tạo suất chiếu mới'}</h2>
+          <h2>{isEdit ? 'Chỉnh sửa suất chiếu' : 'Tạo suất chiếu mới'}</h2>
           <p>Liên kết phim với phòng chiếu, thời gian và giá vé.</p>
         </div>
-        <Link className="ghost backListBtn" to="/showtimes">
+        <Link className="ghost" to="/showtimes">
           Quay lại danh sách
         </Link>
       </div>
 
-      {error && <p className="inlineError">{error}</p>}
+      {error ? <p className="loginError">{error}</p> : null}
 
       {conflicts.length > 0 && form.status !== 'cancelled' && (
-        <div className="showtimeConflictBanner" role="alert">
-          <strong>⚠ Xung đột lịch chiếu</strong>
-          <p>
-            {conflictMessage ||
-              `Phòng chiếu đã có suất chiếu hoặc chưa đủ ${CLEANUP_MINUTES} phút nghỉ.`}
-          </p>
-          <ul>
-            {conflicts.map(item => (
-              <li key={item._id}>
-                {item.roomName || selectedRoom?.name || 'Phòng'} ·{' '}
-                {formatTime(item.startTime)} - {formatTime(item.endTime)} ·{' '}
-                {item.movieTitle}
-              </li>
-            ))}
-          </ul>
+        <div className="conflictBanner">
+          <div>
+            <strong>Trùng lịch phòng chiếu ({conflicts.length} suất)</strong>
+            <p>
+              {conflictMessage ||
+                'Khung giờ bạn chọn đã bị trùng hoặc chưa cách 15 phút dọn dẹp.'}
+            </p>
+          </div>
           {earliestAvailable ? (
             <button
               className="ghost"
@@ -371,13 +445,17 @@ function CreateShowtime() {
               label="Phim"
               value={form.movie}
               placeholder="Chọn phim"
-              onChange={value => updateField('movie', value)}
+              onChange={handleMovieChange}
               options={[
                 {value: '', label: 'Chọn phim'},
-                ...movies.map(movie => ({
-                  value: movie.id || movie._id,
-                  label: movie.title,
-                })),
+                ...movies.map(movie => {
+                  const isUpcoming = ['coming-soon', 'coming_soon'].includes(movie.status);
+                  const releaseStr = movie.expectedReleaseDate ? ` (KC: ${formatDate(movie.expectedReleaseDate)})` : '';
+                  return {
+                    value: movie.id || movie._id,
+                    label: `${movie.title}${isUpcoming ? releaseStr : ''}`,
+                  };
+                }),
               ]}
             />
             <SelectDropdown
@@ -402,6 +480,7 @@ function CreateShowtime() {
                 onChange={event => updateField('date', event.target.value)}
               />
             </label>
+
             <StartTimePicker
               label="Giờ bắt đầu"
               value={form.time}
@@ -411,6 +490,7 @@ function CreateShowtime() {
               freeGaps={schedule ? freeGaps : null}
               onChange={value => updateField('time', value)}
             />
+
             <label>
               Giờ kết thúc (tự động)
               <input
@@ -429,49 +509,72 @@ function CreateShowtime() {
                 placeholder="120000"
               />
             </label>
+
             <SelectDropdown
               label="Loại suất chiếu"
               value={form.screeningType}
               placeholder="Chọn loại suất"
-              onChange={value => updateField('screeningType', value)}
+              onChange={handleScreeningTypeChange}
               options={[
                 {value: 'regular', label: 'Suất thông thường'},
                 {value: 'early', label: 'Suất chiếu sớm'},
               ]}
             />
-            {form.screeningType === 'early' ? (
+
+            {isEdit && (
+              <SelectDropdown
+                label="Trạng thái"
+                value={form.status}
+                placeholder="Chọn trạng thái"
+                onChange={value => updateField('status', value)}
+                options={[
+                  {value: 'scheduled', label: 'Lên lịch (Đang mở bán)'},
+                  {value: 'completed', label: 'Đã kết thúc'},
+                  {value: 'cancelled', label: 'Đã hủy'},
+                ]}
+              />
+            )}
+
+            {/* Thông báo hướng dẫn suất chiếu sớm */}
+            {form.screeningType === 'early' && (
               <div
                 className={`showtimeEarlyNotice fullField ${
                   earlyScreeningError ? 'is-error' : ''
                 }`}>
-                <strong>Suất chiếu sớm</strong>
+                <strong>
+                  {earlyScreeningError ? '⚠️ Cảnh báo suất chiếu sớm' : '✨ Suất chiếu sớm hợp lệ'}
+                </strong>
                 <span>
                   {earlyScreeningError ||
-                    `Hợp lệ: suất này diễn ra trước ngày khởi chiếu ${formatDate(
+                    `Suất này diễn ra vào ngày ${formatDate(`${form.date}T00:00:00`)}, trước ngày khởi chiếu chính thức ${formatDate(
                       selectedMovie?.expectedReleaseDate,
-                    )}. Phim vẫn nằm ở Sắp chiếu và đồng thời xuất hiện trong tab Suất chiếu sớm.`}
+                    )}. Khán giả có thể xem thông tin và mua vé trước trong tab "Suất chiếu sớm" trên App.`}
                 </span>
-                {earlyScreeningError ? (
+                {earlyScreeningError && (
                   <button
                     className="ghost"
                     type="button"
-                    onClick={() => updateField('screeningType', 'regular')}>
+                    onClick={() => handleScreeningTypeChange('regular')}>
                     Chuyển sang suất thông thường
                   </button>
-                ) : null}
+                )}
               </div>
-            ) : null}
-            <SelectDropdown
-              label="Trạng thái"
-              value={form.status}
-              placeholder="Chọn trạng thái"
-              onChange={value => updateField('status', value)}
-              options={[
-                {value: 'scheduled', label: 'Lên lịch'},
-                {value: 'completed', label: 'Đã kết thúc'},
-                {value: 'cancelled', label: 'Đã hủy'},
-              ]}
-            />
+            )}
+
+            {/* Thông báo nhắc nhở nếu suất thường nhưng chọn ngày trước ngày khởi chiếu */}
+            {regularScreeningNotice && (
+              <div className="showtimeEarlyNotice fullField" style={{background: '#fffbeb', borderColor: '#fde68a', color: '#92400e'}}>
+                <strong>💡 Lưu ý lịch khởi chiếu</strong>
+                <span>{regularScreeningNotice}</span>
+                <button
+                  className="ghost"
+                  type="button"
+                  style={{marginTop: '6px', background: '#fef3c7', color: '#92400e'}}
+                  onClick={() => handleScreeningTypeChange('early')}>
+                  Chuyển sang Suất chiếu sớm
+                </button>
+              </div>
+            )}
 
             {form.room && form.date ? (
               <div className="showtimeRoomSchedule fullField">
@@ -479,36 +582,33 @@ function CreateShowtime() {
                   Lịch {selectedRoom?.name || 'phòng'} ·{' '}
                   {formatDate(`${form.date}T12:00:00`)}
                 </h4>
-
-                <div className="showtimeScheduleBlock">
-                  <strong>Suất chiếu hiện có</strong>
+                <div className="showtimeScheduleList">
                   {existingShowtimes.length === 0 ? (
-                    <p className="mutedText">Chưa có suất nào trong ngày này.</p>
+                    <p className="emptyHint">Chưa có suất nào trong ngày này.</p>
                   ) : (
-                    <ul>
-                      {existingShowtimes.map(item => (
-                        <li key={item._id}>
-                          {formatTime(item.startTime)} - {formatTime(item.endTime)}{' '}
-                          · {item.movieTitle}
-                        </li>
-                      ))}
-                    </ul>
+                    existingShowtimes.map(item => (
+                      <div className="showtimeScheduleItem" key={item.id}>
+                        <span>
+                          {formatTime(item.start)} - {formatTime(item.end)}
+                        </span>
+                        <strong>{item.movieTitle}</strong>
+                        <small>{formatDuration(item.duration)}</small>
+                      </div>
+                    ))
                   )}
                 </div>
 
-                <div className="showtimeScheduleBlock">
-                  <strong>Khoảng trống (đã trừ {CLEANUP_MINUTES} phút vệ sinh)</strong>
+                <div className="showtimeGaps">
+                  <h5>Khoảng trống (đã trừ 15 phút vệ sinh)</h5>
                   {freeGaps.length === 0 ? (
-                    <p className="mutedText">
-                      Không còn khoảng trống đủ cho thời lượng phim này.
-                    </p>
+                    <p className="emptyHint">Không còn khoảng trống phù hợp</p>
                   ) : (
                     <ul>
-                      {freeGaps.map(gap => (
-                        <li key={`${gap.start}-${gap.end}`}>
-                          {formatTime(gap.start)} - {formatTime(gap.end)}
+                      {freeGaps.map((gap, index) => (
+                        <li key={index}>
+                          {gap.label}
                           {gap.latestStart
-                            ? ` · bắt đầu muộn nhất ${formatTime(gap.latestStart)}`
+                            ? ` · bắt đầu muộn nhất ${gap.latestStart}`
                             : ''}
                         </li>
                       ))}
@@ -516,7 +616,7 @@ function CreateShowtime() {
                   )}
                 </div>
 
-                {schedule?.suggestedStartIso ? (
+                {schedule?.hasConflict ? (
                   <div className="showtimeSuggestBox">
                     <p>
                       Gợi ý giờ bắt đầu hợp lệ gần nhất:{' '}

@@ -110,120 +110,105 @@ function Showtime({
   }
 
   return (
-    <ScrollView
-      scrollEnabled={!anThanhTim}
-      showsVerticalScrollIndicator={false}
-      style={[styles.container, anThanhTim && styles.detailContainer]}
-      contentContainerStyle={anThanhTim && styles.detailScrollContent}
-      refreshControl={
-        !anThanhTim ? (
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={lamMoiLichChieu}
-            colors={['#005f98']}
-            tintColor="#005f98"
-          />
-        ) : undefined
-      }>
-      <View style={[styles.profileHeader, anThanhTim && styles.hiddenSection]}>
-          <Pressable style={styles.avatar} onPress={onOpenMember} accessibilityLabel="Mở trang thành viên">
-            {avatarUri ? (
-              <Image
-                source={{uri: avatarUri}}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <Text style={styles.avatarText}>{avatarLetter}</Text>
-            )}
-          </Pressable>
-          <View style={styles.memberInfo}>
-            <Text style={styles.greeting}>
-              {isEnglish ? 'Hello' : 'Chào'} <Text style={styles.userName}>{displayName}</Text>
-            </Text>
-            <View style={styles.memberRow}>
-              <Text style={styles.memberIcon}>♟</Text>
-              <Text style={styles.memberText}>MEMBER</Text>
-              <Text style={styles.starText}>☆ 0</Text>
-              <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
-                <Text style={styles.ticketText}>▣ {isEnglish ? 'Orders' : 'Đơn đã gửi'}</Text>
-              </Pressable>
+    <View style={styles.rootContainer}>
+      {/* Header + Search — ẩn khi đang xem chi tiết phim/suất chiếu */}
+      {!anThanhTim && (
+        <View style={styles.topSection}>
+          <View style={styles.profileHeader}>
+            <Pressable style={styles.avatar} onPress={onOpenMember} accessibilityLabel="Mở trang thành viên">
+              {avatarUri ? (
+                <Image
+                  source={{uri: avatarUri}}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>{avatarLetter}</Text>
+              )}
+            </Pressable>
+            <View style={styles.memberInfo}>
+              <Text style={styles.greeting}>
+                {isEnglish ? 'Hello' : 'Chào'} <Text style={styles.userName}>{displayName}</Text>
+              </Text>
+              <View style={styles.memberRow}>
+                <Text style={styles.memberIcon}>♟</Text>
+                <Text style={styles.memberText}>MEMBER</Text>
+                <Text style={styles.starText}>☆ 0</Text>
+                <Pressable onPress={() => setXemVe(true)} hitSlop={8}>
+                  <Text style={styles.ticketText}>▣ {isEnglish ? 'Orders' : 'Đơn đã gửi'}</Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.logoBlock}>
+              <Text style={styles.logoFilm}>FilmGo</Text>
             </View>
           </View>
-          <View style={styles.logoBlock}>
-            <Text style={styles.logoFilm}>FilmGo</Text>
+
+          <View style={styles.searchSection}>
+            <Pressable
+              onPressIn={() => setSearchPressed(true)}
+              onPressOut={() => setSearchPressed(false)}
+              onPress={moTimKiem}
+              style={[
+                styles.searchBar,
+                searchPressed && styles.searchBarHover,
+                dangTim && styles.searchBarActive,
+              ]}>
+              <Text style={styles.searchIcon}>⌕</Text>
+              <TextInput
+                value={tuKhoa}
+                onChangeText={text => {
+                  setTuKhoa(text);
+                  if (!dangTim) {
+                    setDangTim(true);
+                  }
+                }}
+                onFocus={moTimKiem}
+                placeholder={isEnglish ? 'Search movies...' : 'Tìm tên phim...'}
+                placeholderTextColor="#9aa3ad"
+                style={styles.input}
+                returnKeyType="search"
+              />
+              {dangTim && (
+                <Pressable
+                  hitSlop={8}
+                  onPress={dongTimKiem}
+                  style={({pressed}) => [
+                    styles.clearButton,
+                    pressed && styles.clearButtonPressed,
+                  ]}>
+                  <Text style={styles.clearIcon}>✕</Text>
+                </Pressable>
+              )}
+            </Pressable>
           </View>
-      </View>
+        </View>
+      )}
 
-      <View style={[styles.searchSection, anThanhTim && styles.hiddenSection]}>
-          <Pressable
-            onPressIn={() => setSearchPressed(true)}
-            onPressOut={() => setSearchPressed(false)}
-            onPress={moTimKiem}
-            style={[
-              styles.searchBar,
-              searchPressed && styles.searchBarHover,
-              dangTim && styles.searchBarActive,
-            ]}>
-            <Text style={styles.searchIcon}>⌕</Text>
-            <TextInput
-              value={tuKhoa}
-              onChangeText={text => {
-                setTuKhoa(text);
-                if (!dangTim) {
-                  setDangTim(true);
-                }
-              }}
-              onFocus={moTimKiem}
-              placeholder={isEnglish ? 'Search movies...' : 'Tìm tên phim...'}
-              placeholderTextColor="#9aa3ad"
-              style={styles.input}
-              returnKeyType="search"
-            />
-            {dangTim && (
-              <Pressable
-                hitSlop={8}
-                onPress={dongTimKiem}
-                style={({pressed}) => [
-                  styles.clearButton,
-                  pressed && styles.clearButtonPressed,
-                ]}>
-                <Text style={styles.clearIcon}>✕</Text>
-              </Pressable>
-            )}
-          </Pressable>
+      {/* ShowtimeNavigator luôn mount — không bao giờ bị unmount khi chuyển màn */}
+      <View style={styles.navigatorContainer}>
+        <ShowtimeNavigator
+          dangTim={dangTim && !anThanhTim}
+          tuKhoaDebounced={tuKhoaDebounced}
+          onMovieFlowChange={setAnThanhTim}
+          onGoToMyTickets={() => setXemVe(true)}
+          refreshing={refreshing}
+          onRefresh={lamMoiLichChieu}
+        />
       </View>
-
-      <ShowtimeNavigator
-        dangTim={dangTim && !anThanhTim}
-        tuKhoaDebounced={tuKhoaDebounced}
-        onMovieFlowChange={setAnThanhTim}
-        onGoToMyTickets={() => setXemVe(true)}
-      />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  rootContainer: {
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  detailContainer: {
-    backgroundColor: '#111122',
+  topSection: {
+    backgroundColor: '#ffffff',
   },
-  detailScrollContent: {
-    flexGrow: 1,
-    backgroundColor: '#111122',
-  },
-  hiddenSection: {
-    height: 0,
-    minHeight: 0,
-    overflow: 'hidden',
-    opacity: 0,
-    paddingVertical: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-    borderBottomWidth: 0,
+  navigatorContainer: {
+    flex: 1,
   },
   profileHeader: {
     minHeight: 72,

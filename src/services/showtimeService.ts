@@ -21,6 +21,9 @@ export type SuatChieuApi = {
     genre?: string | string[];
     ageRating?: string;
     status?: string;
+    expectedReleaseDate?: string;
+    publishedAt?: string;
+    ticketSaleStartAt?: string;
   };
   room?: {
     _id?: string;

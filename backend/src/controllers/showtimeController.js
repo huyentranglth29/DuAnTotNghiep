@@ -98,6 +98,10 @@ const getShowtimes = async (req, res, next) => {
     if (bookable === "1" || bookable === "true") {
       const now = new Date();
       showtimes = showtimes.filter((item) => {
+        // Suất chiếu sớm vẫn hiển thị trên App (để khán giả thấy lịch chiếu sớm và thời điểm mở bán)
+        if (item.screeningType === "early") {
+          return true;
+        }
         const opensAt = item.movie?.ticketSaleStartAt;
         return !opensAt || new Date(opensAt) <= now;
       });

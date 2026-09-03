@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import DangChieu from '../features/Showtime/components/DangChieu';
 import DatVe from '../features/Showtime/components/DatVe';
 import KetQuaTimKiem from '../features/Showtime/components/KetQuaTimKiem';
@@ -25,6 +32,8 @@ type ShowtimeNavigatorProps = {
   tuKhoaDebounced: string;
   onMovieFlowChange?: (inFlow: boolean) => void;
   onGoToMyTickets?: () => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 function ShowtimeNavigator({
@@ -32,6 +41,8 @@ function ShowtimeNavigator({
   tuKhoaDebounced,
   onMovieFlowChange,
   onGoToMyTickets,
+  refreshing,
+  onRefresh,
 }: ShowtimeNavigatorProps) {
   const {requestAuth} = useAuth();
   const {language} = useLanguage();
@@ -180,7 +191,7 @@ function ShowtimeNavigator({
   }
 
   return (
-    <View>
+    <View style={styles.navigatorRoot}>
       <View style={styles.scheduleTabBar}>
         {scheduleTabs.map(item => {
           const isActive = activeScheduleTab === item.key;
@@ -203,66 +214,88 @@ function ShowtimeNavigator({
         })}
       </View>
 
-      {dangTim ? (
-        <KetQuaTimKiem
-          tuKhoa={tuKhoaDebounced}
-          trangThai={layTrangThaiTuTab(
-            activeScheduleTab === 'upcoming'
-              ? 'SẮP CHIẾU'
-              : activeScheduleTab === 'early'
-                ? 'SUẤT CHIẾU SỚM'
-                : 'ĐANG CHIẾU',
-          )}
-          onMoviePress={chonPhim}
-        />
-      ) : activeScheduleTab === 'upcoming' ? (
-        <SapChieu onMoviePress={chonPhim} />
-      ) : activeScheduleTab === 'nowShowing' ? (
-        <DangChieu
-          onMoviePress={chonPhim}
-          onShowtimePress={(movie, showtime) => {
-            const startBooking = () => {
-              chonPhim(movie);
-              setSelectedShowtime(showtime);
-              setShowBooking(true);
-            };
-            if (!requestAuth(
-              {
-                title: 'Đăng nhập để tiếp tục',
-                message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
-              },
-              startBooking,
-            )) {
-              return;
-            }
-          }}
-        />
-      ) : (
-        <SuatChieuSom
-          onMoviePress={chonPhim}
-          onShowtimePress={(movie, showtime) => {
-            const startBooking = () => {
-              chonPhim(movie);
-              setSelectedShowtime(showtime);
-              setShowBooking(true);
-            };
-            if (!requestAuth(
-              {
-                title: 'Đăng nhập để tiếp tục',
-                message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
-              },
-              startBooking,
-            )) {
-              return;
-            }
-          }}
-        />
-      )}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing ?? false}
+              onRefresh={onRefresh}
+              colors={['#005f98']}
+              tintColor="#005f98"
+            />
+          ) : undefined
+        }>
+        {dangTim ? (
+          <KetQuaTimKiem
+            tuKhoa={tuKhoaDebounced}
+            trangThai={layTrangThaiTuTab(
+              activeScheduleTab === 'upcoming'
+                ? 'SẮP CHIẾU'
+                : activeScheduleTab === 'early'
+                  ? 'SUẤT CHIẾU SỚM'
+                  : 'ĐANG CHIẾU',
+            )}
+            onMoviePress={chonPhim}
+          />
+        ) : activeScheduleTab === 'upcoming' ? (
+          <SapChieu onMoviePress={chonPhim} />
+        ) : activeScheduleTab === 'nowShowing' ? (
+          <DangChieu
+            onMoviePress={chonPhim}
+            onShowtimePress={(movie, showtime) => {
+              const startBooking = () => {
+                chonPhim(movie);
+                setSelectedShowtime(showtime);
+                setShowBooking(true);
+              };
+              if (!requestAuth(
+                {
+                  title: 'Đăng nhập để tiếp tục',
+                  message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+                },
+                startBooking,
+              )) {
+                return;
+              }
+            }}
+          />
+        ) : (
+          <SuatChieuSom
+            onMoviePress={chonPhim}
+            onShowtimePress={(movie, showtime) => {
+              const startBooking = () => {
+                chonPhim(movie);
+                setSelectedShowtime(showtime);
+                setShowBooking(true);
+              };
+              if (!requestAuth(
+                {
+                  title: 'Đăng nhập để tiếp tục',
+                  message: 'Đăng nhập để đăng ký và quản lý vé xem phim.',
+                },
+                startBooking,
+              )) {
+                return;
+              }
+            }}
+          />
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  navigatorRoot: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
   scheduleTabBar: {
     height: 48,
     flexDirection: 'row',
