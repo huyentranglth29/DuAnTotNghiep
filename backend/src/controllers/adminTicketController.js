@@ -292,12 +292,26 @@ const update = async (req, res) => {
         );
         booking.printedAt = now;
         booking.printedCount = (booking.printedCount || 0) + 1;
+
+        // In vé đồng nghĩa khách đến rạp lấy vé -> Tự động check-in ghế này
+        const checkedSeats = new Set(booking.checkedInSeats || []);
+        checkedSeats.add(seatLabel);
+        booking.checkedInSeats = [...checkedSeats];
+        booking.checkedIn = booking.seats.every((seat) => checkedSeats.has(seat));
+        booking.checkedInAt = booking.checkedInAt || now;
+
         await booking.save();
         const printState = rows.find((item) => String(item.seatLabel) === String(seatLabel));
         return res.json({
           success: true,
-          message: "Đã in vé thành công",
-          data: { isPrinted: true, printedAt: now, printedCount: printState.printedCount },
+          message: "Đã in vé và check-in thành công",
+          data: {
+            isPrinted: true,
+            printedAt: now,
+            printedCount: printState.printedCount,
+            status: "used",
+            checkedIn: booking.checkedIn,
+          },
         });
       }
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -308,11 +322,17 @@ const update = async (req, res) => {
       ticket.isPrinted = true;
       ticket.printedAt = new Date();
       ticket.printedCount = (ticket.printedCount || 0) + 1;
+      ticket.status = "used"; // Tự động check-in khi in vé
       await ticket.save();
       return res.json({
         success: true,
-        message: "Đã in vé thành công",
-        data: { isPrinted: true, printedAt: ticket.printedAt, printedCount: ticket.printedCount },
+        message: "Đã in vé và check-in thành công",
+        data: {
+          isPrinted: true,
+          printedAt: ticket.printedAt,
+          printedCount: ticket.printedCount,
+          status: "used",
+        },
       });
     }
 

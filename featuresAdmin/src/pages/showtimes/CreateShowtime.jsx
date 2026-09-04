@@ -16,6 +16,7 @@ import {
   formatVnd,
   toDateInputValue,
   toTimeInputValue,
+  toDateTimeInput,
 } from '../../utils/showtimeHelpers';
 
 const EMPTY_FORM = {
@@ -26,6 +27,8 @@ const EMPTY_FORM = {
   price: '120000',
   status: 'scheduled',
   screeningType: 'regular',
+  enableAdvanceBooking: false,
+  ticketSaleStartAt: '',
   note: '',
 };
 
@@ -76,6 +79,8 @@ function CreateShowtime() {
             price: String(showtime.price ?? ''),
             status: showtime.status || 'scheduled',
             screeningType: showtime.screeningType || 'regular',
+            enableAdvanceBooking: Boolean(showtime.ticketSaleStartAt),
+            ticketSaleStartAt: showtime.ticketSaleStartAt ? toDateTimeInput(showtime.ticketSaleStartAt) : '',
             note: '',
           });
         } else {
@@ -201,24 +206,15 @@ function CreateShowtime() {
 
   const earlyScreeningError = useMemo(() => {
     if (form.screeningType !== 'early') return '';
-    const releaseValue = selectedMovie?.expectedReleaseDate;
-    if (!releaseValue) {
-      return 'Phim phải có ngày dự kiến khởi chiếu trước khi tạo suất chiếu sớm.';
-    }
-    if (!form.date) return '';
-    const releaseDate = toDateInputValue(releaseValue);
-    if (form.date >= releaseDate) {
-      return `Suất chiếu sớm phải nằm trước ngày khởi chiếu ${formatDate(releaseValue)}. Hiện tại bạn đang chọn ngày ${formatDate(`${form.date}T00:00:00`)}.`;
-    }
-    if (selectedMovie?.ticketSaleStartAt && form.time) {
-      const showtimeStart = new Date(buildStartTimeIso(form.date, form.time));
-      const ticketSaleStart = new Date(selectedMovie.ticketSaleStartAt);
-      if (ticketSaleStart > showtimeStart) {
-        return `Phim mở bán vé từ ${ticketSaleStart.toLocaleString('vi-VN')}, muộn hơn thời gian bắt đầu suất chiếu sớm. Hãy sửa thời điểm mở bán trong Quản lý phim.`;
+    const releaseValue = selectedMovie?.expectedReleaseDate || selectedMovie?.releaseDate;
+    if (releaseValue && form.date) {
+      const releaseDate = toDateInputValue(releaseValue);
+      if (form.date >= releaseDate) {
+        return `Suất chiếu sớm phải nằm trước ngày khởi chiếu chính thức ${formatDate(releaseValue)}. Hiện tại bạn đang chọn ngày ${formatDate(`${form.date}T00:00:00`)}.`;
       }
     }
     return '';
-  }, [form.date, form.screeningType, form.time, selectedMovie]);
+  }, [form.date, form.screeningType, selectedMovie]);
 
   const regularScreeningNotice = useMemo(() => {
     if (form.screeningType !== 'regular') return '';
@@ -359,9 +355,17 @@ function CreateShowtime() {
       return;
     }
 
+    const startTime = buildStartTimeIso(form.date, form.time);
+
+    if (form.enableAdvanceBooking && form.ticketSaleStartAt) {
+      if (new Date(form.ticketSaleStartAt).getTime() >= new Date(startTime).getTime()) {
+        setError('Thời điểm mở bán vé trước phải diễn ra trước giờ bắt đầu suất chiếu');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
-      const startTime = buildStartTimeIso(form.date, form.time);
       const payload = {
         movie: form.movie,
         room: form.room,
@@ -369,6 +373,9 @@ function CreateShowtime() {
         price: Number(form.price),
         status: form.status,
         screeningType: form.screeningType,
+        ticketSaleStartAt: form.enableAdvanceBooking && form.ticketSaleStartAt
+          ? new Date(form.ticketSaleStartAt).toISOString()
+          : null,
       };
 
       if (isEdit) {
@@ -576,6 +583,91 @@ function CreateShowtime() {
               </div>
             )}
 
+            {/* KHUNG KẾ HOẠCH PHÁT HÀNH & THỜI GIAN MỞ BÁN VÉ RIÊNG CHO SUẤT NÀY */}
+            {selectedMovie && (
+              <div className="showtimePublishCard fullField">
+                <div className="showtimePublishHeader">
+                  <Calendar size={18} className="showtimePublishIcon" />
+                  <div>
+                    <strong>Kế hoạch phát hành & Thời gian mở bán vé</strong>
+                    <p>
+                      Phim <strong>{selectedMovie.title}</strong>{' '}
+                      {selectedMovie.expectedReleaseDate ? (
+                        <>• Khởi chiếu chính thức: <strong>{formatDate(selectedMovie.expectedReleaseDate)}</strong></>
+                      ) : (
+                        '• Chưa có ngày khởi chiếu'
+                      )}
+                      {['coming-soon', 'coming_soon'].includes(selectedMovie.status) && (
+                        <span style={{marginLeft: 8, padding: '2px 7px', borderRadius: 4, background: '#fef3c7', color: '#92400e', fontSize: 11, fontWeight: 700}}>Sắp chiếu</span>
+                      )}
+                      {['now-showing', 'now_showing'].includes(selectedMovie.status) && (
+                        <span style={{marginLeft: 8, padding: '2px 7px', borderRadius: 4, background: '#dcfce7', color: '#166534', fontSize: 11, fontWeight: 700}}>Đang chiếu</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="showtimeTicketSaleOptions">
+                  <label className="showtimeRadioOption">
+                    <input
+                      type="radio"
+                      name="advanceBookingMode"
+                      checked={!form.enableAdvanceBooking}
+                      onChange={() => {
+                        updateField('enableAdvanceBooking', false);
+                        updateField('ticketSaleStartAt', '');
+                      }}
+                    />
+                    <div>
+                      <strong>Mở bán vé ngay lập tức (Mặc định)</strong>
+                      <span>
+                        Khán giả có thể vào App chọn ghế và thanh toán vé ngay sau khi tạo suất chiếu.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="showtimeRadioOption">
+                    <input
+                      type="radio"
+                      name="advanceBookingMode"
+                      checked={form.enableAdvanceBooking}
+                      onChange={() => {
+                        updateField('enableAdvanceBooking', true);
+                        if (!form.ticketSaleStartAt) {
+                          const defaultSaleDate = new Date();
+                          defaultSaleDate.setHours(9, 0, 0, 0);
+                          updateField('ticketSaleStartAt', toDateTimeInput(defaultSaleDate));
+                        }
+                      }}
+                    />
+                    <div>
+                      <strong>Hẹn giờ mở bán vé trước (Pre-order / Bán vé sớm)</strong>
+                      <span>
+                        Khán giả vẫn thấy lịch chiếu trên App để theo dõi, nhưng nút đặt vé sẽ hiển thị "Mở bán từ [giờ]" cho tới mốc này.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
+                {form.enableAdvanceBooking && (
+                  <div className="showtimeAdvanceDateInput">
+                    <label>
+                      Thời điểm bắt đầu mở bán vé
+                      <input
+                        type="datetime-local"
+                        required
+                        value={form.ticketSaleStartAt}
+                        onChange={e => updateField('ticketSaleStartAt', e.target.value)}
+                      />
+                    </label>
+                    <small className="showtimeHelpText">
+                      Từ thời điểm này trở đi, khán giả mới có thể bấm nút chọn ghế và thanh toán vé trên App.
+                    </small>
+                  </div>
+                )}
+              </div>
+            )}
+
             {form.room && form.date ? (
               <div className="showtimeRoomSchedule fullField">
                 <h4>
@@ -727,6 +819,14 @@ function CreateShowtime() {
                 {form.screeningType === 'early'
                   ? 'Suất chiếu sớm'
                   : 'Suất thông thường'}
+              </strong>
+            </p>
+            <p>
+              <span>Mở bán vé</span>
+              <strong style={{color: form.enableAdvanceBooking && form.ticketSaleStartAt ? '#d97706' : '#16a34a'}}>
+                {form.enableAdvanceBooking && form.ticketSaleStartAt
+                  ? `Từ ${new Date(form.ticketSaleStartAt).toLocaleDateString('vi-VN')} ${formatTime(form.ticketSaleStartAt)}`
+                  : 'Mở bán ngay'}
               </strong>
             </p>
           </div>

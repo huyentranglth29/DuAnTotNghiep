@@ -30,18 +30,15 @@ const sendConflict = (res, conflictError) =>
   });
 
 const validateEarlyScreening = ({ movie, startTime }) => {
-  if (!movie.expectedReleaseDate) {
-    return "Phim phải có ngày dự kiến khởi chiếu trước khi tạo suất chiếu sớm";
+  const referenceRelease = movie.expectedReleaseDate || movie.releaseDate;
+  if (referenceRelease) {
+    const screeningDay = startOfVietnamDay(startTime);
+    const releaseDay = startOfVietnamDay(referenceRelease);
+    if (screeningDay && releaseDay && screeningDay >= releaseDay) {
+      return `Suất chiếu sớm phải diễn ra trước ngày khởi chiếu chính thức (${releaseDay.toLocaleDateString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"})})`;
+    }
   }
 
-  const screeningDay = startOfVietnamDay(startTime);
-  const releaseDay = startOfVietnamDay(movie.expectedReleaseDate);
-  if (!screeningDay || !releaseDay) {
-    return "Ngày chiếu hoặc ngày dự kiến khởi chiếu không hợp lệ";
-  }
-  if (screeningDay >= releaseDay) {
-    return `Suất chiếu sớm phải diễn ra trước ngày khởi chiếu ${releaseDay.toLocaleDateString("vi-VN", {timeZone: "Asia/Ho_Chi_Minh"})}`;
-  }
   if (
     movie.ticketSaleStartAt &&
     new Date(movie.ticketSaleStartAt) > new Date(startTime)
@@ -96,15 +93,8 @@ const getShowtimes = async (req, res, next) => {
       .sort({ startTime: 1 });
 
     if (bookable === "1" || bookable === "true") {
-      const now = new Date();
-      showtimes = showtimes.filter((item) => {
-        // Suất chiếu sớm vẫn hiển thị trên App (để khán giả thấy lịch chiếu sớm và thời điểm mở bán)
-        if (item.screeningType === "early") {
-          return true;
-        }
-        const opensAt = item.movie?.ticketSaleStartAt;
-        return !opensAt || new Date(opensAt) <= now;
-      });
+      // Giữ lại tất cả các suất scheduled có startTime > now để App hiển thị lịch chiếu sớm và lịch mở bán trước (Pre-order)
+      showtimes = showtimes.filter((item) => item.status === "scheduled");
     }
 
     res.status(200).json({
@@ -322,7 +312,15 @@ const checkShowtimeConflicts = async (req, res, next) => {
 
 const createShowtime = async (req, res, next) => {
   try {
-    const { movie, room, startTime, price, status, screeningType } = req.body;
+    const {
+      movie,
+      room,
+      startTime,
+      price,
+      status,
+      screeningType,
+      ticketSaleStartAt,
+    } = req.body;
 
     if (!movie || !room || !startTime || price === undefined) {
       return res.status(400).json({
@@ -346,6 +344,18 @@ const createShowtime = async (req, res, next) => {
         return res.status(400).json({success: false, message: earlyError});
       }
     }
+
+    let saleStart = null;
+    if (ticketSaleStartAt) {
+      saleStart = new Date(ticketSaleStartAt);
+      if (isNaN(saleStart.getTime())) {
+        return res.status(400).json({ success: false, message: "Thời gian mở bán vé không hợp lệ" });
+      }
+      if (saleStart >= start) {
+        return res.status(400).json({ success: false, message: "Thời gian mở bán vé phải diễn ra trước giờ bắt đầu suất chiếu" });
+      }
+    }
+
     // Luôn tự tính endTime từ thời lượng phim — không nhận endTime thủ công
     const end = buildEndTime(start, movieDoc.duration);
 
@@ -372,6 +382,7 @@ const createShowtime = async (req, res, next) => {
       price: Number(price),
       status: status || "scheduled",
       screeningType: screeningType === "early" ? "early" : "regular",
+      ticketSaleStartAt: saleStart,
     });
 
     await syncMovieScheduleState(movie);
@@ -425,6 +436,21 @@ const updateShowtime = async (req, res, next) => {
       const earlyError = validateEarlyScreening({movie: movieDoc, startTime: start});
       if (earlyError) {
         return res.status(400).json({success: false, message: earlyError});
+      }
+    }
+
+    if (req.body.ticketSaleStartAt !== undefined) {
+      if (req.body.ticketSaleStartAt) {
+        const saleStart = new Date(req.body.ticketSaleStartAt);
+        if (isNaN(saleStart.getTime())) {
+          return res.status(400).json({ success: false, message: "Thời gian mở bán vé không hợp lệ" });
+        }
+        if (saleStart >= start) {
+          return res.status(400).json({ success: false, message: "Thời gian mở bán vé phải diễn ra trước giờ bắt đầu suất chiếu" });
+        }
+        existing.ticketSaleStartAt = saleStart;
+      } else {
+        existing.ticketSaleStartAt = null;
       }
     }
 

@@ -1,6 +1,5 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Calendar, Info, AlertTriangle, Clock, ShoppingCart, Sparkles} from 'lucide-react';
 import movieApi from '../../api/movieApi';
 import genreApi from '../../api/genreApi';
 import {PageTitle} from '../../components/AdminUi';
@@ -10,27 +9,15 @@ const initialForm = {
   genre: [],
   duration: '',
   expectedReleaseDate: '',
-  publishedAt: '',
-  ticketSaleStartAt: '',
-  announceUpcoming: true,
-  enableAdvanceBooking: false,
   director: '',
   cast: '',
   synopsis: '',
   posterUrl: '',
   backdropUrl: '',
   price: '',
-  status: 'coming-soon',
+  status: 'draft',
   ageRating: '',
 };
-
-function toDateTimeInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
 
 function toDateInput(value) {
   if (!value) return '';
@@ -38,30 +25,6 @@ function toDateInput(value) {
   if (Number.isNaN(date.getTime())) return '';
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
-}
-
-function formatDateDisplay(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
-function formatDateTimeDisplay(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
 }
 
 function MovieAdd() {
@@ -130,9 +93,6 @@ function MovieAdd() {
         const movie = response?.data || response;
         if (cancelled || !movie) return;
 
-        const isComingSoon = ['coming-soon', 'coming_soon'].includes(movie.status);
-        const hasTicketSale = Boolean(movie.ticketSaleStartAt);
-
         setForm({
           title: movie.title || '',
           genre: Array.isArray(movie.genre)
@@ -142,11 +102,7 @@ function MovieAdd() {
             typeof movie.duration === 'number'
               ? String(movie.duration)
               : String(movie.duration || '').replace(/[^\d]/g, '') || '',
-          expectedReleaseDate: toDateInput(movie.expectedReleaseDate),
-          publishedAt: toDateTimeInput(movie.publishedAt),
-          ticketSaleStartAt: toDateTimeInput(movie.ticketSaleStartAt),
-          announceUpcoming: isComingSoon,
-          enableAdvanceBooking: hasTicketSale,
+          expectedReleaseDate: toDateInput(movie.expectedReleaseDate || movie.releaseDate),
           director: movie.director || '',
           cast: Array.isArray(movie.cast)
             ? movie.cast
@@ -175,21 +131,6 @@ function MovieAdd() {
 
   const updateForm = (name, value) => {
     setForm(current => ({...current, [name]: value}));
-  };
-
-  // Xử lý khi chọn ngày dự kiến khởi chiếu
-  const handleReleaseDateChange = newDate => {
-    setForm(current => {
-      const next = {...current, expectedReleaseDate: newDate};
-      // Nếu đang bật mở bán vé mà chưa đặt ngày bán vé, gợi ý trước 3 ngày
-      if (next.enableAdvanceBooking && newDate && !next.ticketSaleStartAt) {
-        const releaseD = new Date(newDate);
-        releaseD.setDate(releaseD.getDate() - 3);
-        releaseD.setHours(9, 0, 0, 0);
-        next.ticketSaleStartAt = toDateTimeInput(releaseD);
-      }
-      return next;
-    });
   };
 
   const toggleGenre = name => {
@@ -236,69 +177,39 @@ function MovieAdd() {
     }
   };
 
-  // Validation logic
-  const validationWarning = useMemo(() => {
-    if (!form.expectedReleaseDate) return '';
-    const releaseTime = new Date(`${form.expectedReleaseDate}T00:00:00`).getTime();
-
-    if (form.enableAdvanceBooking && form.ticketSaleStartAt) {
-      const saleTime = new Date(form.ticketSaleStartAt).getTime();
-      if (saleTime > releaseTime + 86400000) {
-        return 'Thời điểm mở bán vé không nên muộn hơn ngày khởi chiếu.';
-      }
-    }
-
-    if (form.publishedAt && form.enableAdvanceBooking && form.ticketSaleStartAt) {
-      const pubTime = new Date(form.publishedAt).getTime();
-      const saleTime = new Date(form.ticketSaleStartAt).getTime();
-      if (pubTime > saleTime) {
-        return 'Thời điểm công bố nên trước hoặc cùng lúc với thời điểm mở bán vé.';
-      }
-    }
-
-    return '';
-  }, [form.expectedReleaseDate, form.enableAdvanceBooking, form.ticketSaleStartAt, form.publishedAt]);
-
   const handleSubmit = async event => {
     event.preventDefault();
     setSaving(true);
     setError('');
 
     try {
-      if (form.announceUpcoming) {
-        if (!form.expectedReleaseDate) {
-          throw new Error('Vui lòng chọn ngày dự kiến khởi chiếu.');
-        }
-        if (form.enableAdvanceBooking && !form.ticketSaleStartAt) {
-          throw new Error('Vui lòng chọn thời điểm bắt đầu mở bán vé.');
-        }
+      if (!form.title.trim()) {
+        throw new Error('Vui lòng nhập tên phim.');
       }
 
-      const {announceUpcoming, enableAdvanceBooking, ...formData} = form;
-
-      // Tính toán publishedAt và ticketSaleStartAt chuẩn
-      let effectivePublishedAt = form.publishedAt;
-      if (announceUpcoming && !effectivePublishedAt) {
-        // Tự động công bố ngay bây giờ
-        effectivePublishedAt = toDateTimeInput(new Date());
+      const today = new Date().toISOString().slice(0, 10);
+      let calculatedStatus = form.status || 'draft';
+      if (form.expectedReleaseDate && form.expectedReleaseDate > today) {
+        calculatedStatus = 'coming-soon';
       }
-
-      let effectiveTicketSaleStartAt = enableAdvanceBooking ? form.ticketSaleStartAt : null;
 
       const payload = {
-        ...formData,
+        title: form.title.trim(),
+        director: form.director,
+        country: form.country,
+        language: form.language,
+        ageRating: form.ageRating,
+        synopsis: form.synopsis,
+        trailerUrl: form.trailerUrl,
+        posterUrl: form.posterUrl,
         genre: form.genre,
         cast: form.cast.split(',').map(item => item.trim()).filter(Boolean),
         duration: Number(form.duration),
         price: Number(form.price || 0),
         expectedReleaseDate: form.expectedReleaseDate
-          ? new Date(`${form.expectedReleaseDate}T00:00:00`)
+          ? new Date(`${form.expectedReleaseDate}T00:00:00+07:00`)
           : null,
-        publishedAt: effectivePublishedAt ? new Date(effectivePublishedAt) : undefined,
-        ticketSaleStartAt: effectiveTicketSaleStartAt
-          ? new Date(effectiveTicketSaleStartAt)
-          : null,
-        status: announceUpcoming ? 'coming-soon' : form.status,
+        status: calculatedStatus,
       };
 
       if (isEdit) {
@@ -414,153 +325,14 @@ function MovieAdd() {
               />
             </label>
 
-            {/* CẤU HÌNH NGÀY KHỞI CHIẾU & LỊCH CÔNG BỐ TRÊN APP */}
-            <div className="moviePublishCard">
-              <div className="moviePublishCardHeader">
-                <Calendar size={18} className="moviePublishCardIcon" />
-                <div>
-                  <strong>Kế hoạch khởi chiếu & Hiển thị trên App</strong>
-                  <p>Thiết lập thời gian ra mắt phim và điều kiện mở bán vé cho khán giả.</p>
-                </div>
-              </div>
-
-              {/* 1. Ngày khởi chiếu chính thức */}
-              <div className="moviePublishField">
-                <label className="movieFieldLabelRequired">
-                  Ngày dự kiến khởi chiếu chính thức
-                  <input
-                    required
-                    type="date"
-                    value={form.expectedReleaseDate}
-                    onChange={event => handleReleaseDateChange(event.target.value)}
-                  />
-                </label>
-                <span className="movieFieldHelp">
-                  Ngày phim ra rạp chính thức. Suất chiếu sớm (nếu có) phải diễn ra trước ngày này.
-                </span>
-              </div>
-
-              {/* 2. Hiển thị mục Sắp chiếu */}
-              {['draft', 'coming-soon', 'coming_soon'].includes(form.status) ? (
-                <div className="moviePublishOptions">
-                  <label className="movieCheckRow">
-                    <input
-                      type="checkbox"
-                      checked={form.announceUpcoming}
-                      onChange={event => {
-                        const checked = event.target.checked;
-                        updateForm('announceUpcoming', checked);
-                        updateForm('status', checked ? 'coming-soon' : 'draft');
-                        if (checked && !form.publishedAt) {
-                          updateForm('publishedAt', toDateTimeInput(new Date()));
-                        }
-                      }}
-                    />
-                    <div>
-                      <strong>Công bố trong mục "Sắp chiếu" trên App</strong>
-                      <span>Khán giả có thể tìm thấy phim, xem poster, trailer và nội dung giới thiệu.</span>
-                    </div>
-                  </label>
-
-                  {/* 3. Tùy chọn mở bán vé sớm */}
-                  {form.announceUpcoming && (
-                    <div className="movieAdvanceBookingBox">
-                      <label className="movieCheckRow">
-                        <input
-                          type="checkbox"
-                          checked={form.enableAdvanceBooking}
-                          onChange={event => {
-                            const checked = event.target.checked;
-                            updateForm('enableAdvanceBooking', checked);
-                            if (checked && !form.ticketSaleStartAt) {
-                              if (form.expectedReleaseDate) {
-                                const d = new Date(form.expectedReleaseDate);
-                                d.setDate(d.getDate() - 3);
-                                d.setHours(9, 0, 0, 0);
-                                updateForm('ticketSaleStartAt', toDateTimeInput(d));
-                              } else {
-                                updateForm('ticketSaleStartAt', toDateTimeInput(new Date()));
-                              }
-                            }
-                          }}
-                        />
-                        <div>
-                          <strong>Mở bán vé trước ngày khởi chiếu (Pre-order / Suất chiếu sớm)</strong>
-                          <span>Cho phép khách hàng đặt vé trước khi phim chính thức ra rạp.</span>
-                        </div>
-                      </label>
-
-                      {form.enableAdvanceBooking && (
-                        <div className="movieAdvanceDates">
-                          <label>
-                            Mở bán vé từ thời điểm
-                            <input
-                              required
-                              type="datetime-local"
-                              value={form.ticketSaleStartAt}
-                              onChange={event => updateForm('ticketSaleStartAt', event.target.value)}
-                            />
-                          </label>
-                          <small className="movieFieldHelp">
-                            Từ giờ này trở đi, khán giả có thể bấm mua vé các suất chiếu sớm trên App.
-                          </small>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Cảnh báo logic thời gian nếu có */}
-                  {validationWarning && (
-                    <div className="movieTimelineWarning">
-                      <AlertTriangle size={16} />
-                      <span>{validationWarning}</span>
-                    </div>
-                  )}
-
-                  {/* Dòng tóm tắt trực quan Timeline */}
-                  {form.announceUpcoming && form.expectedReleaseDate && (
-                    <div className="movieTimelineSummary">
-                      <div className="timelineItem">
-                        <span className="timelineDot active" />
-                        <div>
-                          <strong>Công bố trên App</strong>
-                          <small>Ngay bây giờ</small>
-                        </div>
-                      </div>
-
-                      <div className="timelineLine" />
-
-                      <div className="timelineItem">
-                        <span className={`timelineDot ${form.enableAdvanceBooking ? 'active' : ''}`} />
-                        <div>
-                          <strong>Mở bán vé sớm</strong>
-                          <small>
-                            {form.enableAdvanceBooking && form.ticketSaleStartAt
-                              ? formatDateTimeDisplay(form.ticketSaleStartAt)
-                              : 'Khi có suất chiếu'}
-                          </small>
-                        </div>
-                      </div>
-
-                      <div className="timelineLine" />
-
-                      <div className="timelineItem">
-                        <span className="timelineDot" />
-                        <div>
-                          <strong>Khởi chiếu toàn quốc</strong>
-                          <small>{formatDateDisplay(form.expectedReleaseDate)}</small>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="movieScheduleManagedNotice">
-                  <Info size={16} />
-                  <span>Trạng thái và ngày khởi chiếu đang được hệ thống quản lý tự động theo lịch suất chiếu.</span>
-                </div>
-              )}
-            </div>
+            <label>
+              Ngày dự kiến khởi chiếu
+              <input
+                type="date"
+                value={form.expectedReleaseDate}
+                onChange={event => updateForm('expectedReleaseDate', event.target.value)}
+              />
+            </label>
 
             <label>
               Đạo diễn

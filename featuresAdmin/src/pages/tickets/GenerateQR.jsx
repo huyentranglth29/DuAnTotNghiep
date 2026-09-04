@@ -5,7 +5,7 @@ import {PageTitle, QRBlock} from '../../components/AdminUi';
 import {formatDateTime, formatVnd, getSeatLabel, getUserName} from '../../utils/adminFormatters';
 import {ticketQrPayload} from '../../utils/ticketVerification';
 
-const STATUS_LABEL = {valid: 'Hợp lệ', used: 'Đã sử dụng', cancelled: 'Đã hủy'};
+const STATUS_LABEL = {valid: 'Chưa check-in', used: 'Đã check-in', cancelled: 'Đã hủy'};
 const PAYMENT_LABEL = {paid: 'Đã thanh toán', unpaid: 'Chưa thanh toán', refunded: 'Đã hoàn tiền'};
 
 function GenerateQR() {

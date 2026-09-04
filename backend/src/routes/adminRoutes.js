@@ -408,20 +408,7 @@ const genreCrud = createAdminCrudController(Genre, {
 
 const prepareMovieBody = (body = {}) => {
   const next = {...body};
-  if (["coming-soon", "coming_soon"].includes(next.status)) {
-    const publishedAt = new Date(next.publishedAt);
-    const saleAt = new Date(next.ticketSaleStartAt);
-    if ([publishedAt, saleAt].some((date) => Number.isNaN(date.getTime()))) {
-      const error = new Error("Vui lòng nhập đủ thời điểm công bố và mở bán");
-      error.statusCode = 400;
-      throw error;
-    }
-    if (publishedAt > saleAt) {
-      const error = new Error("Thời gian phải theo thứ tự: Công bố ≤ Mở bán");
-      error.statusCode = 400;
-      throw error;
-    }
-  }
+  // ticketSaleStartAt giờ nằm ở Showtime, không validate tại Movie nữa
   return next;
 };
 

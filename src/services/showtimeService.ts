@@ -13,6 +13,7 @@ export type SuatChieuApi = {
   price: number;
   status: string;
   screeningType?: 'regular' | 'early';
+  ticketSaleStartAt?: string;
   movie?: {
     _id?: string;
     title?: string;

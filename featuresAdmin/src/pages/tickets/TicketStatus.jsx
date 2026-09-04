@@ -1,12 +1,13 @@
 import {useEffect, useMemo, useState} from 'react';
-import {CheckCircle2, RefreshCw, Search, Ticket, XCircle} from 'lucide-react';
+import {CheckCircle2, Eye, Printer, RefreshCw, Search, Ticket, XCircle} from 'lucide-react';
 import bookingApi from '../../api/bookingApi';
+import Modal from '../../components/Modal';
 import Table from '../../components/Table';
 import {formatDateTime, formatVnd} from '../../utils/adminFormatters';
 
 const STATUS_META = {
-  valid: {label: 'Hợp lệ', tone: 'success'},
-  used: {label: 'Đã dùng', tone: 'info'},
+  valid: {label: 'Chưa check-in', tone: 'warning'},
+  used: {label: 'Đã check-in', tone: 'success'},
   cancelled: {label: 'Đã hủy', tone: 'danger'},
 };
 
@@ -57,6 +58,7 @@ function TicketStatus() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState('');
   const [error, setError] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const loadTickets = async () => {
     setLoading(true);
@@ -126,30 +128,52 @@ function TicketStatus() {
     return initial;
   }, [orders]);
 
-  const updateStatus = async (order, nextStatus) => {
-    if (getTicketStatus(order) === nextStatus) return;
+  const handlePrintOrder = async order => {
+    if (!order || savingId) return;
     setSavingId(order._id);
     try {
-      if (nextStatus === 'used') {
-        await bookingApi.update(order._id, {action: 'checkin'});
-      }
-
-      if (nextStatus === 'cancelled') {
-        const reason = window.prompt('Nhập lý do hủy vé (tối thiểu 5 ký tự):');
-        if (!reason || reason.trim().length < 5) {
-          window.alert('Vui lòng nhập lý do hủy tối thiểu 5 ký tự.');
-          return;
-        }
-        await bookingApi.update(order._id, {action: 'cancel', reason: reason.trim()});
-      }
-
-      if (nextStatus === 'print') {
-        await bookingApi.update(order._id, {action: 'print'});
-      }
-
+      await bookingApi.update(order._id, {action: 'print'});
       await loadTickets();
+      setSelectedOrder(current =>
+        current
+          ? {
+              ...current,
+              isPrinted: true,
+              printedCount: Number(current.printedCount || 0) + 1,
+              checkedIn: true,
+            }
+          : null,
+      );
+      window.print();
     } catch (err) {
-      window.alert(err.message || 'Cập nhật trạng thái vé thất bại.');
+      window.alert(err.message || 'In vé thất bại.');
+    } finally {
+      setSavingId('');
+    }
+  };
+
+  const handleCancelOrder = async order => {
+    if (!order || savingId) return;
+    const reason = window.prompt('Nhập lý do hủy vé (tối thiểu 5 ký tự):');
+    if (!reason || reason.trim().length < 5) {
+      if (reason !== null) window.alert('Vui lòng nhập lý do hủy tối thiểu 5 ký tự.');
+      return;
+    }
+    setSavingId(order._id);
+    try {
+      await bookingApi.update(order._id, {action: 'cancel', reason: reason.trim()});
+      await loadTickets();
+      setSelectedOrder(current =>
+        current
+          ? {
+              ...current,
+              paymentStatus: 'da_huy',
+              status: 'cancelled',
+            }
+          : null,
+      );
+    } catch (err) {
+      window.alert(err.message || 'Hủy vé thất bại.');
     } finally {
       setSavingId('');
     }
@@ -187,39 +211,24 @@ function TicketStatus() {
     {key: 'createdAt', title: 'Ngày đặt', render: item => formatDateTime(item.createdAt)},
     {
       key: 'actions',
-      title: 'Cập nhật',
+      title: 'Thao tác',
       render: item => (
-        <div className="actionGroup">
-          {!item.isPrinted && item.paymentStatus === 'da_thanh_toan' ? (
-            <button
-              type="button"
-              disabled={savingId === item._id}
-              onClick={() => updateStatus(item, 'print')}>
-              In vé
-            </button>
-          ) : null}
-          <button
-            type="button"
-            disabled={
-              savingId === item._id ||
-              getTicketStatus(item) === 'used' ||
-              getTicketStatus(item) === 'cancelled'
-            }
-            onClick={() => updateStatus(item, 'used')}>
-            Đã dùng
-          </button>
-          <button
-            type="button"
-            disabled={
-              savingId === item._id ||
-              getTicketStatus(item) === 'cancelled' ||
-              item.checkedIn ||
-              item.paymentStatus !== 'da_thanh_toan'
-            }
-            onClick={() => updateStatus(item, 'cancelled')}>
-            Hủy vé
-          </button>
-        </div>
+        <button
+          type="button"
+          className="ghost"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            fontSize: 13,
+            cursor: 'pointer',
+            borderRadius: 6,
+          }}
+          onClick={() => setSelectedOrder(item)}>
+          <Eye size={15} />
+          Chi tiết / In
+        </button>
       ),
     },
   ];
@@ -234,7 +243,7 @@ function TicketStatus() {
       <div className="statusHeader">
         <div>
           <h2>Theo dõi trạng thái vé</h2>
-          <p>Dữ liệu lấy trực tiếp từ đơn đặt vé thật của người dùng, gồm trạng thái thanh toán và check-in.</p>
+          <p>Dữ liệu lấy trực tiếp từ đơn đặt vé thật của người dùng, gồm trạng thái thanh toán, in vé và check-in.</p>
         </div>
         <button type="button" className="ghost" onClick={loadTickets}>
           <RefreshCw size={16} />
@@ -255,10 +264,15 @@ function TicketStatus() {
         </article>
         <article className="statusMetric warning">
           <Ticket size={18} />
-          <span>Chưa in</span>
-          <strong>{stats.unprinted}</strong>
+          <span>Chưa check-in</span>
+          <strong>{stats.valid}</strong>
         </article>
         <article className="statusMetric info">
+          <CheckCircle2 size={18} />
+          <span>Đã check-in</span>
+          <strong>{stats.used}</strong>
+        </article>
+        <article className="statusMetric success">
           <CheckCircle2 size={18} />
           <span>Đã in</span>
           <strong>{stats.printed}</strong>
@@ -291,9 +305,9 @@ function TicketStatus() {
           <option value="chua_in">Chưa in</option>
         </select>
         <select value={status} onChange={event => setStatus(event.target.value)}>
-          <option value="all">Trạng thái sử dụng</option>
-          <option value="valid">Hợp lệ</option>
-          <option value="used">Đã dùng</option>
+          <option value="all">Trạng thái check-in (Tất cả)</option>
+          <option value="valid">Chưa check-in</option>
+          <option value="used">Đã check-in</option>
           <option value="cancelled">Đã hủy</option>
         </select>
         <button type="submit">Lọc dữ liệu</button>
@@ -301,6 +315,121 @@ function TicketStatus() {
 
       {error ? <p className="loginError">{error}</p> : null}
       {loading ? <p>Đang tải dữ liệu vé...</p> : <Table columns={columns} data={orders} emptyText="Không có vé phù hợp" />}
+
+      <Modal
+        open={Boolean(selectedOrder)}
+        className="ticketDetailModal"
+        title={`Chi tiết đơn vé ${selectedOrder?.code || ''}`}
+        onClose={() => setSelectedOrder(null)}>
+        {selectedOrder ? (
+          <div className="ticketDetailContent">
+            <div className="ticketDetailHero">
+              <div className="ticketDetailIdentity">
+                <span className="ticketDetailEyebrow">VÉ ĐIỆN TỬ FILMGO</span>
+                <strong>{selectedOrder.code}</strong>
+                <small>Mã đơn đặt vé của khách hàng</small>
+              </div>
+              <div className="ticketDetailHeroStatus">
+                <span className="ticketDetailHeroStatusLabel">Trạng thái vé</span>
+                <StatusBadge status={getTicketStatus(selectedOrder)} />
+              </div>
+            </div>
+
+            <div className="ticketDetailSectionHeading">
+              <div>
+                <h3>Thông tin vé & Lịch chiếu</h3>
+                <p>Kiểm tra thông tin phim, suất chiếu, ghế ngồi và thanh toán.</p>
+              </div>
+            </div>
+
+            <div className="ticketDetailGrid">
+              <div className="ticketDetailItem ticketDetailItemWide">
+                <span>Phim</span>
+                <strong>{selectedOrder.movieTitle || 'Không tìm thấy phim'}</strong>
+              </div>
+              <div className="ticketDetailItem">
+                <span>Suất chiếu</span>
+                <strong>{selectedOrder.showtimeLabel || '—'}</strong>
+              </div>
+              <div className="ticketDetailItem">
+                <span>Phòng chiếu</span>
+                <strong>{selectedOrder.roomName || '—'}</strong>
+              </div>
+              <div className="ticketDetailItem">
+                <span>Ghế</span>
+                <strong style={{color: '#e11d48'}}>{(selectedOrder.seats || []).join(', ') || '—'}</strong>
+              </div>
+              <div className="ticketDetailItem">
+                <span>Tổng tiền</span>
+                <strong>{formatVnd(selectedOrder.totalPrice)}</strong>
+              </div>
+              <div className="ticketDetailItem ticketDetailItemWide">
+                <span>Khách hàng</span>
+                <strong>{selectedOrder.customerName}</strong>
+                <small>{selectedOrder.customerEmail || 'Chưa có email'}</small>
+                <small>{selectedOrder.customerPhone || 'Chưa có số điện thoại'}</small>
+              </div>
+              <div className="ticketDetailItem">
+                <span>Thanh toán</span>
+                <PaymentBadge status={selectedOrder.paymentStatus} />
+              </div>
+              <div className="ticketDetailItem">
+                <span>Trạng thái in</span>
+                <PrintBadge
+                  isPrinted={selectedOrder.isPrinted}
+                  cancelled={selectedOrder.paymentStatus === 'da_huy' || selectedOrder.paymentStatus === 'da_hoan_tien'}
+                />
+                {selectedOrder.printedAt ? <small>Lúc: {formatDateTime(selectedOrder.printedAt)}</small> : null}
+              </div>
+              <div className="ticketDetailItem">
+                <span>Trạng thái check-in</span>
+                <StatusBadge status={getTicketStatus(selectedOrder)} />
+              </div>
+              <div className="ticketDetailItem">
+                <span>Ngày đặt</span>
+                <strong>{formatDateTime(selectedOrder.createdAt)}</strong>
+              </div>
+              {selectedOrder.combos?.length ? (
+                <div className="ticketDetailItem ticketDetailItemWide">
+                  <span>Combo bắp nước</span>
+                  <strong>
+                    {selectedOrder.combos.map(item => `${item.name} × ${item.quantity}`).join(', ')}
+                  </strong>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="formActions" style={{marginTop: 24, justifyContent: 'flex-end', gap: 10}}>
+              {selectedOrder.paymentStatus === 'da_thanh_toan' && !selectedOrder.checkedIn && (
+                <button
+                  type="button"
+                  className="danger ghost"
+                  disabled={savingId === selectedOrder._id}
+                  onClick={() => handleCancelOrder(selectedOrder)}>
+                  Hủy vé
+                </button>
+              )}
+              {selectedOrder.paymentStatus === 'da_thanh_toan' && (
+                <button
+                  type="button"
+                  style={{display: 'inline-flex', alignItems: 'center', gap: 8}}
+                  disabled={savingId === selectedOrder._id}
+                  onClick={() => handlePrintOrder(selectedOrder)}>
+                  <Printer size={16} />
+                  {savingId === selectedOrder._id
+                    ? 'Đang xử lý...'
+                    : selectedOrder.isPrinted
+                    ? 'In lại vé'
+                    : 'In vé & Check-in'}
+                </button>
+              )}
+              <button type="button" className="ghost" onClick={() => setSelectedOrder(null)}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </section>
   );
 }

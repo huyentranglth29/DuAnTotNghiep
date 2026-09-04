@@ -13,6 +13,7 @@ import {useQuery} from '@tanstack/react-query';
 import {useMoviesDangChieu, useMoviesSapChieu} from '../../../hooks/useMovies';
 import {
   formatGio,
+  formatNgayNgan,
   layDanhSachSuatChieu,
   SuatChieuApi,
   toDateKey,
@@ -57,7 +58,7 @@ function movieFromShowtime(item?: SuatChieuApi): Phim | null {
     trangThai: 'sap-chieu',
     nhanTuoi: movie.ageRating || 'T13',
     laPhimHot: false,
-    moBanVeTu: movie.ticketSaleStartAt,
+    moBanVeTu: item.ticketSaleStartAt || movie.ticketSaleStartAt,
     ngayPhatHanh: movie.expectedReleaseDate,
   };
 }
@@ -95,17 +96,16 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
   const dates = useMemo(
     () =>
       Array.from(new Set(showtimes.map(item => toDateKey(item.startTime))))
-        .sort()
-        .slice(0, 7),
+        .sort(),
     [showtimes],
   );
-  const [chosenDate, setChosenDate] = useState('');
-  const selectedDate = chosenDate || dates[0] || '';
+  const [chosenDate, setChosenDate] = useState('ALL');
+  const selectedDate = chosenDate;
 
   const filteredShowtimes = useMemo(
     () =>
       showtimes.filter(
-        item => !selectedDate || toDateKey(item.startTime) === selectedDate,
+        item => selectedDate === 'ALL' || toDateKey(item.startTime) === selectedDate,
       ),
     [selectedDate, showtimes],
   );
@@ -159,6 +159,23 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
           style={styles.dateScroll}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.dateList}>
+          <TouchableOpacity
+            activeOpacity={0.78}
+            onPress={() => setChosenDate('ALL')}
+            style={[styles.dateCard, selectedDate === 'ALL' && styles.dateCardActive]}>
+            <Text style={[styles.weekday, selectedDate === 'ALL' && styles.activeText]}>
+              {isEnglish ? 'ALL' : 'TẤT CẢ'}
+            </Text>
+            <Text style={[styles.dateNumber, selectedDate === 'ALL' && styles.activeText]}>
+              {showtimes.length}
+            </Text>
+            <Text style={[styles.dateMonth, selectedDate === 'ALL' && styles.activeText]}>
+              {isEnglish ? 'Shows' : 'Suất'}
+            </Text>
+            <Text style={[styles.dateCount, selectedDate === 'ALL' && styles.dateCountActive]}>
+              {new Set(showtimes.map(s => String(s.movie?._id || '')).filter(Boolean)).size} {isEnglish ? 'movies' : 'phim'}
+            </Text>
+          </TouchableOpacity>
           {dates.map(key => {
             const date = new Date(`${key}T12:00:00`);
             const active = selectedDate === key;
@@ -256,54 +273,69 @@ function SuatChieuSom({onMoviePress, onShowtimePress}: SuatChieuSomProps) {
                 <View style={styles.divider} />
                 <Text style={styles.chooseLabel}>{t(language, 'CHỌN SUẤT CHIẾU', 'CHOOSE SHOWTIME')}</Text>
                 <View style={styles.timeGrid}>
-                  {items.map(item => (
-                    <TouchableOpacity
-                      key={item._id}
-                      activeOpacity={0.78}
-                      style={styles.timeButton}
-                      onPress={() => {
-                        const saleAt = phim.moBanVeTu ? new Date(phim.moBanVeTu) : null;
-                        const saleOpened = !saleAt || saleAt <= new Date();
-                        if (!saleOpened) {
-                          Alert.alert(
-                            t(language, 'Chưa mở bán vé', 'Ticket sale not opened'),
-                            t(
-                              language,
-                              `Vé cho suất chiếu sớm này sẽ mở bán từ ${saleAt!.toLocaleString('vi-VN', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}.`,
-                              `Tickets for this early screening will go on sale from ${saleAt!.toLocaleString('en-GB', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}.`,
-                            ),
-                          );
-                          return;
-                        }
-                        if (onShowtimePress) {
-                          onShowtimePress(movie, asSelected(item));
-                        } else {
-                          onMoviePress(movie);
-                        }
-                      }}>
-                      <View style={styles.timeTop}>
-                        <Text style={styles.timeValue}>
-                          {formatGio(item.startTime)}
+                  {items.map(item => {
+                    const saleAt = item.ticketSaleStartAt
+                      ? new Date(item.ticketSaleStartAt)
+                      : (phim.moBanVeTu ? new Date(phim.moBanVeTu) : null);
+                    const saleOpened = !saleAt || saleAt <= new Date();
+
+                    return (
+                      <TouchableOpacity
+                        key={item._id}
+                        activeOpacity={0.78}
+                        style={[styles.timeButton, !saleOpened && styles.timeButtonPresale]}
+                        onPress={() => {
+                          if (!saleOpened) {
+                            Alert.alert(
+                              t(language, 'Chưa mở bán vé', 'Ticket sale not opened'),
+                              t(
+                                language,
+                                `Vé cho suất chiếu sớm này sẽ mở bán từ ${saleAt!.toLocaleString('vi-VN', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}.`,
+                                `Tickets for this early screening will go on sale from ${saleAt!.toLocaleString('en-GB', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}.`,
+                              ),
+                            );
+                            return;
+                          }
+                          if (onShowtimePress) {
+                            onShowtimePress(movie, asSelected(item));
+                          } else {
+                            onMoviePress(movie);
+                          }
+                        }}>
+                        {selectedDate === 'ALL' && (
+                          <Text style={styles.showtimeDateBadge}>
+                            {formatNgayNgan(item.startTime)}
+                          </Text>
+                        )}
+                        <View style={styles.timeTop}>
+                          <Text style={[styles.timeValue, !saleOpened && styles.timeValuePresale]}>
+                            {formatGio(item.startTime)}
+                          </Text>
+                          <Text style={styles.timeType}>
+                            {item.room?.type || '2D'}
+                          </Text>
+                        </View>
+                        {!saleOpened && (
+                          <Text style={styles.presaleBadge}>
+                            {t(language, 'Sắp mở bán', 'Presale')}
+                          </Text>
+                        )}
+                        <Text style={styles.roomName}>
+                          {item.room?.name || 'Phòng chiếu'}
                         </Text>
-                        <Text style={styles.timeType}>
-                          {item.room?.type || '2D'}
-                        </Text>
-                      </View>
-                      <Text style={styles.roomName}>
-                        {item.room?.name || 'Phòng chiếu'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
             );
@@ -376,6 +408,10 @@ const styles = StyleSheet.create({
   timeValue: {fontSize: 15, color: '#334155', fontWeight: '700'},
   timeType: {display: 'none'},
   roomName: {display: 'none'},
+  showtimeDateBadge: {fontSize: 10, color: '#0284c7', fontWeight: '800', marginBottom: 2},
+  timeButtonPresale: {borderColor: '#fde68a', backgroundColor: '#fffbeb'},
+  timeValuePresale: {color: '#b45309'},
+  presaleBadge: {fontSize: 9, color: '#d97706', fontWeight: '800', marginTop: 2},
 });
 
 export default SuatChieuSom;

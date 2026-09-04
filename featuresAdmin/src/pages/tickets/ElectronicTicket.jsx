@@ -5,8 +5,8 @@ import {formatDate, formatDateTime, formatVnd, getSeatLabel, getUserName} from '
 import {ticketQrPayload} from '../../utils/ticketVerification';
 
 const ticketStatusMap = {
-  valid: {label: 'Hợp lệ', tone: 'success'},
-  used: {label: 'Đã dùng', tone: 'info'},
+  valid: {label: 'Chưa check-in', tone: 'warning'},
+  used: {label: 'Đã check-in', tone: 'success'},
   cancelled: {label: 'Đã hủy', tone: 'danger'},
 };
 

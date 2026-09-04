@@ -36,6 +36,10 @@ const showtimeSchema = new mongoose.Schema(
       default: "regular",
       index: true,
     },
+    ticketSaleStartAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

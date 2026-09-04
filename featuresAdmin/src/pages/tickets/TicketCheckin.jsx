@@ -155,12 +155,15 @@ function TicketCheckin() {
             <p><span>Mã vé</span><strong>{ticket.code}</strong></p>
             <p><span>Ghế</span><strong>{getSeatLabel(ticket)}</strong></p>
             <p><span>Suất chiếu</span><strong>{formatDateTime(ticket.showtime?.startTime)}</strong></p>
-            <p><span>Trạng thái</span><strong>{ticket.status}</strong></p>
+            <p>
+              <span>Trạng thái</span>
+              <strong>{ticket.status === 'used' ? 'Đã check-in' : ticket.status === 'cancelled' ? 'Đã hủy' : 'Chưa check-in'}</strong>
+            </p>
             <button
               type="button"
               disabled={saving || ticket.status === 'used' || ticket.status === 'cancelled'}
               onClick={handleCheckin}>
-              {ticket.status === 'used' ? 'Đã checkin' : 'Xác nhận checkin'}
+              {ticket.status === 'used' ? 'Đã check-in' : 'Xác nhận check-in'}
             </button>
             <button
               type="button"

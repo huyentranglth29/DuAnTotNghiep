@@ -12,14 +12,15 @@ const normalizeSeats = (seats) =>
 
 async function ensureSeatsBelongToShowtime(showtimeId, seats) {
   const showtime = await Showtime.findById(showtimeId)
-    .select("room status movie")
+    .select("room status movie ticketSaleStartAt")
     .populate("movie", "ticketSaleStartAt");
   if (!showtime || showtime.status !== "scheduled") {
     const error = new Error("Suất chiếu không tồn tại hoặc đã ngừng bán");
     error.status = 404;
     throw error;
   }
-  assertTicketSaleOpen(showtime.movie);
+  const effectiveTicketSaleStartAt = showtime.ticketSaleStartAt || showtime.movie?.ticketSaleStartAt;
+  assertTicketSaleOpen({ ticketSaleStartAt: effectiveTicketSaleStartAt });
 
   const roomSeats = await Seat.find({
     room: showtime.room,

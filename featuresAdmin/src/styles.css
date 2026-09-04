@@ -9781,6 +9781,114 @@ a.overviewMetric.overviewClickable {
   background: #fef2f2;
 }
 
+.showtimePublishCard {
+  margin-top: 6px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: grid;
+  gap: 14px;
+}
+
+.showtimePublishHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.showtimePublishIcon {
+  color: #2563eb;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.showtimePublishHeader strong {
+  font-size: 15px;
+  color: #1e293b;
+  display: block;
+}
+
+.showtimePublishHeader p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.showtimeTicketSaleOptions {
+  display: grid;
+  gap: 10px;
+}
+
+.showtimeRadioOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.showtimeRadioOption:hover {
+  border-color: #3b82f6;
+  background: #f0f7ff;
+}
+
+.showtimeRadioOption input[type="radio"] {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.showtimeRadioOption div {
+  display: grid;
+  gap: 2px;
+}
+
+.showtimeRadioOption div strong {
+  font-size: 13.5px;
+  color: #1e293b;
+}
+
+.showtimeRadioOption div span {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.showtimeAdvanceDateInput {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+}
+
+.showtimeAdvanceDateInput label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+  display: grid;
+  gap: 6px;
+}
+
+.showtimeAdvanceDateInput input[type="datetime-local"] {
+  padding: 8px 12px;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.showtimeHelpText {
+  font-size: 12px;
+  color: #3b82f6;
+}
+
 .movieRowActions {
   display: flex;
   gap: 6px;

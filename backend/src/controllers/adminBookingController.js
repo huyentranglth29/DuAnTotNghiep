@@ -344,6 +344,10 @@ const updateOrder = async (req, res) => {
       booking.isPrinted = true;
       booking.printedAt = now;
       booking.printedCount = (booking.printedCount || 0) + 1;
+      // In vé đồng nghĩa khách đã đến rạp lấy vé -> Tự động chuyển sang Đã check-in
+      booking.checkedIn = true;
+      booking.checkedInSeats = [...booking.seats];
+      booking.checkedInAt = booking.checkedInAt || now;
     } else if (action === "note") {
       booking.note = String(req.body.note || "").trim();
     } else {
