@@ -2,6 +2,7 @@ const Showtime = require("../models/Showtime");
 const Seat = require("../models/Seat");
 const BookedSeat = require("../models/BookedSeat");
 const Room = require("../models/Room");
+const { calculateShowtimePrice } = require("../services/ticketPricingService");
 
 const SEAT_TYPES = ["normal", "vip", "couple"];
 
@@ -91,7 +92,7 @@ const getSeatMap = async (req, res, next) => {
       occupiedRows.map((row) => [String(row.seatLabel).toUpperCase(), row]),
     );
 
-    const basePrice = Number(showtime.price) || 0;
+    const basePrice = calculateShowtimePrice(showtime.startTime);
 
     const mappedSeats = seats.map((seat) => {
       const label = `${seat.row}${seat.number}`.toUpperCase();

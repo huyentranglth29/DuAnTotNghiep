@@ -40,6 +40,7 @@ import {claimVoucher} from '../../services/voucherService';
 import {useAuth} from '../../contexts/AuthContext';
 import {useLanguage} from '../../contexts/LanguageContext';
 import {t} from '../../utils/i18n';
+import {calculateTicketPrice} from '../../utils/ticketPricing';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -504,7 +505,7 @@ function TrangChu({onDetailChange}: {onDetailChange?: (isDetail: boolean) => voi
       id: 'default-showtime-id',
       startTime: new Date().toISOString(),
       endTime: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-      price: 55000,
+      price: calculateTicketPrice(new Date()),
       roomName: 'Phòng chiếu 07',
       roomType: '2D Phụ đề',
       cinemaName: 'FilmGo Hà Trung (Thanh Hóa)',

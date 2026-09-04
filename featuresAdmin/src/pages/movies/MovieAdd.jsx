@@ -14,7 +14,6 @@ const initialForm = {
   synopsis: '',
   posterUrl: '',
   backdropUrl: '',
-  price: '',
   status: 'draft',
   ageRating: '',
 };
@@ -113,7 +112,6 @@ function MovieAdd() {
           synopsis: movie.synopsis || movie.description || '',
           posterUrl: movie.posterUrl || movie.poster || '',
           backdropUrl: movie.backdropUrl || '',
-          price: movie.price != null ? String(movie.price) : '',
           status: movie.status === 'coming_soon' ? 'coming-soon' : movie.status || 'draft',
           ageRating: movie.ageRating || '',
         });
@@ -205,7 +203,6 @@ function MovieAdd() {
         genre: form.genre,
         cast: form.cast.split(',').map(item => item.trim()).filter(Boolean),
         duration: Number(form.duration),
-        price: Number(form.price || 0),
         expectedReleaseDate: form.expectedReleaseDate
           ? new Date(`${form.expectedReleaseDate}T00:00:00+07:00`)
           : null,
@@ -376,16 +373,6 @@ function MovieAdd() {
                 value={form.backdropUrl}
                 onChange={event => updateForm('backdropUrl', event.target.value)}
                 placeholder="https://..."
-              />
-            </label>
-
-            <label>
-              Giá vé gốc tham khảo (VNĐ)
-              <input
-                type="number"
-                value={form.price}
-                onChange={event => updateForm('price', event.target.value)}
-                placeholder="Ví dụ: 85000"
               />
             </label>
 

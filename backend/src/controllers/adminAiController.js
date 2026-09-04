@@ -641,7 +641,7 @@ async function getMarkedHotMoviesAnswer() {
 
 async function getLatestMovieAnswer() {
   const movie = await Movie.findOne({})
-    .select("title status director price createdAt releaseDate")
+    .select("title status director createdAt releaseDate")
     .sort({ createdAt: -1, updatedAt: -1 })
     .lean();
   if (!movie) return "Hiện chưa có phim nào trong hệ thống.";
@@ -650,7 +650,6 @@ async function getLatestMovieAnswer() {
     movie.createdAt ? `Thời điểm thêm: ${formatDateTimeVN(movie.createdAt)}.` : "",
     movie.status ? `Trạng thái: ${movieStatusLabel(movie.status)}.` : "",
     movie.director ? `Đạo diễn: ${movie.director}.` : "",
-    movie.price != null ? `Giá vé gốc: ${formatMoney(movie.price)}.` : "",
   ].filter(Boolean);
   return details.join("\n");
 }
@@ -1140,7 +1139,6 @@ function formatMovieInfo(movie) {
     movie.director ? `Đạo diễn: ${movie.director}` : null,
     actors.length ? `Diễn viên: ${actors.join(", ")}` : "Hiện phim này chưa có thông tin diễn viên trong hệ thống.",
     movie.releaseDate ? `Ngày khởi chiếu: ${new Date(movie.releaseDate).toLocaleDateString("vi-VN")}` : null,
-    movie.price != null ? `Giá vé gốc: ${Number(movie.price).toLocaleString("vi-VN")}đ` : null,
     movie.rating != null ? `Đánh giá: ${Number(movie.rating)}/5` : null,
   ].filter(Boolean);
   if (movie.description || movie.synopsis) {

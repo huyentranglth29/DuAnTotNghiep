@@ -20,6 +20,7 @@ import {
   layGheTheoSuatChieu,
 } from '../../../services/showtimeService';
 import {holdSeats, releaseSeats} from '../../../services/apiService';
+import {calculateTicketPrice} from '../../../utils/ticketPricing';
 
 const MOMO_PINK = '#d82d8b';
 const COLOR_SOLD = '#555566';       // Đã đặt - xám tối
@@ -76,7 +77,9 @@ function DatVe({
   const holdInFlightRef = useRef(false);
   const pendingHoldRef = useRef<Set<string> | null>(null);
   const selectedSeatList = Array.from(selectedSeats).sort(sortSeats);
-  const unitPrice = showtime.price > 0 ? showtime.price : 55000;
+  const unitPrice = showtime.price > 0
+    ? showtime.price
+    : calculateTicketPrice(showtime.startTime);
   const totalPrice = selectedSeatList.reduce((total, seat) => {
     const seatType = seatItems.find(item => item.label === seat)?.type;
     const isVip = seatType === 'vip' || seatType === 'couple';

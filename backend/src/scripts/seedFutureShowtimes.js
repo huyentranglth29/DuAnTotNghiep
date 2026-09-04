@@ -6,6 +6,7 @@ const Movie = require("../models/Movie");
 const Room = require("../models/Room");
 const Seat = require("../models/Seat");
 const Showtime = require("../models/Showtime");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const BOOKABLE_MOVIE_STATUSES = [
   "now-showing",
@@ -123,7 +124,7 @@ async function seedFutureShowtimes() {
           room: room._id,
           startTime,
           endTime,
-          price: Number(movie.price || 100000),
+          price: calculateShowtimePrice(startTime),
           status: "scheduled",
           screeningType: "regular",
         });

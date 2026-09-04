@@ -18,7 +18,8 @@
     "seed:data": "node src/scripts/seedData.js",
     "seed:vouchers": "node src/scripts/seedVoucherUsage.js",
     "seed:news": "node src/scripts/seedNewsEvents.js",
-    "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js"
+    "fix:ticket-titles": "node src/scripts/fixBookingMovieTitles.js",
+    "migrate:ticket-prices": "node src/scripts/migrateAutomaticTicketPrices.js"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",

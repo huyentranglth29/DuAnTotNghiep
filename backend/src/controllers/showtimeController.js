@@ -14,6 +14,7 @@ const {
   startOfVietnamDay,
   syncMovieScheduleState,
 } = require("../services/movieScheduleStateService");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const POPULATE = [
   { path: "movie", select: "title posterUrl duration ageRating genre status expectedReleaseDate publishedAt ticketSaleStartAt" },
@@ -316,16 +317,15 @@ const createShowtime = async (req, res, next) => {
       movie,
       room,
       startTime,
-      price,
       status,
       screeningType,
       ticketSaleStartAt,
     } = req.body;
 
-    if (!movie || !room || !startTime || price === undefined) {
+    if (!movie || !room || !startTime) {
       return res.status(400).json({
         success: false,
-        message: "Thiếu phim, phòng, giờ chiếu hoặc giá vé",
+        message: "Thiếu phim, phòng hoặc giờ chiếu",
       });
     }
 
@@ -379,7 +379,7 @@ const createShowtime = async (req, res, next) => {
       room,
       startTime: start,
       endTime: end,
-      price: Number(price),
+      price: calculateShowtimePrice(start),
       status: status || "scheduled",
       screeningType: screeningType === "early" ? "early" : "regular",
       ticketSaleStartAt: saleStart,
@@ -417,8 +417,7 @@ const updateShowtime = async (req, res, next) => {
       : existing.startTime;
     const status =
       req.body.status !== undefined ? req.body.status : existing.status;
-    const price =
-      req.body.price !== undefined ? Number(req.body.price) : existing.price;
+    const price = calculateShowtimePrice(start);
     const screeningType =
       req.body.screeningType !== undefined
         ? req.body.screeningType

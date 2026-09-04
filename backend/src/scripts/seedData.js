@@ -14,6 +14,7 @@ const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const Voucher = require("../models/Voucher");
 const connectDB = require("../config/db");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const movies = [
   {
@@ -254,7 +255,7 @@ const seedShowtimes = async (movieDocs, roomDocs) => {
       room: roomDocs[index % roomDocs.length]._id,
       startTime,
       endTime,
-      price: movie.price || 100000,
+      price: calculateShowtimePrice(startTime),
       status: "scheduled",
     };
   });

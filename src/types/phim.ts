@@ -31,5 +31,4 @@ export interface Phim {
   ngayPhatHanh?: string;
   ngayCongBo?: string;
   moBanVeTu?: string;
-  giaVe?: number;
 }

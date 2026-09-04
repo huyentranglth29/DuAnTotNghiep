@@ -5,13 +5,13 @@ require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 const Room = require("../models/Room");
 const Movie = require("../models/Movie");
 const Showtime = require("../models/Showtime");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const DEFAULT_ROOMS = [
   { name: "Phòng 1", type: "2D", totalSeats: 20, status: "active" },
   { name: "Phòng 2", type: "IMAX", totalSeats: 20, status: "active" },
 ];
 
-const PRICES = [120000, 130000, 150000, 170000];
 const force = process.argv.includes("--force");
 
 function parseDurationMinutes(duration) {
@@ -104,7 +104,7 @@ async function seedRoomsAndShowtimes() {
       room: rooms[index % rooms.length]._id,
       startTime,
       endTime,
-      price: PRICES[index % PRICES.length],
+      price: calculateShowtimePrice(startTime),
       status: "completed",
     });
     index += 1;
@@ -122,7 +122,7 @@ async function seedRoomsAndShowtimes() {
       room: rooms[index % rooms.length]._id,
       startTime,
       endTime,
-      price: PRICES[index % PRICES.length],
+      price: calculateShowtimePrice(startTime),
       status: "completed",
     });
     index += 1;
@@ -139,7 +139,7 @@ async function seedRoomsAndShowtimes() {
       room: rooms[index % rooms.length]._id,
       startTime: start,
       endTime: end,
-      price: PRICES[index % PRICES.length],
+      price: calculateShowtimePrice(start),
       status: "scheduled", // UI tính "Đang chiếu" theo giờ thật
     });
     index += 1;
@@ -160,7 +160,7 @@ async function seedRoomsAndShowtimes() {
         room: rooms[index % rooms.length]._id,
         startTime,
         endTime,
-        price: PRICES[index % PRICES.length],
+        price: calculateShowtimePrice(startTime),
         status: "scheduled",
       });
       index += 1;
@@ -176,7 +176,7 @@ async function seedRoomsAndShowtimes() {
       room: rooms[index % rooms.length]._id,
       startTime: slot.startTime,
       endTime: slot.endTime,
-      price: PRICES[index % PRICES.length],
+      price: calculateShowtimePrice(slot.startTime),
       status: "scheduled",
     });
     index += 1;
@@ -194,7 +194,7 @@ async function seedRoomsAndShowtimes() {
       room: rooms[0]._id,
       startTime,
       endTime,
-      price: PRICES[0],
+      price: calculateShowtimePrice(startTime),
       status: "cancelled",
     });
   }

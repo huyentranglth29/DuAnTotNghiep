@@ -1,5 +1,22 @@
 export const CLEANUP_MINUTES = 15;
 
+export const TICKET_PRICE_BANDS = Object.freeze({
+  morning: {label: 'Buổi sáng', time: '05:00–11:59', price: 40000},
+  afternoon: {label: 'Buổi chiều', time: '12:00–17:59', price: 65000},
+  evening: {label: 'Buổi tối', time: '18:00–04:59', price: 90000},
+});
+
+export function getTicketPriceBand(time = '') {
+  const hour = Number(String(time).split(':')[0]);
+  if (hour >= 5 && hour < 12) return TICKET_PRICE_BANDS.morning;
+  if (hour >= 12 && hour < 18) return TICKET_PRICE_BANDS.afternoon;
+  return TICKET_PRICE_BANDS.evening;
+}
+
+export function calculateTicketPrice(time) {
+  return getTicketPriceBand(time).price;
+}
+
 export const STATUS_LABELS = {
   scheduled: 'Chưa bắt đầu',
   cancelled: 'Đã hủy',

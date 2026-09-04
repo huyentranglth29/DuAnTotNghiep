@@ -273,7 +273,6 @@ function toMongoMovie(movie) {
     rating: movie.rating,
     ageRating: movie.ageRating,
     isHot: movie.isHot,
-    price: movie.price,
   };
 }
 

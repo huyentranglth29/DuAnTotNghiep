@@ -884,12 +884,6 @@ function MovieList() {
                     <dt>Số suất chiếu</dt>
                     <dd>{selected.showtimeCount} suất</dd>
                   </div>
-                  {selected.price != null ? (
-                    <div>
-                      <dt>Giá vé</dt>
-                      <dd>{formatVnd(selected.price)}</dd>
-                    </div>
-                  ) : null}
                   {selected.revenue != null ? (
                     <div>
                       <dt>Doanh thu</dt>

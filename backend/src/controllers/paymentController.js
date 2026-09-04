@@ -11,6 +11,7 @@ const UserVoucher = require("../models/UserVoucher");
 const { buildQuery, sign, verify, formatVnpDate } = require("../utils/vnpay");
 const { createNotification } = require("../services/notificationService");
 const { assertShowtimeBookable } = require("../services/showtimeScheduleService");
+const { calculateShowtimePrice } = require("../services/ticketPricingService");
 
 const PAYMENT_TIMEOUT_MINUTES = 15;
 const PAYOS_API_URL = "https://api-merchant.payos.vn";
@@ -464,7 +465,7 @@ const createVnpayPayment = async (req, res, next) => {
     if (seats.some((label) => !seatByLabel.has(label))) {
       return res.status(400).json({ success: false, message: "Có ghế không thuộc phòng chiếu này" });
     }
-    const unitPrice = Number(showtime.price);
+    const unitPrice = calculateShowtimePrice(showtime.startTime);
     const ticketTotal = seats.reduce((total, label) => {
       const type = seatByLabel.get(label).type;
       return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);
@@ -590,7 +591,7 @@ const createPayosPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Có ghế không thuộc phòng chiếu này" });
     }
 
-    const unitPrice = Number(showtime.price);
+    const unitPrice = calculateShowtimePrice(showtime.startTime);
     const ticketTotal = seats.reduce((total, label) => {
       const type = seatByLabel.get(label).type;
       return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);
@@ -735,7 +736,7 @@ const createMockPayment = async (req, res, next) => {
       return res.status(400).json({ success: false, message: "Có ghế không thuộc phòng chiếu này" });
     }
 
-    const unitPrice = Number(showtime.price);
+    const unitPrice = calculateShowtimePrice(showtime.startTime);
     const ticketTotal = seats.reduce((total, label) => {
       const type = seatByLabel.get(label).type;
       return total + (["vip", "couple"].includes(type) ? Math.round(unitPrice * 1.2) : unitPrice);

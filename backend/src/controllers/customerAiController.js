@@ -107,7 +107,7 @@ async function buildPublicSnapshot() {
     news,
   ] = await Promise.all([
     Movie.find({})
-      .select("title synopsis description duration genre director cast releaseDate status rating ageRating isHot price")
+      .select("title synopsis description duration genre director cast releaseDate status rating ageRating isHot")
       .sort({ isHot: -1, updatedAt: -1 })
       .limit(30)
       .lean(),
@@ -154,7 +154,6 @@ async function buildPublicSnapshot() {
       ageRating: movie.ageRating,
       rating: movie.rating,
       isHot: movie.isHot,
-      price: movie.price,
       synopsis: movie.synopsis || movie.description,
     })),
     todayShowtimes: todayShowtimes.map(item => ({
@@ -258,15 +257,7 @@ async function answerDirect(question = "") {
   }
 
   if (/(gia ve|gia phim|bao nhieu tien|bao nhieu|price)/.test(normalized)) {
-    const movie = await findMovie(question);
-    if (movie?.price) return `Giá vé niêm yết của phim ${movie.title} là ${formatMoney(movie.price)}. Giá thực tế có thể thay đổi theo suất chiếu và loại ghế.`;
-    const rows = await Showtime.find({ status: "scheduled", startTime: { $gte: now } })
-      .populate("movie", "title")
-      .sort({ price: 1 })
-      .limit(5)
-      .lean();
-    if (!rows.length) return "Hiện chưa có dữ liệu giá vé cho suất chiếu sắp tới.";
-    return `Giá vé hiện có từ ${formatMoney(rows[0].price)} đến ${formatMoney(rows[rows.length - 1].price)} tùy suất chiếu và loại ghế.`;
+    return "Giá ghế thường được tính theo giờ bắt đầu suất chiếu: buổi sáng 05:00–11:59 là 40.000đ, buổi chiều 12:00–17:59 là 65.000đ, buổi tối 18:00–04:59 là 90.000đ. Ghế VIP và ghế đôi cao hơn 20%.";
   }
 
   if (/(thong tin|noi dung|dao dien|dien vien|the loai|duration|thoi luong)/.test(normalized)) {

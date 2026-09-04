@@ -10,10 +10,12 @@ import {
   CLEANUP_MINUTES,
   buildEndTimeIso,
   buildStartTimeIso,
+  calculateTicketPrice,
   formatDate,
   formatDuration,
   formatTime,
   formatVnd,
+  getTicketPriceBand,
   toDateInputValue,
   toTimeInputValue,
   toDateTimeInput,
@@ -24,7 +26,6 @@ const EMPTY_FORM = {
   room: '',
   date: '',
   time: '',
-  price: '120000',
   status: 'scheduled',
   screeningType: 'regular',
   enableAdvanceBooking: false,
@@ -76,7 +77,6 @@ function CreateShowtime() {
             room: showtime.room?._id || showtime.room || '',
             date: toDateInputValue(showtime.startTime),
             time: toTimeInputValue(showtime.startTime),
-            price: String(showtime.price ?? ''),
             status: showtime.status || 'scheduled',
             screeningType: showtime.screeningType || 'regular',
             enableAdvanceBooking: Boolean(showtime.ticketSaleStartAt),
@@ -130,6 +130,9 @@ function CreateShowtime() {
     () => rooms.find(item => String(item._id) === String(form.room)),
     [rooms, form.room],
   );
+
+  const automaticPrice = calculateTicketPrice(form.time);
+  const automaticPriceBand = getTicketPriceBand(form.time);
 
   // Xử lý khi Admin đổi chọn phim khác
   const handleMovieChange = newMovieId => {
@@ -340,8 +343,8 @@ function CreateShowtime() {
     event.preventDefault();
     setError('');
 
-    if (!form.movie || !form.room || !form.date || !form.time || !form.price) {
-      setError('Vui lòng nhập đủ phim, phòng, ngày giờ và giá vé');
+    if (!form.movie || !form.room || !form.date || !form.time) {
+      setError('Vui lòng nhập đủ phim, phòng và ngày giờ');
       return;
     }
 
@@ -370,7 +373,6 @@ function CreateShowtime() {
         movie: form.movie,
         room: form.room,
         startTime,
-        price: Number(form.price),
         status: form.status,
         screeningType: form.screeningType,
         ticketSaleStartAt: form.enableAdvanceBooking && form.ticketSaleStartAt
@@ -509,12 +511,15 @@ function CreateShowtime() {
               />
             </label>
             <label>
-              Giá vé (VND)
+              Giá vé tự động (VND)
               <input
-                value={form.price}
-                onChange={event => updateField('price', event.target.value)}
-                placeholder="120000"
+                value={automaticPrice.toLocaleString('vi-VN')}
+                readOnly
+                disabled
               />
+              <small className="showtimeHelpText">
+                {automaticPriceBand.label} ({automaticPriceBand.time})
+              </small>
             </label>
 
             <SelectDropdown
@@ -807,7 +812,7 @@ function CreateShowtime() {
             </p>
             <p>
               <span>Giá vé</span>
-              <strong>{formatVnd(form.price)}</strong>
+              <strong>{formatVnd(automaticPrice)}</strong>
             </p>
             <p>
               <span>Vệ sinh</span>

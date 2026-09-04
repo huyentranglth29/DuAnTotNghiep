@@ -6,6 +6,7 @@ const Movie = require("../models/Movie");
 const Room = require("../models/Room");
 const Showtime = require("../models/Showtime");
 const { syncMovieScheduleState } = require("../services/movieScheduleStateService");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const DEMO_MARKER = "[FilmGo Demo]";
 
@@ -172,7 +173,6 @@ function moviePayload(movie, group, now) {
     rating: movie.rating,
     ageRating: movie.ageRating,
     isHot: movie.isHot,
-    price: movie.price,
   };
 }
 
@@ -219,7 +219,7 @@ function buildShowtimes(records, rooms, now) {
       room: rooms[index % rooms.length]._id,
       startTime: start,
       endTime: endTime(start, record.seed.duration),
-      price: record.seed.price,
+      price: calculateShowtimePrice(start),
       status: "scheduled",
       screeningType: "regular",
     });
@@ -231,7 +231,7 @@ function buildShowtimes(records, rooms, now) {
         room: rooms[(index + 1) % rooms.length]._id,
         startTime: tonight,
         endTime: endTime(tonight, record.seed.duration),
-        price: record.seed.price,
+        price: calculateShowtimePrice(tonight),
         status: "scheduled",
         screeningType: "regular",
       });
@@ -245,7 +245,7 @@ function buildShowtimes(records, rooms, now) {
       room: rooms[index % rooms.length]._id,
       startTime: start,
       endTime: endTime(start, record.seed.duration),
-      price: record.seed.price,
+      price: calculateShowtimePrice(start),
       status: "scheduled",
       screeningType: "early",
     });
@@ -258,7 +258,7 @@ function buildShowtimes(records, rooms, now) {
       room: rooms[index % rooms.length]._id,
       startTime: start,
       endTime: endTime(start, record.seed.duration),
-      price: record.seed.price,
+      price: calculateShowtimePrice(start),
       status: "scheduled",
       screeningType: "regular",
     });

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const {calculateShowtimePrice} = require("../services/ticketPricingService");
 
 const showtimeSchema = new mongoose.Schema(
   {
@@ -45,5 +46,17 @@ const showtimeSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+showtimeSchema.pre("validate", function applyAutomaticTicketPrice() {
+  if (this.startTime) {
+    this.price = calculateShowtimePrice(this.startTime);
+  }
+});
+
+showtimeSchema.post("init", function exposeAutomaticTicketPrice(doc) {
+  if (doc.startTime) {
+    doc.price = calculateShowtimePrice(doc.startTime);
+  }
+});
 
 module.exports = mongoose.model("Showtime", showtimeSchema, "giờ chiếu");

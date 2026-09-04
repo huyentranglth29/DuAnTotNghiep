@@ -77,7 +77,6 @@ function toClientMovie(movie) {
     expectedReleaseDate: movie.expectedReleaseDate,
     publishedAt: movie.publishedAt,
     ticketSaleStartAt: movie.ticketSaleStartAt,
-    price: movie.price,
     isHot: movie.isHot,
   };
 }
@@ -216,7 +215,6 @@ const createMovie = async (req, res, next) => {
       publishedAt,
       ticketSaleStartAt,
       isHot,
-      price,
     } = req.body;
 
     if (!title) {
@@ -243,7 +241,6 @@ const createMovie = async (req, res, next) => {
       publishedAt,
       ticketSaleStartAt,
       isHot,
-      price,
     });
 
     res.status(201).json({

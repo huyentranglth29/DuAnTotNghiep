@@ -26,5 +26,4 @@ export interface PhimApi {
   releaseDate?: string;
   publishedAt?: string;
   ticketSaleStartAt?: string;
-  price?: number;
 }
