@@ -164,9 +164,11 @@ function DatVeDetail({
 
   useEffect(() => {
     if (timeLeft === 0 && !showPaymentScreen && !paymentId) {
-      Alert.alert('Hết thời gian tạo đơn', 'Thời gian tạo đơn đã hết. Ghế sẽ được mở lại, vui lòng chọn lại.', [
-        { text: 'Đóng', onPress: onClose }
-      ]);
+      Alert.alert(
+        'Hết thời gian giữ ghế',
+        'Thời gian giữ ghế tạm thời (15 phút) đã hết. Ghế đã được hệ thống mở lại để nhường cho khách khác, vui lòng chọn lại ghế.',
+        [{ text: 'Chọn lại ghế', onPress: onClose }],
+      );
     }
   }, [timeLeft, showPaymentScreen, paymentId, onClose]);
 
@@ -501,9 +503,13 @@ function DatVeDetail({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
 
-        <View style={styles.timerBox}>
-          <Text style={styles.timerText}>⏳ Thời gian tạo đơn còn lại</Text>
-          <Text style={styles.timerValue}>{countdown}</Text>
+        <View style={[styles.timerBox, timeLeft < 180 && styles.timerBoxUrgent]}>
+          <Text style={[styles.timerText, timeLeft < 180 && styles.timerTextUrgent]}>
+            ⏳ Thời gian giữ ghế còn lại
+          </Text>
+          <Text style={[styles.timerValue, timeLeft < 180 && styles.timerValueUrgent]}>
+            {countdown}
+          </Text>
         </View>
 
         {/* === THÔNG TIN ĐẶT VÉ === */}
@@ -781,8 +787,11 @@ function DatVeDetail({
 
 const styles = StyleSheet.create({
   timerBox: {backgroundColor: '#fff4df', borderRadius: 12, padding: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16},
+  timerBoxUrgent: {backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5'},
   timerText: {color: '#7d5a12', fontSize: 13},
+  timerTextUrgent: {color: '#991b1b', fontWeight: '700'},
   timerValue: {color: '#d97706', fontSize: 15, fontWeight: '900', marginLeft: 7},
+  timerValueUrgent: {color: '#dc2626'},
   voucherHeaderRow: {marginTop: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
   removeVoucher: {color: '#e51978', fontSize: 12, fontWeight: '800'},
   voucherList: {marginHorizontal: -2, marginBottom: 18},

@@ -198,6 +198,8 @@ function TrangChu({onDetailChange}: {onDetailChange?: (isDetail: boolean) => voi
     totalPrice: number;
     holdToken: string;
   } | null>(null);
+  const [lastSelectedSeats, setLastSelectedSeats] = useState<string[]>([]);
+  const [lastHoldToken, setLastHoldToken] = useState<string>('');
   const [xemVe, setXemVe] = useState(false);
   const [selectedShowtime, setSelectedShowtime] = useState<{
     id: string;
@@ -475,16 +477,16 @@ function TrangChu({onDetailChange}: {onDetailChange?: (isDetail: boolean) => voi
         holdToken={bookingSummary.holdToken}
         showtime={selectedShowtime ?? undefined}
         onClose={() => {
+          // Bấm quay lại từ thanh toán: quay về màn hình chọn ghế (DatVe), không về Trang chủ
           setBookingSummary(null);
-          setShowBooking(false);
-          setSelectedDetailMovie(null);
-          setSelectedShowtime(null);
         }}
         onPaymentSuccess={() => {
           setBookingSummary(null);
           setShowBooking(false);
           setSelectedDetailMovie(null);
           setSelectedShowtime(null);
+          setLastSelectedSeats([]);
+          setLastHoldToken('');
           setXemVe(true);
         }}
       />
@@ -515,8 +517,18 @@ function TrangChu({onDetailChange}: {onDetailChange?: (isDetail: boolean) => voi
           poster: {uri: selectedDetailMovie.posterUrl},
         }}
         showtime={defaultShowtime as any}
-        onBack={() => setShowBooking(false)}
-        onContinue={(summary) => setBookingSummary(summary)}
+        initialSeats={lastSelectedSeats}
+        initialHoldToken={lastHoldToken}
+        onBack={() => {
+          setShowBooking(false);
+          setLastSelectedSeats([]);
+          setLastHoldToken('');
+        }}
+        onContinue={(summary) => {
+          setLastSelectedSeats(summary.seats);
+          setLastHoldToken(summary.holdToken);
+          setBookingSummary(summary);
+        }}
       />
     );
   }

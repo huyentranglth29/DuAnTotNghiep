@@ -36,6 +36,8 @@ type DatVeProps = {
     poster: ImageSourcePropType;
   };
   showtime: SelectedShowtimeInfo;
+  initialSeats?: string[];
+  initialHoldToken?: string;
   onBack: () => void;
   onContinue: (summary: {seats: string[]; totalPrice: number; holdToken: string}) => void;
 };
@@ -48,9 +50,16 @@ const CENTER_ZONE = new Set([
   'F6','F7','F8','F9','F10','F11',
 ]);
 
-function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
+function DatVe({
+  movie,
+  showtime,
+  initialSeats,
+  initialHoldToken,
+  onBack,
+  onContinue,
+}: DatVeProps) {
   const {width: screenWidth} = useWindowDimensions();
-  const [selectedSeats, setSelectedSeats] = useState(new Set<string>());
+  const [selectedSeats, setSelectedSeats] = useState(new Set<string>(initialSeats || []));
   const [seatItems, setSeatItems] = useState<GheSuatChieu[]>([]);
   const [soldSeats, setSoldSeats] = useState(new Set<string>());
   const [heldSeats, setHeldSeats] = useState(new Set<string>());
@@ -58,8 +67,10 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
   const [seatError, setSeatError] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSyncingHold, setIsSyncingHold] = useState(false);
-  const selectedSeatsRef = useRef(new Set<string>());
-  const holdTokenRef = useRef(`hold-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const selectedSeatsRef = useRef(new Set<string>(initialSeats || []));
+  const holdTokenRef = useRef(
+    initialHoldToken || `hold-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   const continuingRef = useRef(false);
   const holdingRef = useRef(false);
   const holdInFlightRef = useRef(false);
@@ -103,8 +114,9 @@ function DatVe({movie, showtime, onBack, onContinue}: DatVeProps) {
     const holdToken = holdTokenRef.current;
     setIsLoadingSeats(true);
     setSeatError('');
-    setSelectedSeats(new Set());
-    selectedSeatsRef.current = new Set();
+    const initialSet = new Set(initialSeats || []);
+    setSelectedSeats(initialSet);
+    selectedSeatsRef.current = initialSet;
 
     const refreshSeats = async (initial = false) => {
       if (refreshing) return;

@@ -66,6 +66,8 @@ function ShowtimeNavigator({
     totalPrice: number;
     holdToken: string;
   } | null>(null);
+  const [lastSelectedSeats, setLastSelectedSeats] = useState<string[]>([]);
+  const [lastHoldToken, setLastHoldToken] = useState<string>('');
 
   useEffect(() => {
     onMovieFlowChange?.(!!selectedMovie);
@@ -78,6 +80,8 @@ function ShowtimeNavigator({
     setShowWriteReview(false);
     setShowBooking(false);
     setBookingSummary(null);
+    setLastSelectedSeats([]);
+    setLastHoldToken('');
   };
 
   if (selectedMovie && showWriteReview) {
@@ -106,6 +110,8 @@ function ShowtimeNavigator({
           setSelectedMovie(null);
           setShowMovieDetail(false);
           setShowWriteReview(false);
+          setLastSelectedSeats([]);
+          setLastHoldToken('');
           onGoToMyTickets?.();
         }}
       />
@@ -117,8 +123,18 @@ function ShowtimeNavigator({
       <DatVe
         movie={selectedMovie}
         showtime={selectedShowtime}
-        onBack={() => setShowBooking(false)}
-        onContinue={summary => setBookingSummary(summary)}
+        initialSeats={lastSelectedSeats}
+        initialHoldToken={lastHoldToken}
+        onBack={() => {
+          setShowBooking(false);
+          setLastSelectedSeats([]);
+          setLastHoldToken('');
+        }}
+        onContinue={summary => {
+          setLastSelectedSeats(summary.seats);
+          setLastHoldToken(summary.holdToken);
+          setBookingSummary(summary);
+        }}
       />
     );
   }
